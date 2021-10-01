@@ -14,6 +14,7 @@ add_library(tula_headers INTERFACE)
 target_include_directories(tula_headers
     INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
 # do not add any link libs since we'll be pulling in dependencies
 # as they are needed in the user code
 add_library(tula::headers ALIAS tula_headers)
@@ -28,9 +29,10 @@ if(NOT DEFINED TULA_STANDALONE)
 endif()
 
 if (TULA_STANDALONE)
-    # Create the sum target tula_all and enable tests docs etc.
 
-    ## Component libs
+    ## Create the sum target tula_all and enable tests docs etc.
+
+    # Component libs
     set(component_libs "")
 
     include(perflibs)
@@ -41,6 +43,12 @@ if (TULA_STANDALONE)
 
     include(Yaml)
     set(component_libs ${component_libs} tula::Yaml)
+
+    include(Clipp)
+    set(component_libs ${component_libs} tula::Clipp)
+
+    include(NetCDFCXX4)
+    set(component_libs ${component_libs} tula::NetCDFCXX4)
 
     include(Eigen3)
     set(component_libs ${component_libs} tula::Eigen3)
@@ -58,11 +66,9 @@ if (TULA_STANDALONE)
 
     # A sum-target
     add_library(tula_all INTERFACE)
-    target_include_directories(tula_all
-        INTERFACE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include)
     target_link_libraries(tula_all
         INTERFACE
+            tula::headers
             ${component_libs}
         )
     add_library(tula::tula ALIAS tula_all)

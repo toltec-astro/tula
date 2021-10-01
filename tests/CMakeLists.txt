@@ -1,23 +1,6 @@
 project (tula_test LANGUAGES CXX C)
 
-conan_cmake_autodetect(settings)
-conan_cmake_configure(REQUIRES
-    benchmark/[>=1.5]
-    gtest/cci.20210126
-    GENERATORS cmake_find_package)
-conan_cmake_install(PATH_OR_REFERENCE ${CMAKE_BINARY_DIR}
-                    BUILD outdated
-                    REMOTE conancenter
-                    SETTINGS ${settings}
-                    INSTALL_FOLDER ${CMAKE_BINARY_DIR})
-find_package(benchmark)
-find_package(GTest)
-
-enable_testing()
-
-# https://gitlab.kitware.com/cmake/community/wikis/doc/tutorials/EmulateMakeCheck
-add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
-include(GoogleTest)
+include(testing)
 
 add_executable(tula_test)
 set_target_properties(tula_test
@@ -38,8 +21,8 @@ target_sources(tula_test
     )
 target_link_libraries(tula_test
     PRIVATE
-        tula::all
-        GTest::gtest GTest::gmock benchmark::benchmark
+        tula::tula
+        tula::testing
     )
 
 add_dependencies(check tula_test)
