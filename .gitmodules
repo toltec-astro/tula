@@ -1,0 +1,4 @@
+[submodule "tula_cmake"]
+	path = tula_cmake
+	url = https://github.com/toltec-astro/tula_cmake.git
+	branch = main
