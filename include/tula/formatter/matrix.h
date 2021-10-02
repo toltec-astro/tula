@@ -2,7 +2,7 @@
 #include "../eigen.h"
 #include "../meta.h"
 #include <array>
-#include <fmt/core.h>
+#include <fmt/ranges.h>
 #include <vector>
 
 #if defined(__GNUC__) && !defined(__clang__)
@@ -222,6 +222,11 @@ protected:
     Eigen::IOFormat format;
 };
 
+template <typename T> struct is_std_array : std::false_type {};
+
+template <typename T, auto n>
+struct is_std_array<std::array<T, n>> : std::true_type {};
+
 } // namespace tula::fmt_utils
 
 namespace fmt {
@@ -322,29 +327,34 @@ struct formatter<tula::fmt_utils::pprint<T, Format>> {
                              .str());
     }
 };
-
-/*
-template <typename Derived>
-requires tula::eigen_utils::is_eigen_v<Derived>
-struct formatter<Derived> : formatter<tula::fmt_utils::pprint<Derived>> {
+template <typename Derived, typename Char>
+requires(!fmt::FormattableRange<Derived, Char>) &&
+    tula::eigen_utils::is_eigen_v<Derived> struct formatter<Derived, Char>
+    : formatter<tula::fmt_utils::pprint<Derived>, Char> {
 };
 
-template <typename T, typename Char, typename... Rest>
-struct formatter<std::vector<T, Rest...>, Char,
-                 std::enable_if_t<fmt_utils::scalar_traits<T>::value>>
-    : formatter<fmt_utils::pprint<T>> {};
+template <typename Derived, typename Char>
+requires fmt::FormattableRange<Derived, Char> &&
+    tula::eigen_utils::is_eigen_v<Derived>
+struct formatter<Derived, Char>
+    : formatter<tula::fmt_utils::pprint<Derived>, Char> {
+};
 
-template <typename T, std::size_t size, typename Char>
-struct formatter<std::array<T, size>, Char,
-                 std::enable_if_t<fmt_utils::scalar_traits<T>::value>>
-    : formatter<fmt_utils::pprint<T>> {
+template <typename T, typename Char>
+requires fmt::FormattableRange<T, Char> &&
+    (tula::meta::is_instance<T, std::vector>::value ||
+     tula::fmt_utils::is_std_array<T>::value) &&
+    tula::fmt_utils::scalar_traits<typename T::value_type>::value
+    struct formatter<T, Char>
+    : formatter<tula::fmt_utils::pprint<typename T::value_type>> {
     template <typename FormatContext>
-    auto format(const std::array<T, size> &arr, FormatContext &ctx)
-        -> decltype(ctx.out()) {
-        return formatter<fmt_utils::pprint<T>>::format(
-            fmt_utils::pprint{arr.data(),
-static_cast<Eigen::Index>(arr.size())}, ctx);
+    auto format(const T &arr, FormatContext &ctx) -> decltype(ctx.out()) {
+        return formatter<tula::fmt_utils::pprint<typename T::value_type>>::
+            format(
+                tula::fmt_utils::pprint{arr.data(),
+                                        static_cast<Eigen::Index>(arr.size())},
+                ctx);
     }
 };
-*/
+
 } // namespace fmt

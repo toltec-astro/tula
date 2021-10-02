@@ -6,7 +6,7 @@ project(tula
         "https://toltec-astro.github.io/tula"
     )
 
-# Load cmake modules
+# Load CMake modules
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/tula_cmake/cmake" ${CMAKE_MODULE_PATH})
 include(common_settings)
 
@@ -15,11 +15,11 @@ target_include_directories(tula_headers
     INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# do not add any link libs since we'll be pulling in dependencies
+# Do not add any link libs since we'll be pulling in dependencies
 # as they are needed in the user code
 add_library(tula::headers ALIAS tula_headers)
 
-# check 
+# Check if this project is embedded as sub project.
 if(NOT DEFINED TULA_STANDALONE)
     if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
         set(TULA_STANDALONE ON)
@@ -30,9 +30,8 @@ endif()
 
 if (TULA_STANDALONE)
 
-    ## Create the sum target tula_all and enable tests docs etc.
+    # Create a sum-target tula_all and enable tests, example, at doc
 
-    # Component libs
     set(component_libs "")
 
     include(perflibs)
@@ -64,7 +63,6 @@ if (TULA_STANDALONE)
     generate_config_header(${CMAKE_PROJECT_NAME})
     set(component_libs ${component_libs} tula::config_header)
 
-    # A sum-target
     add_library(tula_all INTERFACE)
     target_link_libraries(tula_all
         INTERFACE

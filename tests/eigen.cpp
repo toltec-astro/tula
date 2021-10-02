@@ -28,5 +28,4 @@ TEST(test_matrix, iter) {
         EXPECT_NO_THROW(fmtlog("*it={}", *it));
     }
 }
-
 } // namespace
