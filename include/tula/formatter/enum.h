@@ -57,7 +57,7 @@ auto format_enum_value_meta(FormatContextOut &it, char spec, const T &meta)
             return it;
         }
         // with explicit def
-        str.erase(str.begin());  // remove the = sign
+        str.erase(str.begin()); // remove the = sign
         fmt::format_to(it, "{}({})", meta.name, str);
         return it;
     }
@@ -89,7 +89,7 @@ auto format_bitmask_with_meta(FormatContextOut &it, char spec,
                               const bitmask::bitmask<T> &bm) {
     using meta_t = decltype(enum_meta_type(enum_utils::type_t<T>{}));
     // get metadata of enum member
-    auto meta = meta_t::from_value(static_cast<T>(bm)); // optional<meta>
+    auto meta = meta_t::from_value(static_cast<T>(bm.bits())); // optional<meta>
     if (meta) {
         return format_enum_value_meta(it, spec, meta.value());
     }
@@ -208,8 +208,7 @@ struct formatter<meta_enum::MetaEnum<EnumType, UnderlyingType, size>>
 /// @brief Formatter for enum value meta
 template <typename EnumType>
 struct formatter<meta_enum::MetaEnumMember<EnumType>>
-    : tula::fmt_utils::charspec_formatter_base<'l', 'd', 's'>
-{
+    : tula::fmt_utils::charspec_formatter_base<'l', 'd', 's'> {
     template <typename FormatContext>
     auto format(const meta_enum::MetaEnumMember<EnumType> &meta,
                 FormatContext &ctx) -> decltype(ctx.out()) {

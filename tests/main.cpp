@@ -3,9 +3,8 @@
 #include <gtest/gtest.h>
 #include <tula/formatter/ptr.h>
 #include <tula/logging.h>
-namespace {
 
-} // namespace
+namespace {} // namespace
 
 int main(int argc, char *argv[]) {
     tula::logging::init(spdlog::level::trace);
