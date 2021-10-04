@@ -9,7 +9,8 @@ namespace {
 
 using namespace tula::testing;
 
-TEST(test_matrix, iter) {
+// NOLINTNEXTLINE
+TEST(matrix, iter) {
     using tula::fmt_utils::pprint;
     Eigen::MatrixXd m{5, 2};
     m.reshaped().setLinSpaced(10, 0, 9);

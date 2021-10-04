@@ -8,16 +8,16 @@ namespace tula::testing {
 
 // Define some meta enums
 // enum for test meta_enum
-META_ENUM_(Type, int, TypeA, TypeB, TypeC);
+TULA_ENUM(Type, int, TypeA, TypeB, TypeC);
 
 // enum for test meta_enum with bitmask
-META_ENUM_(Flag, int, FlagA = 1 << 0, FlagB = 1 << 1, FlagC = 1 << 2,
-           FlagD = FlagA | FlagB | FlagC, FlagE = FlagB | FlagC);
-BITMASK_DEFINE_MAX_ELEMENT(Flag, FlagC)
+TULA_ENUM(Flag, int, FlagA = 1 << 0, FlagB = 1 << 1, FlagC = 1 << 2,
+          FlagD = FlagA | FlagB | FlagC, FlagE = FlagB | FlagC);
+TULA_BITFLAG_MAX_ELEMENT(Flag, FlagC);
 
 // enum for test bitmask
 enum class Bit : int { BitA = 1 << 0, BitB = 1 << 1, BitC = 1 << 2 };
-BITMASK_DEFINE_MAX_ELEMENT(Bit, BitC)
+TULA_BITFLAG_MAX_ELEMENT(Bit, BitC);
 
 } // namespace tula::testing
 
@@ -25,7 +25,8 @@ namespace {
 
 using namespace tula::testing;
 
-TEST(test_formatter, meta_enum_type) {
+// NOLINTNEXTLINE
+TEST(formatter, meta_enum_type) {
     using meta = Type_meta;
     EXPECT_NO_THROW(fmtlog("{}: members{}", meta::name, meta::members));
     EXPECT_NO_THROW(fmtlog("{}: non existing member {}", meta::name,
@@ -37,7 +38,8 @@ TEST(test_formatter, meta_enum_type) {
     EXPECT_NO_THROW(fmtlog("abc: {}", meta::from_name("abc")));
 }
 
-TEST(test_formatter, meta_enum_flag) {
+// NOLINTNEXTLINE
+TEST(formatter, meta_enum_flag) {
     using meta = Flag_meta;
     EXPECT_NO_THROW(fmtlog("{}: members{}", meta::name, meta::members));
     EXPECT_NO_THROW(fmtlog("{}: non existing member {}", meta::name,
@@ -59,7 +61,8 @@ TEST(test_formatter, meta_enum_flag) {
     EXPECT_NO_THROW(fmtlog("abc: {}", meta::from_name("abc")));
 }
 
-TEST(test_formatter, bitmask_bit) {
+// NOLINTNEXTLINE
+TEST(formatter, bitmask_bit) {
     auto bm = bitmask::bitmask<Bit>{};
     EXPECT_NO_THROW(fmtlog("BitA: {:d}", bm | Bit::BitA));
     EXPECT_NO_THROW(fmtlog("BitA: {:s}", bm | Bit::BitA));
@@ -71,5 +74,4 @@ TEST(test_formatter, bitmask_bit) {
     EXPECT_NO_THROW(fmtlog("BitAC: {:l}", Bit::BitC | Bit::BitA));
     EXPECT_NO_THROW(fmtlog("BitAC: {:s}", Bit::BitC | Bit::BitA));
 }
-
 } // namespace

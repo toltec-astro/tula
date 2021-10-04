@@ -7,8 +7,9 @@ namespace {
 
 using namespace tula::testing;
 
-TEST(test_formatter, byte) {
-    std::byte b{42};
+// NOLINTNEXTLINE
+TEST(formatter, byte) {
+    std::byte b{42}; // NOLINT
     EXPECT_NO_THROW(fmtlog("b={}", b));
     EXPECT_NO_THROW(fmtlog("b={:x}", b));
 }

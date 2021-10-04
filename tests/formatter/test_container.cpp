@@ -16,7 +16,8 @@ namespace {
 
 using namespace tula::testing;
 
-TEST(test_formatter, std_container) {
+// NOLINTNEXTLINE
+TEST(formatter, std_container) {
     EXPECT_NO_THROW(fmtlog("l{}", std::list{1, 2}));
     EXPECT_NO_THROW(fmtlog("p{}", std::pair{1, 2}));
     EXPECT_NO_THROW(fmtlog("a{}", std::array{1, 2}));
@@ -28,16 +29,17 @@ TEST(test_formatter, std_container) {
     EXPECT_NO_THROW(fmtlog("monostate={}", std::monostate{}));
     EXPECT_NO_THROW(fmtlog(
         "m{}", std::unordered_map<std::string, int>{{"a", 1}, {"b", 2}}));
-    EXPECT_NO_THROW(fmtlog("m{}",
-                           std::unordered_map<std::string, std::optional<int>>{
-                               {"a", 1}, {"b", std::nullopt}}));
+    EXPECT_NO_THROW(
+        fmtlog("m{}", std::unordered_map<std::string, std::optional<int>>{
+                          {"a", 1}, {"b", std::nullopt}}));
 
     std::variant<std::monostate, std::string, int, double> v;
     std::vector<decltype(v)> vs{1, "2", 3.0, std::monostate{}};
     EXPECT_NO_THROW(fmtlog("vs={}", vs));
 }
 
-TEST(test_formatter, variant) {
+// NOLINTNEXTLINE
+TEST(formatter, variant) {
     std::variant<bool, int, double, const char *, std::string> v;
     using namespace std::literals;
     EXPECT_EQ(fmtlog("v={}", v = true), "v=true (bool)");

@@ -7,7 +7,8 @@ namespace {
 
 using namespace tula::testing;
 
-TEST(test_formatter, matrix) {
+// NOLINTNEXTLINE
+TEST(formatter, matrix) {
     Eigen::MatrixXd m{5, 10};
     m.setConstant(std::nan(""));
     m.reshaped().setLinSpaced(m.size(), 0, m.size() - 1);

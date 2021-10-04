@@ -7,7 +7,7 @@
 #include <grppi/grppi.h>
 #include <numeric>
 
-namespace grppiex {
+namespace tula::grppi_utils {
 
 #ifdef DOXYGEN
 /**
@@ -32,7 +32,7 @@ enum class Mode : int {
 };
 #else
 // clang-format off
-BITMASK_(Mode, int, 0xFFFF,
+BITMASK_(ExMode, int, 0xFFFF,
          seq      = 1 << 0,
          thr      = 1 << 1,
          omp      = 1 << 2,
@@ -44,11 +44,11 @@ BITMASK_(Mode, int, 0xFFFF,
 #endif
 
 /*
- * @brief Manage the available GRPPI execution modes.
+ * @brief A utility class  available GRPPI execution modes.
  * @tparam modes The modes to use, sorted from high priority to low.
  * If not set, a default order is used: {omp, thr, tbb, ff, seq}.
  */
-template <Mode... modes> struct Modes {
+template <ExMode... modes> struct Modes {
 private:
     template <Mode... ms> struct Modes_impl {
     private:
@@ -89,7 +89,7 @@ private:
         }
 
     public:
-        constexpr static auto supported = meta::t2a(get_supported());
+        constexpr static auto supported = tula::meta::t2a(get_supported());
     };
     using self = std::conditional_t<
         (sizeof...(modes) > 0), Modes_impl<modes...>,
@@ -180,7 +180,6 @@ public:
     static grppi::dynamic_execution dyn_ex() {
         return dyn_ex(default_());
     }
-
 };
 
 /// @brief The default Modes class with all supported modes enabled.
@@ -201,12 +200,12 @@ template <typename... Args> auto default_mode(Args... args) {
 /// @brief Returns the name of the default GRPPI mode.
 /// @see \ref default_mode
 template <typename... Args> auto default_mode_name(Args... args) {
-    return modes::default_name(FWD(args)...);
+    return modes::default_name(std::forward<Args>(args)...);
 }
 /// @brief Returns the GRPPI execution object of \p mode.
 /// @see \ref Modes::dyn_ex
 template <typename... Args> auto dyn_ex(Args... args) {
-    return modes::dyn_ex(FWD(args)...);
+    return modes::dyn_ex(std::forward<Args>(args)...);
 }
 
-} // namespace grppiex
+} // namespace tula::grppi_utils

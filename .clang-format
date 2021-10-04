@@ -1,8 +1,7 @@
 ---
 Language:        Cpp
 # BasedOnStyle:  LLVM
-# AccessModifierOffset: -2
-AccessModifierOffset: -4
+AccessModifierOffset: -4  # -2
 AlignAfterOpenBracket: Align
 AlignConsecutiveMacros: None
 AlignConsecutiveAssignments: None
@@ -24,8 +23,7 @@ AllowShortLoopsOnASingleLine: false
 AlwaysBreakAfterDefinitionReturnType: None
 AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: false
-# AlwaysBreakTemplateDeclarations: MultiLine
-AlwaysBreakTemplateDeclarations: True
+AlwaysBreakTemplateDeclarations: Yes  # MultiLine
 AttributeMacros:
   - __capability
 BinPackArguments: true
@@ -100,8 +98,7 @@ IndentGotoLabels: true
 IndentPPDirectives: None
 IndentExternBlock: AfterExternBlock
 IndentRequires:  false
-# IndentWidth:     2
-IndentWidth:     4
+IndentWidth:     4  # 2
 IndentWrappedFunctionNames: false
 InsertTrailingCommas: None
 JavaScriptQuotes: Leave
@@ -166,4 +163,3 @@ WhitespaceSensitiveMacros:
   - NS_SWIFT_NAME
   - CF_SWIFT_NAME
 ...
-

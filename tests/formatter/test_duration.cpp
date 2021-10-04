@@ -7,7 +7,8 @@ namespace {
 
 using namespace tula::testing;
 
-TEST(test_formatter, duration) {
+// NOLINTNEXTLINE
+TEST(formatter, duration) {
     using namespace std::chrono;
     EXPECT_EQ(fmtlog("{}", days{3}), "3d");
     EXPECT_EQ(fmtlog("{}", days{366}), "366d");

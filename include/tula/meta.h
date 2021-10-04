@@ -18,24 +18,12 @@ template <typename... Ts> auto fwd_capture_impl(Ts &&...xs) noexcept {
 
 } // namespace internal
 
-
 /**
- * @brief Cast numerical type with bound check in debug.
+ * @brief Cast numerical type with bound check in debug mode.
  */
 template <Integral T, Integral U> T size_cast(U value) noexcept {
     assert(value == static_cast<U>(static_cast<T>(value)));
     return static_cast<T>(value);
-}
-
-/**
- * @brief Call function for each type in Ts.
- *
- * The function passed should not take argument or return.
- */
-template <typename... Ts, typename F>
-requires IsNullary<F> && RTIsType<void, F>
-auto invoke_for_each_type(F &&f) {
-    (std::invoke(std::forward<F>(f).template operator()<Ts>), ...);
 }
 
 /// @brief Call function for each item in sequence.
@@ -51,6 +39,13 @@ template <typename T, class Func, T... Is,
           template <typename TT, TT...> typename S>
 constexpr auto apply_const_sequence(Func &&f, S<T, Is...>) -> decltype(auto) {
     return std::forward<Func>(f)(std::integral_constant<T, Is>{}...);
+}
+
+template <typename tuple_t> constexpr auto t2a(tuple_t &&tuple) {
+    constexpr auto get_array = [](auto &&...x) {
+        return std::array{std::forward<decltype(x)>(x)...};
+    };
+    return std::apply(get_array, std::forward<tuple_t>(tuple));
 }
 
 } // namespace tula::meta

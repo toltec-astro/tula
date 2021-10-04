@@ -30,8 +30,7 @@ endif()
 
 if (TULA_STANDALONE)
 
-    # Create a sum-target tula_all and enable tests, example, at doc
-
+    # Create a sum-target tula_all incluing all componnets
     set(component_libs "")
 
     include(perflibs)

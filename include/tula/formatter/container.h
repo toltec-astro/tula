@@ -6,7 +6,8 @@
 
 namespace fmt {
 
-template <typename T> struct formatter<std::optional<T>> : formatter<T> {
+template <typename T>
+struct formatter<std::optional<T>> : formatter<T> {
     template <typename FormatContext>
     auto format(const std::optional<T> &opt, FormatContext &ctx)
         -> decltype(ctx.out()) {
@@ -21,7 +22,7 @@ template <>
 struct formatter<std::nullopt_t, char, void>
     : tula::fmt_utils::nullspec_formatter_base {
     template <typename FormatContext>
-    auto format(const std::nullopt_t &nullopt, FormatContext &ctx) noexcept
+    auto format(const std::nullopt_t & /*unused*/, FormatContext &ctx) noexcept
         -> decltype(ctx.out()) {
         return format_to(ctx.out(), "(nullopt)");
     }
@@ -31,7 +32,7 @@ template <>
 struct formatter<std::monostate, char, void>
     : tula::fmt_utils::nullspec_formatter_base {
     template <typename FormatContext>
-    auto format(const std::monostate &, FormatContext &ctx) noexcept
+    auto format(const std::monostate & /*unused*/, FormatContext &ctx) noexcept
         -> decltype(ctx.out()) {
         return format_to(ctx.out(), "(undef)");
     }

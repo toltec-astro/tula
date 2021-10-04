@@ -1,47 +1,19 @@
 #pragma once
 #include "../concepts.h"
 #include "../enum.h"
+#include "../meta.h"
 #include "container.h"
 #include <bit>
 #include <fmt/format.h>
 
 namespace tula::fmt_utils {
 
-namespace internal {
-
-// https://stackoverflow.com/a/65440575
-template <unsigned... Len>
-constexpr auto fmt_str_cat(const char (&...strings)[Len]) {
-    constexpr unsigned N = (... + Len) - sizeof...(Len);
-    std::array<char, N + 1> result{};
-    result.c[N] = '\0';
-    char *dst = result.c;
-    for (const char *src : {strings...}) {
-        for (; *src != '\0'; src++, dst++) {
-            *dst = *src;
-        }
-    }
-}
-
-} // namespace internal
-
-/*
-/// @brief Format int type as bits with set width
-template <typename FormatContextOut>
-auto format_bits(FormatContextOut &it, const T &value, ) -> decltype(auto) {
-    if (value > ((1 << width) - 1)) {
-        return fmt::format_to(it, "b{:b}", value);
-    }
-    return fmt::format_to(it, fmt::runtime(fmt::format("b{{:{}b}}", width)),
-                          value);
-}
-*/
-
 /// @brief Format int type as bits with set width
 template <tula::meta::Integral T, typename FormatContextOut>
 auto format_bits(FormatContextOut &it, const T &value, std::size_t width = 0)
     -> decltype(auto) {
     if (value > ((1 << width) - 1)) {
+        // This is when the value is larger than the bit width.
         return fmt::format_to(it, "b{:b}", value);
     }
     return fmt::format_to(it, fmt::runtime(fmt::format("b{{:0{}b}}", width)),
@@ -98,7 +70,7 @@ auto format_enum_value_meta(FormatContextOut &it, char spec, const T &meta)
 /// @brief Format enum value using the enum value meta.
 template <typename T, typename FormatContextOut>
 auto format_enum_with_meta(FormatContextOut &it, char spec, const T &value) {
-    using meta_t = decltype(enum_meta_type(meta_enum::type_t<T>{}));
+    using meta_t = decltype(enum_meta_type(enum_utils::type_t<T>{}));
     // get metadata of enum member
     auto meta = meta_t::from_value(value); // optional<meta>
     if (meta) {
@@ -115,7 +87,7 @@ auto format_enum_with_meta(FormatContextOut &it, char spec, const T &value) {
 template <typename T, typename FormatContextOut>
 auto format_bitmask_with_meta(FormatContextOut &it, char spec,
                               const bitmask::bitmask<T> &bm) {
-    using meta_t = decltype(enum_meta_type(meta_enum::type_t<T>{}));
+    using meta_t = decltype(enum_meta_type(enum_utils::type_t<T>{}));
     // get metadata of enum member
     auto meta = meta_t::from_value(static_cast<T>(bm)); // optional<meta>
     if (meta) {
@@ -141,7 +113,7 @@ auto format_bitmask_with_meta(FormatContextOut &it, char spec,
         if (bits > 0) {
             it = fmt::format_to(it, ",");
         }
-        it = format_bits(it, bits, std::bit_width(bm.mask_value));
+        it = format_bits(it, bits, std::bit_width(TULA_SIZET(bm.mask_value)));
         [[fallthrough]];
     }
     default: {
@@ -188,8 +160,7 @@ struct formatter<bitmask::bitmask<T>>
         auto it = ctx.out();
         auto spec = spec_handler();
         if (spec == 'd') {
-            auto w = std::bit_width(
-                tula::meta::size_cast<std::size_t>(bm.mask_value));
+            auto w = std::bit_width(TULA_SIZET(bm.mask_value));
             return tula::fmt_utils::format_bits(it, bm.bits(), w);
         }
         if constexpr (tula::enum_utils::EnumWithMeta<T>) {
@@ -238,9 +209,6 @@ struct formatter<meta_enum::MetaEnum<EnumType, UnderlyingType, size>>
 template <typename EnumType>
 struct formatter<meta_enum::MetaEnumMember<EnumType>>
     : tula::fmt_utils::charspec_formatter_base<'l', 'd', 's'>
-// d: the bit value
-// s: the name
-// l: the name and value string (default)
 {
     template <typename FormatContext>
     auto format(const meta_enum::MetaEnumMember<EnumType> &meta,
@@ -248,42 +216,6 @@ struct formatter<meta_enum::MetaEnumMember<EnumType>>
         auto it = ctx.out();
         auto spec = this->spec_handler();
         return tula::fmt_utils::format_enum_value_meta(it, spec, meta);
-        //         if constexpr (bitmask::bitmask<
-        //                           EnumType>::mask_value > 0) {
-        //             SPDLOG_TRACE("has value mask {}", meta.name);
-        //             return formatter<bitmask::bitmask<EnumType>>::format(
-        //                 bitmask::bitmask<EnumType>{meta.value}, ctx);
-        //         } else {
-        //             SPDLOG_TRACE("not have value mask {}", meta.name);
-        //             // not a bit mask
-        //             auto it = ctx.out();
-        //             auto spec = this->spec_handler();
-        //             if (spec == 'd') {
-        //                 return fmt_utils::format_bits(it, meta.value);
-        //             }
-        //             switch (spec) {
-        //             case 's': {
-        //                 return format_to(it, "{}", meta.name);
-        //             }
-        //             case 'l': {
-        //                 // format using the string
-        //                 auto str =
-        //                 fmt_utils::remove_space(std::string(meta.string));
-        //                 str.erase(str.begin(),
-        //                           ++std::find(str.begin(), str.end(), '='));
-        //                 // without explicit def
-        //                 if (str.empty()) {
-        //                     it = format_to(it, "{}(", meta.name);
-        //                     it = fmt_utils::format_bits(it, meta.value);
-        //                     return format_to(it, ")");
-        //                 }
-        //                 return format_to(it, "{}({})", meta.name, str);
-        //             }
-        //             default: {
-        //                 return it;
-        //             }
-        //             }
-        //         }
     }
 };
 

@@ -11,7 +11,7 @@ target_sources(tula_test
     PRIVATE
         main.cpp
         eigen.cpp
-        grppiex.cpp
+        # grppiex.cpp
         formatter/test_enum.cpp
         formatter/test_ptr.cpp
         formatter/test_byte.cpp
