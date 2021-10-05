@@ -50,6 +50,9 @@ concept Iterable = requires(T &t) {
     std::end(t);
 };
 
+template <typename T>
+concept SizedIterable = Sized<T> && Iterable<T>;
+
 // [Return type constraints]
 template <template <typename...> typename traits, typename F, typename... Args>
 concept RTHasTraits =
