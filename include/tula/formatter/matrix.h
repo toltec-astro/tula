@@ -1,6 +1,7 @@
 #pragma once
 #include "../eigen.h"
 #include "../meta.h"
+#include <algorithm>
 #include <array>
 #include <fmt/ranges.h>
 #include <vector>
@@ -26,7 +27,8 @@ void from_chars(char *begin, char *end, Scalar &dest) {
 
 namespace tula::fmt_utils {
 
-template <typename T> struct scalar_traits {
+template <typename T>
+struct scalar_traits {
     using type = typename std::decay_t<T>;
     constexpr static bool value = std::is_arithmetic_v<type>;
 };
@@ -39,21 +41,25 @@ template <typename T> struct scalar_traits {
 /// @param max_cols maximum number of cols to be printed for 2-D data.
 /// @param max_size maximum number of items to be printed in case of 1-D data.
 template <typename OStream, typename Derived>
-OStream &pprint_matrix(OStream &s, const Eigen::DenseBase<Derived> &m_,
-                       const Eigen::IOFormat &fmt, int max_rows, int max_cols,
-                       int max_size) {
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+auto pprint_matrix(OStream &s, const Eigen::DenseBase<Derived> &m_,
+                   const Eigen::IOFormat &fmt, int max_rows, int max_cols,
+                   int max_size) -> OStream & {
     auto &&m = m_.derived();
     if (m.size() == 0) {
         s << fmt.matPrefix << fmt.matSuffix;
         return s;
     }
     // minimum size to print;
-    if (max_rows < 3)
+    if (max_rows < 3) {
         max_rows = 3;
-    if (max_cols < 3)
+    }
+    if (max_cols < 3) {
         max_cols = 3;
-    if (max_size < 3)
+    }
+    if (max_size < 3) {
         max_size = 3;
+    }
     // vector case
     if (m.cols() == 1 || m.rows() == 1) {
         max_rows = max_size;
@@ -67,21 +73,23 @@ OStream &pprint_matrix(OStream &s, const Eigen::DenseBase<Derived> &m_,
         explicit_precision = fmt.precision;
     }
     std::streamsize old_precision = 0;
-    if (explicit_precision)
+    if (explicit_precision) {
         old_precision = s.precision(explicit_precision);
+    }
 
     // iterate-and-apply F to m items from head and tail of container with n
     // items in total
     auto partial_apply = [](auto n, auto m, auto &&F) {
         if (n <= m) {
-            for (decltype(n) i = 0; i < n; ++i)
-                TULA_FWD(F)(i);
+            for (decltype(n) i = 0; i < n; ++i) {
+                std ::forward<decltype(F)>(F)(i);
+            }
         } else {
             for (decltype(n) i = 0; i < m / 2; ++i) {
-                TULA_FWD(F)(i);
+                std ::forward<decltype(F)>(F)(i);
             }
             for (decltype(n) i = n - m / 2 - 1; i < n; ++i) {
-                TULA_FWD(F)(i);
+                std ::forward<decltype(F)>(F)(i);
             }
         }
     };
@@ -172,7 +180,8 @@ struct pformat {
     }
 };
 
-template <typename T, typename Format = pformat> struct pprint {
+template <typename T, typename Format = pformat>
+struct pprint {
     using Ref =
         typename Eigen::internal::ref_selector<typename std::conditional<
             fmt_utils::scalar_traits<T>::value,
@@ -204,9 +213,10 @@ template <typename T, typename Format = pformat> struct pprint {
     /**
      * @brief Pretty print data held by std vector
      */
-    template <typename U = T, typename Allocator=std::allocator<T>,
+    template <typename U = T, typename Allocator = std::allocator<T>,
               typename = std::enable_if_t<fmt_utils::scalar_traits<U>::value>>
-    pprint(const std::vector<T, Allocator> &vec) : pprint(vec.data(), vec.size()) {}
+    pprint(const std::vector<T, Allocator> &vec)
+        : pprint(vec.data(), vec.size()) {}
 
     /// This is need to handle VectorBlock specialty
     template <typename U = T,
@@ -215,14 +225,16 @@ template <typename T, typename Format = pformat> struct pprint {
     pprint(const T &m)
         : matrix(m), format(Format::format(m.rows(), m.cols())) {}
 
-    template <typename, typename, typename> friend struct fmt::formatter;
+    template <typename, typename, typename>
+    friend struct fmt::formatter;
 
 protected:
     Ref matrix;
     Eigen::IOFormat format;
 };
 
-template <typename T> struct is_std_array : std::false_type {};
+template <typename T>
+struct is_std_array : std::false_type {};
 
 template <typename T, auto n>
 struct is_std_array<std::array<T, n>> : std::true_type {};
@@ -236,23 +248,25 @@ struct formatter<tula::fmt_utils::pprint<T, Format>> {
 
     using Index = Eigen::Index;
 
-    Index max_rows = 5;
-    Index max_cols = 5;
-    Index max_size = 10;
+    constexpr static Index max_rows_default = 5;
+    constexpr static Index max_cols_default = 5;
+    constexpr static Index max_size_default = 10;
+    Index max_rows{max_rows_default};
+    Index max_cols{max_cols_default};
+    Index max_size{max_size_default};
 
     template <typename ParseContext>
     constexpr auto parse(ParseContext &ctx) -> decltype(ctx.begin()) {
-        auto it = ctx.begin(), end = ctx.end();
-        if (it == end)
+        auto it = ctx.begin();
+        auto end = ctx.end();
+        if (it == end) {
             return it;
+        }
         const char end_token = '}'; // the end of parse
         const std::array arg_tokens{'r', 'c', 's'};
         auto is_arg_token = [&](const auto &it) {
-            for (auto c : arg_tokens) {
-                if (*it == c)
-                    return true;
-            }
-            return false;
+            return std::any_of(arg_tokens.cbegin(), arg_tokens.cend(),
+                               [&it](const auto &c) { return *it == c; });
         };
         // call this when previous item is token,
         // the sucessful arg is set to dest
@@ -312,12 +326,15 @@ struct formatter<tula::fmt_utils::pprint<T, Format>> {
             return format_to(it, "[...]");
         }
         // dynamic size if args is not specified (-1)
-        if (max_rows < 0)
+        if (max_rows < 0) {
             max_rows = pp.matrix.rows();
-        if (max_cols < 0)
+        }
+        if (max_cols < 0) {
             max_cols = pp.matrix.cols();
-        if (max_size < 0)
+        }
+        if (max_size < 0) {
             max_size = pp.matrix.size();
+        }
         // pprint content
         std::stringstream ss;
         return format_to(it, "{}",

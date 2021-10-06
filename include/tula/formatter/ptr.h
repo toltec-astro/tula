@@ -5,12 +5,16 @@
 namespace tula::fmt_utils {
 
 /// @brief Convert pointer to the memory address
-template <typename T> struct ptr {
+template <typename T>
+struct ptr {
     using value_t = std::uintptr_t;
-    const value_t value;
-    ptr(const T *p) noexcept : value(reinterpret_cast<value_t>(p)) {}
+    ptr(const T *p) noexcept : m_value(reinterpret_cast<value_t>(p)) {}
     ptr(std::shared_ptr<T> p) noexcept
-        : value(reinterpret_cast<value_t>(p.get())) {}
+        : m_value(reinterpret_cast<value_t>(p.get())) {}
+    auto value() const noexcept -> const auto & { return m_value; }
+
+private:
+    const value_t m_value;
 };
 
 } // namespace tula::fmt_utils
@@ -30,11 +34,17 @@ struct formatter<tula::fmt_utils::ptr<T>>
         auto spec = spec_handler();
         switch (spec) {
         case 'x':
-            return format_to(it, "{:x}", ptr.value);
-        case 'y':
-            return format_to(it, "{}", tula::fmt_utils::itoa<32>(ptr.value));
-        case 'z':
-            return format_to(it, "{}", tula::fmt_utils::itoa<62>(ptr.value));
+            return format_to(it, "{:x}", ptr.value());
+        case 'y': {
+            constexpr auto base = 32;
+            return format_to(it, "{}",
+                             tula::fmt_utils::itoa<base>(ptr.value()));
+        }
+        case 'z': {
+            constexpr auto base = 62;
+            return format_to(it, "{}",
+                             tula::fmt_utils::itoa<base>(ptr.value()));
+        }
         }
         return it;
     }

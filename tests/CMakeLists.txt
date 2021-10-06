@@ -13,6 +13,7 @@ target_sources(tula_test
         eigen.cpp
         grppi.cpp
         ecsv.cpp
+        nddata.cpp
         formatter/test_enum.cpp
         formatter/test_ptr.cpp
         formatter/test_byte.cpp

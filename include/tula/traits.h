@@ -1,7 +1,7 @@
 #pragma once
 
-#include <type_traits>
 #include <iterator>
+#include <type_traits>
 
 /// @brief Some commonly used type traits.
 
@@ -28,4 +28,4 @@ struct is_integral_constant : std::false_type {};
 template <typename T, T v>
 struct is_integral_constant<std::integral_constant<T, v>> : std::true_type {};
 
-}  // namespace tula::meta
+} // namespace tula::meta
