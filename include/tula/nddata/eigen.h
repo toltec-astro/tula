@@ -13,13 +13,14 @@ namespace tula::nddata {
 template <tula::eigen_utils::IsPlain PlainObject>
 struct EigenData;
 
-namespace internal {
-
 template <tula::eigen_utils::IsPlain PlainObject>
-struct impl_traits<EigenData<PlainObject>> {
+struct type_traits<EigenData<PlainObject>> : type_traits<void> {
+    using Base = type_traits<void>;
     using index_t = Eigen::Index;
+    using physical_type_t = Base::physical_type_t;
+    using unit_t = Base::unit_t;
+    using label_t = Base::label_t;
 };
-} // namespace internal
 
 /**
  * @brief  A NDData class for holding Eigen plain object.

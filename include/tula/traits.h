@@ -28,4 +28,10 @@ struct is_integral_constant : std::false_type {};
 template <typename T, T v>
 struct is_integral_constant<std::integral_constant<T, v>> : std::true_type {};
 
+template <typename F, typename... Args>
+// NOLINTNEXTLINE(readability-named-parameter)
+constexpr auto arity(F (*)(Args...)) {
+    return sizeof...(Args);
+}
+
 } // namespace tula::meta

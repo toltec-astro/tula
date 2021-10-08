@@ -1,9 +1,12 @@
 #include "common.h"
+#include "tula/ecsv/core.h"
 #include <fmt/ostream.h>
 #include <gtest/gtest.h>
+#include <ranges>
 #include <sstream>
-#include <tula/ecsv.h>
+#include <tula/ecsv/table.h>
 #include <tula/formatter/container.h>
+#include <tula/formatter/matrix.h>
 #include <yaml-cpp/node/emit.h>
 
 namespace {
@@ -104,7 +107,22 @@ TEST(ecsv, parse_header) {
     ss << apt_header;
 
     std::vector<std::string> processed;
-    auto hdr = parse_header(ss, &processed);
+    auto [ecsv_hdr, csv_hdr] = parse_header(ss, &processed);
+
+    EXPECT_EQ(processed[0], "# %ECSV 0.9");
+    EXPECT_EQ(ecsv_hdr["schema"].as<std::string>(), "astropy-2.0");
+}
+
+TEST(ecsv, hdr) {
+
+    using namespace tula::ecsv;
+
+    std::stringstream ss;
+    ss << apt_header;
+
+    std::vector<std::string> processed;
+    auto hdr = ECSVHeader::read(ss, &processed);
+
     fmtlog("hdr={}", hdr);
     fmtlog("cols={}", hdr.cols());
     fmtlog("meta:\n{}", YAML::Dump(hdr.meta()));
@@ -133,6 +151,99 @@ TEST(ecsv, parse_header) {
     decltype(auto) dtypes = hdr.datatypes();
     EXPECT_FALSE(check_uniform_dtype<int>(dtypes));
     EXPECT_FALSE(check_uniform_dtype<double>(dtypes));
+}
+
+TEST(ecsv, hdr_view) {
+
+    using namespace tula::ecsv;
+
+    std::stringstream ss;
+    ss << apt_header;
+
+    std::vector<std::string> processed;
+    auto hdr = ECSVHeader::read(ss, &processed);
+    auto hdrv = ECSVHeaderView(hdr);
+
+    EXPECT_EQ(hdrv.col(0).name, hdr.cols()[0].name);
+    EXPECT_EQ(hdrv.col("uid").name, hdr.cols()[0].name);
+
+    auto hdrv2 = ECSVHeaderView(hdr, {"fg", "pg"});
+    EXPECT_EQ(hdrv2.size(), 2);
+    EXPECT_EQ(hdrv2.col("fg").name, hdr.cols()[5].name);
+    EXPECT_EQ(hdrv2.colnames(), (std::vector<std::string>{"fg", "pg"}));
+    EXPECT_EQ(hdrv2.cols()[1].name, "pg");
+    EXPECT_NO_THROW(fmtlog("hdrv2{}", hdrv2));
+    EXPECT_NO_THROW(fmtlog("colnames={}", hdrv2.colnames()));
+    EXPECT_NO_THROW(fmtlog("datatypes={}", hdrv2.datatypes()));
+}
+
+TEST(ecsv, array_data) {
+
+    using namespace tula::ecsv;
+    std::stringstream ss;
+    ss << apt_header;
+    auto hdr = ECSVHeader::read(ss);
+
+    // create hdrview for double type columns
+    auto hdrv0 = ECSVHeaderView(hdr, [](const auto &col) {
+        return (col.datatype == dtype_str<double>()) ||
+               (col.datatype == dtype_str<float>());
+    });
+    // data container for holding the selected columns
+    auto data0 = ArrayData<double>{hdrv0};
+    static_assert(std::is_same_v<decltype(data0)::data_t, Eigen::ArrayXXd>);
+    EXPECT_EQ(hdrv0.colnames(), (std::vector<std::string>{"y", "f"}));
+    EXPECT_EQ(data0.row(100).size(), data0.size());
+    // data container for holding the selected columns, using directly the
+    // constructor
+    auto data1 = ArrayData<int>{
+        hdr, [](const auto &col) { return col.datatype.starts_with("int"); }};
+    static_assert(std::is_same_v<decltype(data1)::data_t, Eigen::ArrayXXi>);
+    EXPECT_EQ(data1.colnames(),
+              (std::vector<std::string>{"nw", "pg", "loc", "ori", "fg", "i",
+                                        "j", "k", "x", "flag"}));
+    EXPECT_EQ(data1.row(3000).size(), data1.size());
+    // data container for holding string types
+    auto data2 = ArrayData<std::string>{hdr, [](const auto &col) {
+                                            return col.datatype ==
+                                                   dtype_str<std::string>();
+                                        }};
+    static_assert(std::is_same_v<decltype(data2)::data_t,
+                                 std::vector<std::vector<std::string>>>);
+    EXPECT_EQ(data2.colnames(), (std::vector<std::string>{"uid", "design_group",
+                                                          "flag_summary"}));
+    EXPECT_EQ(data2.row(0).size(), data2.size());
+}
+
+TEST(ecsv, dataloader) {
+
+    using namespace tula::ecsv;
+    std::stringstream ss;
+    ss << apt_header;
+    auto hdr = ECSVHeader::read(ss);
+
+    auto data0 = ArrayData<double>{hdr, {"x", "y", "f", "nw"}};
+    auto data1 = ArrayData<int>{hdr, {"nw", "pg", "loc", "ori", "fg"}};
+    auto data2 = ArrayData<std::string>{hdr, [](const auto &col) {
+                                            return col.datatype ==
+                                                   dtype_str<std::string>();
+                                        }};
+    auto loader = ECSVDataLoader{hdr, data0, data1, data2};
+    fmtlog("ref_index: {}", loader.get_ref_index());
+    loader.ensure_row_size_for_index(2000);
+    loader.visit_col("nw",
+                     [](auto colref) { fmtlog("nw col: {}", colref.data); });
+    loader.visit_col("nw", [](auto colref) { colref.set_value(0, 1); });
+    loader.visit_col("uid",
+                     [](auto colref) { colref.set_value(0, "some_value"); });
+    loader.truncate(1);
+    loader.visit_col("nw", [](auto colref) {
+        fmtlog("col: {} {}", colref.col, colref.data);
+    });
+
+    fmtlog("data0{}", data0.array());
+    fmtlog("data1{}", data1.array());
+    fmtlog("data2{}", data2.array());
 }
 
 } // namespace

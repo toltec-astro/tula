@@ -1,6 +1,6 @@
 #pragma once
 #include "utils.h"
-#include <fmt/format.h>
+#include <fmt/core.h>
 
 namespace tula::fmt_utils {
 

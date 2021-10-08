@@ -1,15 +1,14 @@
 #pragma once
 
-#include "formatter/container.h"
-#include "formatter/utils.h"
-#include "logging.h"
-#include "meta.h"
+#include "../meta.h"
 #include <algorithm>
 #include <cassert>
 #include <complex>
-#include <ranges>
+#include <map>
+#include <optional>
 #include <regex>
 #include <sstream>
+#include <string>
 #include <string_view>
 #include <tuple>
 #include <type_traits>
@@ -104,17 +103,6 @@ auto startswith(const T &v, const U &prefix) -> bool {
     return std::equal(prefix.begin(), prefix.end(), v.begin());
 }
 
-template <typename T, typename key_t>
-auto get_optional_from_node(const YAML::Node &node, key_t &&key,
-                            std::optional<T> default_value = std::nullopt)
-    -> std::optional<T> {
-    decltype(auto) v = node[std::forward<key_t>(key)];
-    if (v.IsDefined()) {
-        return v.template as<T>();
-    }
-    return default_value;
-};
-
 } // namespace internal
 
 namespace spec {
@@ -122,7 +110,7 @@ inline namespace v0 {
 static constexpr std::string_view ECSV_VERSION = "0.9";
 static constexpr char ECSV_DELIM_CHAR = ' ';
 static constexpr std::string_view ECSV_HEADER_PREFIX = "# ";
-static constexpr std::string_view ECSV_VERSION_LINE_REGEX = "^# %ECSV .+";
+static constexpr std::string_view ECSV_VERSION_LINE_REGEX = "^# %ECSV (.+)";
 static constexpr std::string_view ECSV_VERSION_LINE_PREFIX = "%ECSV ";
 static constexpr std::string_view ECSV_META_TAG = "tag:yaml.org,2002:omap";
 
@@ -166,155 +154,11 @@ struct DumpError : public std::runtime_error {
     using std::runtime_error::runtime_error;
 };
 
-/**
- * @brief The class to hold ECSV column info.
- */
-struct ECSVColumn {
-    // https://github.com/astropy/astropy-APEs/blob/main/APE6.rst
-    std::string name{};
-    std::string datatype{};
-    std::optional<std::string> subtype{};
-    std::optional<std::string> unit{};
-    std::optional<std::string> format{};
-    std::optional<std::string> description{};
-    YAML::Node meta{};
-};
-
-/**
- * @brief The class to hold info in ECSV haeder.
- */
-struct ECSVHeader {
-
-    /// @brief Create ECSV header from YAML node.
-    static auto
-    from_node(const YAML::Node &ecsv_header,
-              std::optional<std::string> csv_header = std::nullopt) {
-        // check required items in node
-        if (!ecsv_header[spec::k_datatype.data()]) {
-            throw ParseError("Missing datatype in header YAML");
-        }
-        // optional items in node
-        YAML::Node meta{};
-        if (decltype(auto) n = ecsv_header[spec::k_meta.data()]; n) {
-            meta.reset(n);
-        }
-        auto delimiter =
-            internal::get_optional_from_node<char>(
-                ecsv_header, spec::k_delimiter.data(), spec::ECSV_DELIM_CHAR)
-                .value();
-        auto schema = internal::get_optional_from_node<std::string>(
-            ecsv_header, spec ::k_schema.data());
-        // collect columns
-        std::vector<ECSVColumn> cols;
-        for (const auto &n : ecsv_header[spec::k_datatype.data()]) {
-            cols.push_back({n[spec::k_name.data()].as<std::string>(),
-                            n[spec::k_datatype.data()].as<std::string>(),
-                            internal::get_optional_from_node<std::string>(
-                                n, spec::k_subtype.data()),
-                            internal::get_optional_from_node<std::string>(
-                                n, spec::k_unit.data()),
-                            internal::get_optional_from_node<std::string>(
-                                n, spec::k_format.data()),
-                            internal::get_optional_from_node<std::string>(
-                                n, spec::k_description.data())});
-        }
-        // SPDLOG_INFO("cols:{}", cols);
-        // when csv_header is provided, we can check the csv header for
-        // consistency
-        if (csv_header.has_value()) {
-            // break the line to get colnames
-            std::vector<std::string> csv_colnames{};
-            std::string colname{};
-            for (char &it : csv_header.value()) {
-                if (delimiter != it) {
-                    // not a delim, so append to colname
-                    colname += it;
-                    continue;
-                }
-                // found delim
-                if (colname.empty()) {
-                    // keep finding if nothing in colname
-                    continue;
-                }
-                // got something in colname
-                csv_colnames.push_back(colname);
-                colname.clear(); // reset for the next
-            }
-            // get anything left in colname
-            if (!colname.empty()) {
-                csv_colnames.push_back(colname);
-            }
-            // check the size of colnames with ecsv header cols
-            if (csv_colnames.size() != cols.size()) {
-                throw ParseError(
-                    fmt::format("Mismatch number of columns in YAML header "
-                                "({}) and the CSV header ({}).",
-                                cols.size(), csv_colnames.size()));
-            }
-            for (std::size_t i = 0; i < csv_colnames.size(); ++i) {
-                if (csv_colnames[i] != cols[i].name) {
-                    throw ParseError(
-                        fmt::format("Mismatch column name at index {} in YAML "
-                                    "header ({}) and the CSV header ({}).",
-                                    i, cols[i].name, csv_colnames[i]));
-                }
-            }
-        }
-        // initialize and return
-        return ECSVHeader(std::move(cols), meta, delimiter, schema);
-    }
-
-    /// @brief Create ECSV header from parts.
-    ECSVHeader(std::vector<ECSVColumn> cols, const YAML::Node &meta,
-               char delimiter, std::optional<std::string> schema)
-        : m_cols{std::move(cols)}, m_meta{meta}, m_delimiter{delimiter},
-          m_schema{std::move(schema)}, m_col_index{make_col_index(m_cols)} {}
-
-    auto cols() const noexcept -> const auto & { return this->m_cols; }
-    auto meta() const noexcept -> const auto & { return this->m_meta; }
-    auto delimiter() const noexcept -> const auto & {
-        return this->m_delimiter;
-    }
-    auto schema() const noexcept -> const auto & { return this->m_schema; }
-
-    /// @brief Return the column at index \p i.
-    auto col(std::size_t i) const -> const auto & { return this->m_cols.at(i); }
-
-    /// @brief Return the column of \p name.
-    auto col(const std::string &s) const -> const auto & {
-        return this->m_cols[this->m_col_index.at(s)];
-    }
-
-    auto colnames() const -> decltype(auto) {
-        return std::ranges::transform_view(m_cols, &ECSVColumn::name);
-    }
-
-    auto datatypes() const -> decltype(auto) {
-        return std::ranges::transform_view(m_cols, &ECSVColumn::datatype);
-    }
-
-private:
-    std::vector<ECSVColumn> m_cols{};
-    YAML::Node m_meta{};
-    char m_delimiter{spec::ECSV_DELIM_CHAR};
-    std::optional<std::string> m_schema{};
-
-    // index columns with names;
-    using col_index_t = std::unordered_map<std::string, std::size_t>;
-    col_index_t m_col_index;
-    static auto make_col_index(const std::vector<ECSVColumn> &cols)
-        -> col_index_t {
-        col_index_t col_index;
-        for (std::size_t i = 0; i < cols.size(); ++i) {
-            col_index.emplace(cols[i].name, i);
-        }
-        return col_index;
-    }
-};
-
 /// @brief Read stream line by line and parse as ECSV header
 /// @param is Input stream to process.
 /// @param lines Optional output to capture the read lines.
+/// It returns the tuple of the parsed ECSV YAML header node and
+/// The CSV header line.
 template <typename IStream>
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 auto parse_header(IStream &is, std::vector<std::string> *lines = nullptr) {
@@ -322,9 +166,11 @@ auto parse_header(IStream &is, std::vector<std::string> *lines = nullptr) {
 
     std::stringstream ss_header; // stream to hold all header info.
 
-    std::size_t l = 0;        // running line number
-    std::string ln{};         // running line content
-    std::string csv_header{}; // csv header, immediately after the ECSV header
+    std::size_t l = 0; // running line number
+    std::string ln{};  // running line content
+    std::string ecsv_spec_version{};
+    std::optional<std::string>
+        csv_header{}; // csv header, immediately after the ECSV header
     while (std::getline(is, ln)) {
         // SPDLOG_TRACE("current line: {}", ln);
         if (lines) {
@@ -336,8 +182,10 @@ auto parse_header(IStream &is, std::vector<std::string> *lines = nullptr) {
                  }));
         // check first line.
         if (l == 0) {
-            if (std::regex_match(ln, re_ecsv_version)) {
-                //
+            std::smatch m;
+            if (std::regex_match(ln, m, re_ecsv_version)) {
+                // update the version number
+                ecsv_spec_version = m[1];
             } else {
                 throw ParseError("no ECSV version line found");
             }
@@ -370,8 +218,11 @@ auto parse_header(IStream &is, std::vector<std::string> *lines = nullptr) {
         }
     }
     assert(lines ? (l == lines->size()) : true); // sanity check
-    // Create ECSV header and return
-    return ECSVHeader::from_node(YAML::Load(ss_header), csv_header);
+    // Create yaml node
+    auto node = YAML::Load(ss_header);
+    // we update some additional info in to the node for internal usage
+    node["_ecsv_spec_version"] = ecsv_spec_version;
+    return std::tuple{node, csv_header};
 };
 
 template <typename T>
@@ -410,9 +261,11 @@ auto dtype_str() -> std::string {
         return "complex128";
     } else if constexpr (std::is_same_v<T, std::complex<long double>>) {
         return "complex256";
+    } else if constexpr (std::is_same_v<T, std::string>) {
+        return "string";
     } else {
         static_assert(tula::meta::always_false<T>,
-                      "ECSV NOT IMPLEMENTED FOR THIS SCALAR TYPE");
+                      "TULA ECSV IS NOT IMPLEMENTED FOR THIS SCALAR TYPE");
     }
 }
 
@@ -572,38 +425,3 @@ auto meta_to_map(const YAML::Node &meta, YAML::Node *rest = nullptr)
 }
 
 } // namespace tula::ecsv
-
-// formatter support
-namespace fmt {
-template <>
-struct formatter<tula::ecsv::ECSVColumn>
-    : tula::fmt_utils::charspec_formatter_base<'s', 'l'> {
-    // s: short form as <name>(<datatype>)
-    // l: long form with full info
-    template <typename FormatContext>
-    auto format(const tula::ecsv::ECSVColumn &col, FormatContext &ctx) {
-        auto it = ctx.out();
-        auto spec = spec_handler();
-        switch (spec) {
-        case 's': {
-            return format_to(it, "{}({})", col.name, col.datatype);
-        }
-        case 'l': {
-            return format_to(
-                it, "ECSVColumn(name={}, dtype={}, unit={}, description={})",
-                col.name, col.datatype, col.unit, col.description);
-        }
-        }
-        return it;
-    }
-};
-template <>
-struct formatter<tula::ecsv::ECSVHeader>
-    : tula::fmt_utils::nullspec_formatter_base {
-    template <typename FormatContext>
-    auto format(const tula::ecsv::ECSVHeader &hdr, FormatContext &ctx) {
-        auto it = ctx.out();
-        return format_to(it, "ECSVHeader(ncols={})", hdr.cols().size());
-    }
-};
-} // namespace fmt

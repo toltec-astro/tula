@@ -22,6 +22,9 @@ template <typename T>
 concept IntegralConstant = is_integral_constant<T>::value;
 
 template <typename T>
+concept Arithmetic = std::is_arithmetic_v<T>;
+
+template <typename T>
 concept EnumClass = std::is_enum_v<T>;
 
 template <typename T>
@@ -73,5 +76,10 @@ concept Invocable = requires(F &&f, Args &&...args) {
 
 template <typename F>
 concept IsNullary = Invocable<F>;
+
+template <typename F>
+concept IsUnary = requires {
+    arity(std::declval<F>) == 1;
+};
 
 } // namespace tula::meta

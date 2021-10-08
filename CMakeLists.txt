@@ -57,6 +57,9 @@ if (TULA_STANDALONE)
     include(Grppi)
     set(component_libs ${component_libs} tula::Grppi)
 
+    include(Csv)
+    set(component_libs ${component_libs} tula::Csv)
+
     include(config_header)
     generate_gitversion_header(${CMAKE_PROJECT_NAME})
     generate_config_header(${CMAKE_PROJECT_NAME})

@@ -9,7 +9,8 @@
 namespace tula::fmt_utils {
 
 /// @brief Remove space in string.
-template <tula::meta::String T> auto remove_space(T &&s_) {
+template <tula::meta::String T>
+auto remove_space(T &&s_) {
     T s{std::forward<T>(s_)};
     s.erase(std::remove_if(s.begin(), s.end(),
                            [](const auto &c) { return std::isspace(c); }),
@@ -17,14 +18,15 @@ template <tula::meta::String T> auto remove_space(T &&s_) {
     return s;
 }
 
+constexpr auto digits = std::string_view(
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+-");
+
 /// @brief Convert unsigned integer type to string with given base.
 template <uint8_t base, tula::meta::UnsignedIntegral T>
-requires(base >= 2 && base <= 64) auto itoa(T n) noexcept {
-    constexpr char digits[] =
-        "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+-";
+requires(base >= 2 && base <= digits.size()) auto itoa(T n) noexcept {
     std::string a;
     while (n != 0) {
-        a += digits[n % base];
+        a += digits.data()[n % base];
         n /= base;
     }
     std::reverse(a.begin(), a.end());
@@ -34,13 +36,15 @@ requires(base >= 2 && base <= 64) auto itoa(T n) noexcept {
 namespace internal {
 
 /// @brief Parse single charactor format spec.
-template <char default_char, char... chars> struct charspec {
+template <char default_char, char... chars>
+struct charspec {
 
     constexpr charspec() noexcept = default;
 
     template <typename ParseContext>
     constexpr auto parse(ParseContext &ctx) noexcept -> decltype(ctx.begin()) {
-        auto it = ctx.begin(), end = ctx.end();
+        auto it = ctx.begin();
+        auto end = ctx.end();
         if (it == end) {
             return it;
         }
@@ -68,7 +72,8 @@ private:
 } // namespace internal
 
 /// @brief Formatter base class that handles single char format spec.
-template <char... charset> struct charspec_formatter_base {
+template <char... charset>
+struct charspec_formatter_base {
     template <typename ParseContext>
     constexpr auto parse(ParseContext &ctx) noexcept -> decltype(ctx.begin()) {
         return spec_handler.parse(ctx);
