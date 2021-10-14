@@ -15,6 +15,9 @@ target_include_directories(tula_headers
     INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
+include(config_header)
+target_link_libraries(tula_headers INTERFACE tula::config_header)
+
 # Do not add any link libs since we'll be pulling in dependencies
 # as they are needed in the user code
 add_library(tula::headers ALIAS tula_headers)
@@ -60,11 +63,6 @@ if (TULA_STANDALONE)
     include(Csv)
     set(component_libs ${component_libs} tula::Csv)
 
-    include(config_header)
-    generate_gitversion_header(${CMAKE_PROJECT_NAME})
-    generate_config_header(${CMAKE_PROJECT_NAME})
-    set(component_libs ${component_libs} tula::config_header)
-
     add_library(tula_all INTERFACE)
     target_link_libraries(tula_all
         INTERFACE
@@ -87,3 +85,7 @@ if (TULA_STANDALONE)
         include(docxgen_target)
     endif()
 endif()
+
+# Finally we create the config header
+generate_gitversion_header(${CMAKE_PROJECT_NAME})
+generate_config_header(${CMAKE_PROJECT_NAME})
