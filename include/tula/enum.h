@@ -209,8 +209,9 @@ constexpr auto name(T v) -> std::string_view {
 
 /// @brief Make available the enum traits classes.
 #define TULA_ENUM_REGISTER(Type)                                               \
-    constexpr auto enum_meta_type(enum_utils::type_t<Type>)->Type##_meta;      \
-    constexpr auto enum_has_meta(enum_utils::type_t<Type>)->std::true_type
+    constexpr auto enum_meta_type(tula::enum_utils::type_t<Type>)              \
+        ->Type##_meta;                                                         \
+    constexpr auto enum_has_meta(tula::enum_utils::type_t<Type>)->std::true_type
 
 /// @brief Define enum in-line, has to be registered separately.
 #define TULA_ENUM_DECL(Type, UnderlyingType, ...)                              \
