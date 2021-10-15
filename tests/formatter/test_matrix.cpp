@@ -38,6 +38,14 @@ TEST(formatter, matrix) {
     EXPECT_NO_THROW(fmtlog("a{:rc}", a));
     EXPECT_NO_THROW(fmtlog("a{:s}", a));
     EXPECT_NO_THROW(fmtlog("a{:s3}", a));
+
+    Eigen::MatrixXcd n {4, 10};
+    n.reshaped().real().setLinSpaced(n.size(), 0, double(n.size()) - 1);
+    n.reshaped().imag().setLinSpaced(n.size(), 0, double(n.size()) - 1);
+    EXPECT_NO_THROW(fmtlog("default n{}", n));
+    EXPECT_NO_THROW(fmtlog("n{:r1c5}", n));
+    EXPECT_NO_THROW(fmtlog("n{:r1c}", n));
+    EXPECT_NO_THROW(fmtlog("n{:rc1}", n));
 }
 
 } // namespace

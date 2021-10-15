@@ -2,9 +2,9 @@
 
 #include "../nddata/eigen.h"
 #include "../nddata/labelmapper.h"
+#include "../container.h"
 #include "hdr.h"
 #include "tula/eigen.h"
-#include <__ranges/transform_view.h>
 #include <functional>
 #include <ranges>
 #include <stdexcept>
@@ -25,12 +25,6 @@ struct type_traits<tula::ecsv::ECSVHeaderView> {
 namespace tula::ecsv {
 
 namespace internal {
-
-template <std::ranges::range R>
-constexpr auto to_vector(R &&r) noexcept {
-    using elem_t = std::decay_t<std::ranges::range_value_t<R>>;
-    return std::vector<elem_t>{r.begin(), r.end()};
-}
 
 template <typename Pred>
 requires tula::meta::Invocable<Pred, const ECSVColumn &>
@@ -80,13 +74,13 @@ struct ECSVHeaderView : tula::nddata::LabelMapper<ECSVHeaderView> {
     using labels_t = Base::labels_t;
 
     ECSVHeaderView(const ECSVHeader &hdr)
-        : ECSVHeaderView{hdr, internal::to_vector(hdr.colnames())} {}
+        : ECSVHeaderView{hdr, tula::container_utils::to_stdvec(hdr.colnames())} {}
 
     /// @brief Create a view that maps a subset of columns
     ECSVHeaderView(const ECSVHeader &hdr, std::vector<label_t> colnames)
         : Base{std::move(colnames)}, m_hdr(hdr) {
 
-        auto base_mapper = Base(internal::to_vector(hdr.colnames()));
+        auto base_mapper = Base(tula::container_utils::to_stdvec(hdr.colnames()));
         for (const auto &view_colname : this->labels()) {
             m_view_index.push_back(base_mapper.index(view_colname));
             m_view_cols.push_back(
@@ -198,7 +192,7 @@ struct ArrayData : ECSVHeaderView {
     }
 
     ArrayData(const ECSVHeader &hdr)
-        : ArrayData{hdr, internal::to_vector(hdr.colnames())} {}
+        : ArrayData{hdr, tula::container_utils::to_stdvec(hdr.colnames())} {}
 
     template <typename Pred>
     requires tula::meta::Invocable<Pred, const ECSVColumn &>

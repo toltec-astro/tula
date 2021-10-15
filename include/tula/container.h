@@ -4,6 +4,7 @@
 #include "logging.h"
 #include <iterator>
 #include <regex>
+#include <ranges>
 
 namespace tula::container_utils {
 
@@ -283,6 +284,14 @@ void append(std::vector<T> source, std::vector<T> &destination) noexcept {
                            std::make_move_iterator(std::end(source)));
     }
 }
+
+/// @brief Convert range to std::vector
+template <std::ranges::range R>
+constexpr auto to_stdvec(R &&r) noexcept {
+    using elem_t = std::decay_t<std::ranges::range_value_t<R>>;
+    return std::vector<elem_t>{r.begin(), r.end()};
+}
+
 
 } // namespace tula::container_utils
 
