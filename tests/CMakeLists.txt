@@ -9,11 +9,13 @@ set_target_properties(tula_test
 )
 target_sources(tula_test
     PRIVATE
-        main.cpp
-        eigen.cpp
-        grppi.cpp
-        ecsv.cpp
-        nddata.cpp
+        test_main.cpp
+        test_eigen.cpp
+        test_grppi.cpp
+        test_ecsv.cpp
+        test_nddata.cpp
+        test_yamlconfig.cpp
+        test_container.cpp
         formatter/test_enum.cpp
         formatter/test_ptr.cpp
         formatter/test_byte.cpp

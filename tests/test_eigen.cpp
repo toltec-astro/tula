@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "common.h"
+#include "test_common.h"
 #include <tula/eigen.h>
 #include <tula/formatter/matrix.h>
 #include <tula/logging.h>
@@ -111,5 +111,20 @@ TEST(matrix, convert) {
 
     std::vector<std::pair<double, double>> b{{0, 1}, {2, 3}, {4, 5}};
     EXPECT_EQ(to_eigen(b), Eigen::MatrixXd({{0, 2, 4}, {1, 3, 5}}));
+
+    Eigen::MatrixXd q{5, 10};
+    q.reshaped().setLinSpaced(q.size(), 0, 98);
+    fmtlog("q{}", q);
+    auto v1 = to_stdvec(q);
+    fmtlog("v1{}", v1);
+    auto v2 = to_stdvec(q.topRightCorner(2, 2));
+    fmtlog("v2{}", v2);
+    auto v3 = to_stdvec(q.row(1).segment(1, 2));
+    fmtlog("v3{}", v3);
+    auto q1 = as_eigen(v3);
+    fmtlog("q1{}", q1);
+    fmtlog("m1*m1{}", q1.array().square());
+    q1 = q1.array().square();
+    fmtlog("v3^2{}", v3);
 }
 } // namespace

@@ -63,6 +63,9 @@ if (TULA_STANDALONE)
     include(Csv)
     set(component_libs ${component_libs} tula::Csv)
 
+    include(MXX)
+    set(component_libs ${component_libs} tula::MXX)
+
     add_library(tula_all INTERFACE)
     target_link_libraries(tula_all
         INTERFACE

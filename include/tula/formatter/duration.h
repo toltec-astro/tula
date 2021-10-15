@@ -3,7 +3,6 @@
 #include "utils.h"
 #include <chrono>
 #include <fmt/core.h>
-#include <spdlog/spdlog.h>
 
 namespace fmt {
 
@@ -24,7 +23,8 @@ requires tula::meta::is_instance<T, std::chrono::duration>::value
     auto format(const T &t, FormatContext &ctx) -> decltype(ctx.out()) {
         auto it = ctx.out();
         auto spec = spec_handler();
-        SPDLOG_TRACE("formatting format");
+        constexpr auto h_to_s = 3600;
+        constexpr auto m_to_s = 60;
         switch (spec) {
         case 'a':
             return this->human_time(t, it);
@@ -32,13 +32,13 @@ requires tula::meta::is_instance<T, std::chrono::duration>::value
             return format_to(
                 it, "{:g}h",
                 std::chrono::duration_cast<
-                    std::chrono::duration<double, std::ratio<3600>>>(t)
+                    std::chrono::duration<double, std::ratio<h_to_s>>>(t)
                     .count());
         case 'M':
             return format_to(
                 it, "{:g}m",
                 std::chrono::duration_cast<
-                    std::chrono::duration<double, std::ratio<60>>>(t)
+                    std::chrono::duration<double, std::ratio<m_to_s>>>(t)
                     .count());
         case 'S':
             return format_to(
@@ -125,14 +125,17 @@ private:
         fmt_part.template operator()<minutes>(it, ns, found_non_zero);
         auto v = ns.count();
         // guess format
-        if (v >= 1000000000) /* >= 1s */ {
-            format_to(it, "{}s", v / 1e9);
-        } else if (v >= 1000000) /* >=1ms */
+        constexpr auto s_to_ns = 1000000000;
+        constexpr auto ms_to_ns = 1000000;
+        constexpr auto us_to_ns = 1000;
+        if (v >= s_to_ns) /* >= 1s */ {
+            format_to(it, "{}s", double(v) / s_to_ns);
+        } else if (v >= ms_to_ns) /* >=1ms */
         {
-            format_to(it, "{}ms", v / 1e6);
-        } else if (v >= 1000) /* >=1us */
+            format_to(it, "{}ms", double(v) / ms_to_ns);
+        } else if (v >= us_to_ns) /* >=1us */
         {
-            format_to(it, "{}us", v / 1e3);
+            format_to(it, "{}us", double(v) / us_to_ns);
         } else {
             format_to(it, "{}ns", v);
         }

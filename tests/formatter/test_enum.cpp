@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "../common.h"
+#include "../test_common.h"
 #include <tula/enum.h>
 #include <tula/formatter/enum.h>
 

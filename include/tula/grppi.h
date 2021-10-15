@@ -154,7 +154,7 @@ public:
                 "No supported GRPPI execution mode found in {:s}", modes_));
         }
         auto m = default_mode(modes_);
-        SPDLOG_TRACE("create dynamic execution {} for mode {:s}", m);
+        SPDLOG_TRACE("create dynamic execution for mode {:s}", m);
         switch (m) {
         case ExMode::seq: {
             return sequential_execution(std::forward<Args>(args)...);

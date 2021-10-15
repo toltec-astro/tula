@@ -1,4 +1,4 @@
-#include "common.h"
+#include "test_common.h"
 #include <benchmark/benchmark.h>
 #include <gtest/gtest.h>
 #include <tula/formatter/ptr.h>

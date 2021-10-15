@@ -196,7 +196,7 @@ constexpr auto names() noexcept {
 
 /// @brief Return the enum name for value.
 template <tula::enum_utils::EnumWithMeta T>
-constexpr auto name(T v) {
+constexpr auto name(T v) -> std::string_view {
     using meta_t = decltype(enum_meta_type(type_t<T>{}));
     auto opt_member = meta_t::from_value(v);
     if (opt_member.has_value()) {

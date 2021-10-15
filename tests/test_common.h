@@ -1,6 +1,5 @@
 #pragma once
 
-#include <spdlog/sinks/stdout_color_sinks.h>
 #include <tula/logging.h>
 
 namespace tula::testing {

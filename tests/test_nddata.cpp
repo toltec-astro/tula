@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "common.h"
+#include "test_common.h"
 #include <stdexcept>
 #include <tula/formatter/matrix.h>
 #include <tula/logging.h>

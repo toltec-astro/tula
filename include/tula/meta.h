@@ -1,9 +1,11 @@
 #pragma once
 
+#include <cassert>
 #include <tuple>
 #include <utility>
 
 #include "concepts.h"
+#include "preprocessor.h"
 #include "traits.h"
 
 /// @brief Some meta programing related functions and tooling.
@@ -53,12 +55,46 @@ constexpr auto t2a(tuple_t &&tuple) {
     return std::apply(get_array, std::forward<tuple_t>(tuple));
 }
 
+// overload pattern
+// https://www.bfilipek.com/2018/06/variant.html
+template <class... Ts>
+struct overload : Ts... {
+    using Ts::operator()...;
+};
+template <class... Ts>
+overload(Ts...) -> overload<Ts...>;
+
+namespace internal {
+// http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0200r0.html
+template <class Fun>
+class y_combinator_result {
+    Fun fun_;
+
+public:
+    template <class T>
+    // NOLINTNEXTLINE(bugprone-forwarding-reference-overload)
+    explicit y_combinator_result(T &&fun) : fun_(std::forward<T>(fun)) {}
+
+    template <class... Args>
+    auto operator()(Args &&...args) -> decltype(auto) {
+        return fun_(std::ref(*this), std::forward<Args>(args)...);
+    }
+};
+} // namespace internal
+
+/// @brief A y-combinator implementation for recursive labmda
+template <class Fun>
+auto y_combinator(Fun &&fun) -> decltype(auto) {
+    return internal::y_combinator_result<std::decay_t<Fun>>(
+        std::forward<Fun>(fun));
+}
+
 } // namespace tula::meta
 
 /** Some commonly used constructs
  */
 
-#define BOOLT(...) std::integral_constant<bool, __VA_ARGS__>
+#define TULA_BOOLT(...) std::integral_constant<bool, __VA_ARGS__>
 
 #define TULA_DECAY(x) std::decay_t<decltype(x)>
 
@@ -82,7 +118,7 @@ constexpr auto t2a(tuple_t &&tuple) {
     tula::meta::internal::fwd_capture_impl(                                    \
         TULA_FWD(x1), TULA_FWD(x2), TULA_FWD(x3), TULA_FWD(x4), TULA_FWD(x5))
 
-#define TULA_LIFT(...) GET_MACRO_NARG_OVERLOAD(TULA_LIFT, __VA_ARGS__)
+#define TULA_LIFT(...) TULA_GET_MACRO_NARG_OVERLOAD(TULA_LIFT, __VA_ARGS__)
 #define TULA_LIFT1(f)                                                          \
     [](auto &&...xs) noexcept(                                                 \
         noexcept(f(TULA_FWD(xs)...))) -> decltype(f(TULA_FWD(xs)...)) {        \
@@ -97,9 +133,9 @@ constexpr auto t2a(tuple_t &&tuple) {
         typedef char yes_type;                                                 \
         typedef long no_type;                                                  \
         template <typename U>                                                  \
-        static yes_type test(decltype(&U::member_name));                       \
+        static auto test(decltype(&U::member_name)) -> yes_type;               \
         template <typename U>                                                  \
-        static no_type test(...);                                              \
+        static auto test(...) -> no_type;                                      \
                                                                                \
     public:                                                                    \
         static constexpr bool value =                                          \

@@ -1,4 +1,4 @@
-#include "common.h"
+#include "test_common.h"
 #include <gtest/gtest.h>
 #include <tula/grppi.h>
 

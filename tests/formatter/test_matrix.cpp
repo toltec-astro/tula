@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "../common.h"
+#include "../test_common.h"
 #include <tula/formatter/matrix.h>
 
 namespace {
@@ -11,7 +11,7 @@ using namespace tula::testing;
 TEST(formatter, matrix) {
     Eigen::MatrixXd m{5, 10};
     m.setConstant(std::nan(""));
-    m.reshaped().setLinSpaced(m.size(), 0, m.size() - 1);
+    m.reshaped().setLinSpaced(m.size(), 0, double(m.size()) - 1);
 
     EXPECT_NO_THROW(fmtlog("default m{}", m));
     EXPECT_NO_THROW(fmtlog("m{:r1c5}", m));
