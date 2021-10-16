@@ -30,9 +30,11 @@ struct screen {
                                        .empty_label("arg");
     template <typename Cli, typename... Func>
     // NOLINTNEXTLINE(modernize-avoid-c-arrays)
-    void parse(Cli &&cli, int argc, char *argv[], Func &&...func) {
+    void parse(Cli &&cli, int argc, char *argv[], Func &&...func) const {
         if (auto res = clipp::parse(argc, argv, cli); res) {
-            (FWD(func)(std::forward<Cli>(cli), std::move(res)), ...);
+            (std::forward<decltype(func)>(func)(std::forward<Cli>(cli),
+                                                std::move(res)),
+             ...);
         } else {
             usage(cli);
             error(res);
@@ -41,7 +43,7 @@ struct screen {
     }
 
     template <typename Res>
-    void error(const Res &res) {
+    void error(const Res &res) const {
         if (res.any_error()) {
             fmt::print("{}: error parse arguments:\n", prog);
         }
@@ -49,12 +51,12 @@ struct screen {
         clipp::debug::print(ss, res);
         fmt::print("{}", ss.str());
     }
-    void description() { fmt::print("{}: {}\n", name, desc); }
+    void description() const { fmt::print("{}: {}\n", name, desc); }
 
-    void version() { fmt::print("{}\n", vers); }
+    void version() const { fmt::print("{}\n", vers); }
 
     template <typename Cli>
-    void usage(const Cli &cli) {
+    void usage(const Cli &cli) const {
         std::string heading = "usage: ";
         auto hs = heading.size();
         auto fmt =
@@ -66,12 +68,12 @@ struct screen {
     }
 
     template <typename Cli>
-    void help(const Cli &cli) {
+    void help(const Cli &cli) const {
         usage(cli);
         fmt::print("\n{}\n", clipp::documentation(cli, docfmt).str());
     }
     template <typename Cli>
-    void manpage(const Cli &cli) {
+    void manpage(const Cli &cli) const {
         auto indstr = std::string(static_cast<std::size_t>(indent), ' ');
         std::stringstream ss;
         ss << clipp::make_man_page(cli, prog, docfmt)
@@ -221,9 +223,31 @@ private:
     config_t m_config;
 };
 
+template <typename... configs_t>
+struct config_parser {
+    using mappers_t = std::tuple<ConfigMapper<configs_t>...>;
+
+    template <typename F>
+    auto operator()(F &&cli_builder, const screen &s, int argc,
+                    // NOLINTNEXTLINE(modernize-avoid-c-arrays)
+                    char *argv[]) {
+        auto cli = std::apply(std::forward<F>(cli_builder), m_mappers);
+        s.parse(cli, argc, argv);
+        return std::tuple_cat(
+            std::tuple{cli},
+            std::apply(
+                [](auto &&...x) {
+                    return std::tuple(std::forward<decltype(x)>(x).config()...);
+                },
+                std::move(m_mappers)));
+    }
+
+private:
+    mappers_t m_mappers{};
+};
+
 // the non-human-readable cli builder symbols:
-//       _             : entry(config, param, doc, defval, valspec)
-//       __            : group(entries...)
+//       g            : group(entries...)
 //       p             : param(labels...)
 // xxx, opt_xxx, list  : valspec
 

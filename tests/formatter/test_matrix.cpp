@@ -46,6 +46,7 @@ TEST(formatter, matrix) {
     EXPECT_NO_THROW(fmtlog("n{:r1c5}", n));
     EXPECT_NO_THROW(fmtlog("n{:r1c}", n));
     EXPECT_NO_THROW(fmtlog("n{:rc1}", n));
+    EXPECT_NO_THROW(fmtlog("n{:r0}", n));
 }
 
 } // namespace

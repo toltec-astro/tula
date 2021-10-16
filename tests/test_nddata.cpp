@@ -70,8 +70,10 @@ struct TestCachedData {
         }
     };
 
-    TULA_CACHED_GETTER_DECL(some_value, int);
-    TULA_CACHED_GETTER_DECL(some_other_value, int);
+    TULA_CACHED_GETTER(some_value, int);
+    TULA_CACHED_GETTER(some_other_value, int);
+    TULA_CACHED_GETTER(abc, std::string,
+                       [](auto &self) { return self.get_prefix() + "abc"; });
 
 public:
     // every time this is called, x incremets one
@@ -82,9 +84,12 @@ public:
 
     int get_other_value() const { return m_other_value; }
     void set_other_value(int v) { m_other_value = v; }
+    auto get_prefix() const noexcept -> const std::string & { return m_prefix; }
+    void set_prefix(std::string p) noexcept { m_prefix = std::move(p); };
 
 private:
     int m_other_value{1};
+    std::string m_prefix{"This is "};
 };
 
 // NOLINTNEXTLINE
@@ -96,6 +101,10 @@ TEST(nddata, cached_data) {
     EXPECT_EQ(td.some_value(), 1);
     EXPECT_EQ(td.some_value_invalidate().some_value(), 2);
     EXPECT_EQ(td.some_value(), 2);
+    EXPECT_EQ(td.abc(), "This is abc");
+    td.set_prefix("Yes ");
+    EXPECT_EQ(td.abc(), "This is abc");
+    EXPECT_EQ(td.abc_invalidate().abc(), "Yes abc");
 
     EXPECT_EQ(td.get_other_value(), 1);
     EXPECT_EQ(td.some_other_value(), 1);
