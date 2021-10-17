@@ -1,3 +1,4 @@
+#include <thread>
 #include <tula/cli.h>
 #include <tula/config/flatconfig.h>
 #include <tula/grppi.h>
@@ -31,7 +32,8 @@ auto parse_args(int argc, char *argv[]) {
     //=======================================================================//
               "cli_builder" , TULA_PROJECT_NAME, ver_str,
                               TULA_PROJECT_DESCRIPTION};
-    auto [cli, rc, cc] = parse([&](auto &r, auto &c) { return (
+    auto [cli, rc, cc] = tula::logging::timeit("parse", parse,
+    [&](auto &r, auto &c) { return (
     // auto cli =  (
     //=======================================================================//
     c(p(        "h", "help"), "Print help information and exit."),
@@ -79,6 +81,24 @@ int main(int argc, char *argv[]) {
     try {
         auto rc = parse_args(argc, argv);
         SPDLOG_TRACE("rc: {}", rc.pformat());
+        // run a simple loop
+        {
+            tula::logging::scoped_timeit TULA_X{"Some progress"};
+            constexpr auto pbw = 60;
+            tula::logging::progressbar pb0{
+                [](auto &&msg) {
+                    SPDLOG_INFO("{}", std::forward<decltype(msg)>(msg));
+                },
+                pbw, "Some progres: "};
+            constexpr auto total = 1000;
+            constexpr auto pb_stride = 1000 / 50;
+            constexpr auto sleep_ms = 10;
+            for (auto i = 0; i < total; ++i) {
+                pb0.count(total, pb_stride);
+                std::this_thread::sleep_for(
+                    std::chrono::milliseconds(sleep_ms));
+            }
+        }
         return EXIT_SUCCESS;
     } catch (std::exception const &e) {
         SPDLOG_ERROR("abort: {}", e.what());

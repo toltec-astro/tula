@@ -127,17 +127,3 @@ auto y_combinator(Fun &&fun) -> decltype(auto) {
 #define TULA_LIFT2(o, f)                                                       \
     [&(o)](auto &&...xs) noexcept(noexcept((o).f(TULA_FWD(xs)...)))            \
         -> decltype((o).f(TULA_FWD(xs)...)) { return (o).f(TULA_FWD(xs)...); }
-
-#define define_has_member_traits(class_name, member_name)                      \
-    class has_##member_name {                                                  \
-        typedef char yes_type;                                                 \
-        typedef long no_type;                                                  \
-        template <typename U>                                                  \
-        static auto test(decltype(&U::member_name)) -> yes_type;               \
-        template <typename U>                                                  \
-        static auto test(...) -> no_type;                                      \
-                                                                               \
-    public:                                                                    \
-        static constexpr bool value =                                          \
-            sizeof(test<class_name>(0)) == sizeof(yes_type);                   \
-    }

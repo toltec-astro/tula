@@ -1,9 +1,12 @@
 #pragma once
 
 #include "formatter/duration.h"
+#include "meta.h"
 #include <array>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+#include <ios>
+#include <sstream>
 
 #ifdef SPDLOG_ACTIVE_LEVEL
 #undef SPDLOG_ACTIVE_LEVEL
@@ -127,5 +130,114 @@ struct scoped_loglevel {
 
     spdlog::level::level_enum level;
 };
+
+template <typename Func>
+class progressbar {
+    static const auto overhead = sizeof " [100%]";
+
+    Func func;
+    const std::size_t width;
+    const double scale{100};
+    std::string message;
+    const std::string bar;
+    std::atomic<int> counter{0};
+
+    auto barstr(double perc) {
+        // clamp prog to valid range [0,1]
+        if (perc < 0) {
+            perc = 0;
+        } else if (perc > 1) {
+            perc = 1;
+        }
+        std::stringstream ss;
+        auto barwidth = width - message.size();
+        auto offset = width - std::size_t(double(barwidth) * perc);
+        ss << message;
+        ss.write(bar.data() + offset,
+                 tula::meta::size_cast<std::streamsize>(barwidth));
+        ss << fmt::format("[{:3.0f}%]", scale * perc);
+
+        return ss.str();
+    }
+
+public:
+    progressbar(Func func_, std::size_t linewidth, std::string message_,
+                const char symbol = '.')
+        : func{std::move(func_)}, width{linewidth - overhead},
+          message{std::move(message_)}, bar{std::string(width, symbol) +
+                                            std::string(width, ' ')} {
+        // write(0.0);
+    }
+
+    // not copyable or movable
+    progressbar(const progressbar &) = delete;
+    auto operator=(const progressbar &) -> progressbar & = delete;
+    progressbar(progressbar &&) = delete;
+    auto operator=(progressbar &&) -> progressbar & = delete;
+
+    ~progressbar() { func(fmt::format("{}\n", barstr(1.0))); }
+
+    auto write(double perc) { func(barstr(perc)); }
+    template <typename N1, typename N2>
+    auto count(N1 total, N2 stride) {
+        if (stride < 1) {
+            stride = 1;
+        }
+        ++counter;
+        if (counter % stride == 0) {
+            double perc = double(counter) / total;
+            // prevent write 1.0 here because this is done by the destructor
+            // NOLINTNEXTLINE(readability-magic-numbers)
+            if (int(perc * 100) < 100) {
+                write(perc);
+            }
+        }
+    }
+};
+
+namespace internal {
+
+template <typename Prefunc, typename Postfunc, typename... Pargs>
+struct decorated_invoke {
+    decorated_invoke(std::tuple<Pargs...> && /*unused*/, Prefunc &&pre_,
+                     Postfunc &&post_)
+        : pre(std::move(pre_)), post(std::move(post_)) {}
+    Prefunc pre;
+    Postfunc post;
+    template <typename F, typename... Args>
+    auto operator()(Pargs &&...pargs, F &&func, Args &&...args) const
+        -> decltype(auto) {
+        decltype(auto) d = pre(std::forward<decltype(pargs)>(pargs)...);
+        if constexpr (std::is_void_v<std::invoke_result_t<F, Args...>>) {
+            std::forward<F>(func)(std::forward<decltype(args)>(args)...);
+            post(std::forward<decltype(d)>(d));
+        } else {
+            decltype(auto) ret =
+                std::forward<F>(func)(std::forward<decltype(args)>(args)...);
+            post(std::forward<decltype(d)>(d));
+            return ret;
+        }
+    }
+};
+
+} // namespace internal
+
+inline const auto timeit = internal::decorated_invoke(
+    std::tuple<std::string_view>{},
+    [](auto msg) {
+        SPDLOG_INFO("**timeit** {}", msg);
+        // get time before function invocation
+        auto start = std::chrono::high_resolution_clock::now();
+        return std::tuple{msg, start};
+    },
+    [](auto &&p) {
+        const auto &[msg, start] = std::forward<decltype(p)>(p);
+        // get time after function invocation
+        const auto &stop = std::chrono::high_resolution_clock::now();
+        auto elapsed =
+            std::chrono::duration_cast<std::chrono::duration<double>>(stop -
+                                                                      start);
+        SPDLOG_INFO("**timeit** {} finished in {}", msg, elapsed);
+    });
 
 } // namespace tula::logging

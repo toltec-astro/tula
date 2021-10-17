@@ -248,6 +248,7 @@ auto parse_slice(const std::string &slice_str) {
 // start stop step len
 template <typename T>
 using BoundedSlice = std::tuple<T, T, T, T>;
+using BoundedIndexSlice = BoundedSlice<Eigen::Index>;
 
 /// @brief Convert slice to indices
 template <tula::meta::Integral T, tula::meta::Integral N>

@@ -1,11 +1,23 @@
 #pragma once
 #include "../formatter/container.h"
 #include "../logging.h"
+#include "../meta.h"
 #include <map>
 #include <sstream>
 #include <type_traits>
 
 namespace tula::config {
+
+namespace internal {
+
+using flatconfig_value_t =
+    std::variant<std::monostate, bool, int, double, std::string>;
+
+} // namespace internal
+
+template <typename T>
+concept FlatConfigDataType =
+    tula::meta::IsOneOf<T, internal::flatconfig_value_t>;
 
 /**
  * @class FlatConfig
@@ -16,9 +28,10 @@ class FlatConfig {
 
 public:
     using key_t = std::string;
-    using value_t =
-        std::variant<std::monostate, bool, int, double, std::string>;
+    using value_t = internal::flatconfig_value_t;
     using storage_t = std::map<key_t, value_t>;
+    using undef_t = std::monostate;
+    constexpr static auto undef = undef_t{};
 
     FlatConfig() = default;
     explicit FlatConfig(storage_t config) : m_config{std::move(config)} {}
@@ -85,27 +98,41 @@ public:
         }
     }
 
-    template <typename T>
-    [[nodiscard]] auto get_typed(const key_t &key) const -> T {
+    template <typename Opt>
+    requires(!FlatConfigDataType<Opt>) &&
+        tula::meta::is_instance<Opt, std::optional>::value &&FlatConfigDataType<
+            typename Opt::value_type> [[nodiscard]] auto get_typed(const key_t
+                                                                       &key)
+            const -> Opt {
+        decltype(auto) v = this->at(key);
+        using T = typename Opt::value_type;
+        SPDLOG_TRACE("get typed config key={} value={}", key, v);
+        if (has(key)) {
+            if (std::holds_alternative<T>(v)) {
+                return get_typed<T>(key);
+            }
+            if (std::holds_alternative<std::monostate>(v)) {
+                return std::nullopt;
+            }
+            throw std::runtime_error(
+                fmt::format("wrong type for config key={} value={}", key, v));
+        }
+        return std::nullopt;
+    }
+
+    template <FlatConfigDataType T>
+    [[nodiscard]] auto get_typed(const key_t &key) const -> const T & {
         decltype(auto) v = this->at(key);
         SPDLOG_TRACE("get typed config key={} value={}", key, v);
-        if constexpr (tula::meta::is_instance<T, std::optional>::value) {
-            // no throw
-            if (has(key)) {
-                return get_typed<typename T::value_type>(key);
-            }
-            return std::nullopt;
-        } else {
-            // may throw
-            return std::get<T>(v);
-        }
+        return std::get<T>(v);
     }
-    template <typename T>
+    template <FlatConfigDataType T>
     [[nodiscard]] auto get_typed(const key_t &key) -> T & {
         decltype(auto) v = this->at(key);
         SPDLOG_TRACE("get typed config key={} value={}", key, v);
         return std::get<T>(v);
     }
+
     template <typename T>
     auto get_typed(const key_t &key, T &&defval) const noexcept -> T {
         if (has(key)) {

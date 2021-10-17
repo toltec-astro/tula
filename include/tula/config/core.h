@@ -12,10 +12,6 @@ struct ConfigValidatorMixin {
 
 private:
     config_t m_config{};
-    struct derived_has_check_config {
-        define_has_member_traits(Derived, check_config);
-        constexpr static auto value = has_check_config::value;
-    };
 
 public:
     ConfigValidatorMixin() = default;
@@ -28,7 +24,8 @@ public:
     static void _check_config_impl(config_t &config) {
         // note that the check config may choose to alter the config object
         SPDLOG_TRACE("config check ...");
-        if constexpr (derived_has_check_config::value) {
+        // if constexpr (derived_has_check_config::value) {
+        if constexpr (requires { Derived::check_config;}) {
             if (auto opt_errors = Derived::check_config(config);
                 opt_errors.has_value()) {
                 throw std::runtime_error(
