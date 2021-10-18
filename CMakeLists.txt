@@ -66,6 +66,9 @@ if (TULA_STANDALONE)
     include(MXX)
     set(component_libs ${component_libs} tula::MXX)
 
+    include(CCfits)
+    set(component_libs ${component_libs} tula::CCfits)
+
     add_library(tula_all INTERFACE)
     target_link_libraries(tula_all
         INTERFACE
