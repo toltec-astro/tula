@@ -5,7 +5,6 @@
 #include <array>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
-#include <ios>
 #include <sstream>
 
 #ifdef SPDLOG_ACTIVE_LEVEL
