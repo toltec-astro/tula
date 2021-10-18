@@ -90,5 +90,5 @@ if (TULA_STANDALONE)
 endif()
 
 # Finally we create the config header
-generate_gitversion_header(${CMAKE_PROJECT_NAME})
-generate_config_header(${CMAKE_PROJECT_NAME})
+generate_gitversion_header(${PROJECT_NAME})
+generate_config_header(${PROJECT_NAME})
