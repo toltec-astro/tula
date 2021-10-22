@@ -344,23 +344,32 @@ struct formatter<tula::fmt_utils::pprint<T, Format>> {
                              .str());
     }
 };
-template <typename Derived, typename Char>
-requires(!fmt::FormattableRange<Derived, Char>) &&
-    tula::eigen_utils::is_eigen_v<Derived> struct formatter<Derived, Char>
-    : formatter<tula::fmt_utils::pprint<Derived>, Char> {
+// Needs to disable the range formatters for tyeps we wound like to
+// formatter on our own
+template <typename T, typename... Ts>
+requires tula::fmt_utils::scalar_traits<T>::value struct is_range<
+    std::vector<T, Ts...>, char> : std::false_type {
+};
+
+template <typename T, auto n>
+requires tula::fmt_utils::scalar_traits<T>::value struct is_range<
+    std::array<T, n>, char> : std::false_type {
+};
+
+template <typename T>
+requires tula::eigen_utils::is_eigen_v<T>
+struct is_range<T, char> : std::false_type {
 };
 
 template <typename Derived, typename Char>
-requires fmt::FormattableRange<Derived, Char> &&
-    tula::eigen_utils::is_eigen_v<Derived>
+requires tula::eigen_utils::is_eigen_v<Derived>
 struct formatter<Derived, Char>
     : formatter<tula::fmt_utils::pprint<Derived>, Char> {
 };
 
 template <typename T, typename Char>
-requires fmt::FormattableRange<T, Char> &&
-    (tula::meta::is_instance<T, std::vector>::value ||
-     tula::fmt_utils::is_std_array<T>::value) &&
+requires(tula::meta::is_instance<T, std::vector>::value ||
+         tula::fmt_utils::is_std_array<T>::value) &&
     tula::fmt_utils::scalar_traits<typename T::value_type>::value
     struct formatter<T, Char>
     : formatter<tula::fmt_utils::pprint<typename T::value_type>> {
