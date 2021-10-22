@@ -1,6 +1,7 @@
 #pragma once
 
 #include "utils.h"
+#include <cstddef> // std::to_integer
 #include <fmt/core.h>
 
 namespace fmt {
@@ -11,7 +12,7 @@ struct formatter<std::byte>
     // x: base16, i.e., hex
     // i: int
     template <typename FormatContext>
-    auto format(const std::byte& byte, FormatContext &ctx)
+    auto format(const std::byte &byte, FormatContext &ctx)
         -> decltype(ctx.out()) {
         auto it = ctx.out();
         auto spec = spec_handler();

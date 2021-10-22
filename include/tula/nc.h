@@ -1,5 +1,6 @@
 #pragma once
 
+#include "container_meta.h"
 #include "formatter/byte.h"
 #include "formatter/matrix.h"
 #include "logging.h"

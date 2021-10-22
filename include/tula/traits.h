@@ -34,14 +34,4 @@ constexpr auto arity(F (*)(Args...)) {
     return sizeof...(Args);
 }
 
-template <class T, class U>
-struct is_one_of;
-template <class T, class... Ts>
-struct is_one_of<T, std::variant<Ts...>>
-    : std::bool_constant<(std::is_same_v<T, Ts> || ...)> {};
-
-template <class T, class... Ts>
-struct is_one_of<T, std::tuple<Ts...>>
-    : std::bool_constant<(std::is_same_v<T, Ts> || ...)> {};
-
 } // namespace tula::meta

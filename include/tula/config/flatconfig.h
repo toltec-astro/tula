@@ -1,4 +1,5 @@
 #pragma once
+#include "../container_meta.h"
 #include "../formatter/container.h"
 #include "../logging.h"
 #include "../meta.h"

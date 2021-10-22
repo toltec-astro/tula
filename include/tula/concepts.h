@@ -41,13 +41,6 @@ concept StringView = is_instance<T, std::basic_string_view>::value;
 template <typename T>
 concept StringLike = CStr<T> || String<T> || StringView<T>;
 
-template <typename T>
-concept TupleLike =
-    is_instance<T, std::tuple>::value || is_instance<T, std::variant>::value;
-
-template <typename T, typename U>
-concept IsOneOf = TupleLike<U> && is_one_of<T, U>::value;
-
 // [Interface constraints]
 template <typename T>
 concept Sized = requires(T &t) {

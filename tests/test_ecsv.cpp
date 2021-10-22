@@ -1,8 +1,7 @@
 #include "test_common.h"
 #include "tula/ecsv/core.h"
-#include <fmt/ostream.h>
+// #include <fmt/ostream.h>
 #include <gtest/gtest.h>
-#include <ranges>
 #include <sstream>
 #include <tula/ecsv/table.h>
 #include <tula/formatter/container.h>
