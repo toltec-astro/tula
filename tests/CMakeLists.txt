@@ -25,6 +25,7 @@ target_sources(tula_test
         formatter/test_duration.cpp
         formatter/test_container.cpp
         formatter/test_matrix.cpp
+        formatter/test_ostream.cpp
     )
 target_link_libraries(tula_test
     PRIVATE

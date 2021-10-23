@@ -18,7 +18,7 @@ TEST(matrix, iter) {
     Eigen::MatrixXd n{5, 2};
     Eigen::Map<Eigen::VectorXd>(n.data(), n.size()).setLinSpaced(10, 0, 9);
 
-    EXPECT_EQ(m, n);
+    EXPECT_TRUE(m == n);
 
     auto begin = m.reshaped().begin();
     auto end = m.reshaped().end();
@@ -102,7 +102,7 @@ TEST(matrix, convert) {
     auto a = as_eigen(va);
     EXPECT_EQ(to_stdvec(a), va);
     va[0] = 1;
-    EXPECT_EQ(a, Eigen::VectorXd({{1, 1, 2, 3}}));
+    EXPECT_TRUE(a == Eigen::VectorXd({{1, 1, 2, 3}}));
     a.coeffRef(2) = 5;
     EXPECT_EQ(va, std::vector<double>({1, 1, 5, 3}));
     // const vec
@@ -110,7 +110,7 @@ TEST(matrix, convert) {
               Eigen::VectorXd({{0, 1, 2, 3}}));
 
     std::vector<std::pair<double, double>> b{{0, 1}, {2, 3}, {4, 5}};
-    EXPECT_EQ(to_eigen(b), Eigen::MatrixXd({{0, 2, 4}, {1, 3, 5}}));
+    EXPECT_TRUE(to_eigen(b) == Eigen::MatrixXd({{0, 2, 4}, {1, 3, 5}}));
 
     Eigen::MatrixXd q{5, 10};
     q.reshaped().setLinSpaced(q.size(), 0, 98);

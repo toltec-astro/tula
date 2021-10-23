@@ -4,7 +4,7 @@
 #include "../nddata/labelmapper.h"
 #include "../container.h"
 #include "hdr.h"
-#include "tula/eigen.h"
+#include "../eigen.h"
 #include <functional>
 #include <ranges>
 #include <stdexcept>
@@ -108,7 +108,7 @@ struct ECSVHeaderView : tula::nddata::LabelMapper<ECSVHeaderView> {
 
     [[nodiscard]] auto cols() const -> decltype(auto) {
         return std::ranges::transform_view(
-            m_view_cols, &std::reference_wrapper<const ECSVColumn>::get);
+            m_view_cols, [] (auto ref) {return ref.get();});
     }
 
     /// @brief Return the list of indices of columns in the original header.

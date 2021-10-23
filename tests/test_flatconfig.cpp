@@ -25,13 +25,13 @@ TEST(flatconfig, get) {
     EXPECT_FALSE(config.has("e"));
     EXPECT_TRUE(config.is_set("a"));
     EXPECT_FALSE(config.is_set("b"));
-    EXPECT_EQ(config.get_typed<int>("a"), 1);
-    EXPECT_EQ(config.get_typed<std::monostate>("b"), std::monostate{});
+    EXPECT_TRUE(config.get_typed<int>("a") == 1);
+    EXPECT_TRUE(config.get_typed<std::monostate>("b") == std::monostate{});
     EXPECT_TRUE(config.get_typed<bool>("c"));
 
-    EXPECT_EQ(config.get_typed<std::optional<int>>("a").value(), 1);
-    EXPECT_EQ(config.get_typed<std::optional<bool>>("b"), std::nullopt);
-    EXPECT_EQ(config.get_typed<std::optional<bool>>("c"), std::optional<bool>(true));
+    EXPECT_TRUE(config.get_typed<std::optional<int>>("a").value() == 1);
+    EXPECT_TRUE(config.get_typed<std::optional<bool>>("b") == std::nullopt);
+    EXPECT_TRUE(config.get_typed<std::optional<bool>>("c") == std::optional<bool>(true));
     // upate
     config.get_typed<int>("a") = -1;
     config.set("b", "a string");
