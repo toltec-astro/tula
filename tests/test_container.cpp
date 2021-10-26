@@ -39,4 +39,11 @@ TEST(container, create) {
     fmtlog("vecstr cs: {}", cs);
 }
 
+TEST(container, slice) {
+    using namespace tula::container_utils;
+    auto s = parse_slice(":");
+    fmtlog("s={}", s);
+    fmtlog("r={}", to_indices(s, 10));
+}
+
 } // namespace

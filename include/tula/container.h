@@ -191,7 +191,7 @@ auto index(const T &v) noexcept {
     return index(v.size());
 }
 
-template <typename T>
+template <tula::meta::Integral T>
 using Slice = std::tuple<std::optional<T>, std::optional<T>, std::optional<T>>;
 using IndexSlice = Slice<Eigen::Index>;
 
@@ -246,7 +246,7 @@ auto parse_slice(const std::string &slice_str) {
 }
 
 // start stop step len
-template <typename T>
+template <tula::meta::Integral T>
 using BoundedSlice = std::tuple<T, T, T, T>;
 using BoundedIndexSlice = BoundedSlice<Eigen::Index>;
 
@@ -297,6 +297,12 @@ constexpr auto to_stdvec(R &&r) noexcept {
 } // namespace tula::container_utils
 
 namespace fmt {
+
+template<typename T>
+struct is_tuple_like<tula::container_utils::Slice<T>>: std::false_type {};
+
+template<typename T>
+struct is_tuple_like<tula::container_utils::BoundedSlice<T>>: std::false_type {};
 
 template <typename T, typename Char>
 struct formatter<tula::container_utils::Slice<T>, Char>
