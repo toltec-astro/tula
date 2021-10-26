@@ -44,6 +44,10 @@ TEST(container, slice) {
     auto s = parse_slice(":");
     fmtlog("s={}", s);
     fmtlog("r={}", to_indices(s, 10));
+
+    auto s1 = parse_slice<double>("0.1::0.01");
+    fmtlog("s1={}", s1);
+
 }
 
 } // namespace

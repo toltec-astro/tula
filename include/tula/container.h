@@ -191,7 +191,7 @@ auto index(const T &v) noexcept {
     return index(v.size());
 }
 
-template <tula::meta::Integral T>
+template <tula::meta::Arithmetic T>
 using Slice = std::tuple<std::optional<T>, std::optional<T>, std::optional<T>>;
 using IndexSlice = Slice<Eigen::Index>;
 
