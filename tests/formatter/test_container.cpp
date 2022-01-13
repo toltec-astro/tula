@@ -12,6 +12,34 @@
 #include <unordered_map>
 #include <variant>
 
+namespace tula::testing {
+
+// define a custom type with formatting
+
+struct Item {
+
+    // template <typename OStream>
+    // friend auto operator<<(OStream &os, const Item &item) -> decltype(auto) {
+    //     return os << fmt::format("Item");
+    // }
+};
+
+} // namespace tula::testing
+
+namespace fmt {
+
+template <>
+struct formatter<tula::testing::Item, char, void>
+    : tula::fmt_utils::nullspec_formatter_base {
+    template <typename FormatContext>
+    auto format(const tula::testing::Item &item, FormatContext &ctx) noexcept
+        -> decltype(ctx.out()) {
+        return format_to(ctx.out(), "Item");
+    }
+};
+
+} // namespace fmt
+
 namespace {
 
 using namespace tula::testing;
@@ -36,6 +64,21 @@ TEST(formatter, std_container) {
     std::variant<std::monostate, std::string, int, double> v;
     std::vector<decltype(v)> vs{1, "2", 3.0, std::monostate{}};
     EXPECT_NO_THROW(fmtlog("vs={}", vs));
+}
+
+TEST(formatter, std_container_with_custom_item) {
+    auto item1 = Item();
+    auto item2 = Item();
+    EXPECT_NO_THROW(fmtlog("l{}", std::list{item1, item2}));
+    EXPECT_NO_THROW(fmtlog("p{}", std::pair{item1, item2}));
+    EXPECT_NO_THROW(fmtlog("a{}", std::array{item1, item2}));
+    EXPECT_NO_THROW(fmtlog("t{}", std::tuple{"a", true, item1}));
+    EXPECT_NO_THROW(fmtlog("o={}", std::optional{item1}));
+    EXPECT_NO_THROW(fmtlog("m{}", std::unordered_map<std::string, Item>{
+                                      {"a", item1}, {"b", item2}}));
+    EXPECT_NO_THROW(
+        fmtlog("m{}", std::unordered_map<std::string, std::optional<Item>>{
+                          {"a", item1}, {"b", std::nullopt}}));
 }
 
 // NOLINTNEXTLINE

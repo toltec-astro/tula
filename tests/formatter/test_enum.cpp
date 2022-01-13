@@ -19,6 +19,14 @@ TULA_BITFLAG_MAX_ELEMENT(Flag, FlagC);
 enum class Bit : int { BitA = 1 << 0, BitB = 1 << 1, BitC = 1 << 2 };
 TULA_BITFLAG_MAX_ELEMENT(Bit, BitC);
 
+// enum in nested scope
+
+struct A {
+    TULA_ENUM_DECL(AType, int, Value1, Value2);
+};
+
+TULA_ENUM_REGISTER(A::AType);
+
 } // namespace tula::testing
 
 namespace {
@@ -74,4 +82,18 @@ TEST(formatter, bitmask_bit) {
     EXPECT_NO_THROW(fmtlog("BitAC: {:l}", Bit::BitC | Bit::BitA));
     EXPECT_NO_THROW(fmtlog("BitAC: {:s}", Bit::BitC | Bit::BitA));
 }
+
+// NOLINTNEXTLINE
+TEST(formatter, scoped_enum) {
+    using meta = A::AType_meta;
+    EXPECT_NO_THROW(fmtlog("{}: members{}", meta::name, meta::members));
+    EXPECT_NO_THROW(fmtlog("{}: non existing member {}", meta::name,
+                           meta::to_name(static_cast<A::AType>(-1))));
+    EXPECT_NO_THROW(fmtlog("AType::Value1: {:d}", meta::from_name("Value1")));
+    EXPECT_NO_THROW(fmtlog("AType::Value1: {:s}", meta::from_name("Value1")));
+    EXPECT_NO_THROW(fmtlog("AType::Value1: {:l}", meta::from_name("Value1")));
+    EXPECT_NO_THROW(fmtlog("AType::Value1: {:s}", A::AType::Value1));
+    EXPECT_NO_THROW(fmtlog("abc: {}", meta::from_name("abc")));
+}
+
 } // namespace
