@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <concepts>
 #include <string>
 #include <type_traits>
