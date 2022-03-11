@@ -82,6 +82,16 @@ int main(int argc, char *argv[]) {
     try {
         auto rc = parse_args(argc, argv);
         SPDLOG_INFO("rc: {}", rc.pformat());
+        // test merge of rcs
+        YAML::Node a;
+        a["b"]["c"] = true;
+        a["some_key"] = 1;
+        a["plot"] = 2;
+        a["inputs"] = std::vector<double>{0.1, 0.2};
+        tula::config::YamlConfig update_rc{a};
+        auto merged = tula::config::merge(rc, update_rc);
+        SPDLOG_INFO("update with: {}", update_rc.pformat());
+        SPDLOG_INFO("merged: {}", merged.pformat());
         // run a simple loop
         /*
         {
