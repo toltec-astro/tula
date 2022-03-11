@@ -6,6 +6,7 @@
 #include <map>
 #include <sstream>
 #include <type_traits>
+#include <variant>
 
 namespace tula::config {
 

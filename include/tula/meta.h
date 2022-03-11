@@ -89,6 +89,47 @@ auto y_combinator(Fun &&fun) -> decltype(auto) {
         std::forward<Fun>(fun));
 }
 
+namespace internal {
+
+// This somehow does not work with cstr. We explicitly exclude this case
+// upfront
+template <class T>
+concept Bindable = (!StringLike<std::remove_cvref_t<T>>)&&(requires(T arg) {
+    typename std::tuple_element<0, T>::type;
+    std::tuple_size<T>::value;
+    std::get<0>(arg);
+});
+
+template <class>
+struct flatten_helper;
+
+template <class T>
+constexpr auto flatten_impl(T &&arg) {
+    if constexpr (Bindable<std::remove_reference_t<T>>) {
+        return flatten_helper<std::make_integer_sequence<
+            size_t, std::tuple_size_v<std::remove_reference_t<T>>>>::
+            flatten_impl_helper(std::forward<T>(arg));
+    } else {
+        return std::tuple<T &&>{std::forward<T>(arg)};
+    }
+}
+
+template <size_t... Ids>
+struct flatten_helper<std::index_sequence<Ids...>> {
+    template <class T>
+    static constexpr auto flatten_impl_helper(T &&arg) {
+        return std::tuple_cat(
+            flatten_impl(std::get<Ids>(std::forward<T>(arg)))...);
+    }
+};
+} // namespace internal
+
+// https://www.reddit.com/r/cpp_questions/comments/eto1rh/nesting_structured_bindings/?utm_source=share&utm_medium=web2x&context=3
+template <class... Args>
+constexpr auto flatten(Args &&...args) {
+    return std::tuple_cat(internal::flatten_impl(std::forward<Args>(args))...);
+}
+
 } // namespace tula::meta
 
 /** Some commonly used constructs

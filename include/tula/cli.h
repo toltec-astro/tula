@@ -104,39 +104,10 @@ auto arg(Param &&param, Doc &&doc, Setter &&setter) {
               [](const auto &l, const auto &r) { return l.size() < r.size(); });
     // make longest flag the key
     return std::forward<Setter>(setter)(
-        labels.back(), std::forward<Param>(param), std::forward<Doc>(doc));
+        std::move(labels.back()), std::forward<Param>(param), std::forward<Doc>(doc));
 };
 
-template <typename value_t, bool is_optional_, typename key_t, typename func_t>
-struct valspec_t {
-    valspec_t(key_t key_, func_t func_)
-        : key{std::move(key_)}, func{std::move(func_)} {}
-    key_t key;
-    func_t func;
-    template <typename Conf, typename ckey_t>
-    auto make_value(Conf &conf, const ckey_t &ckey) const {
-        if constexpr (std::is_constructible_v<std::string, key_t>) {
-            // single value with clipp value factory
-            return func(key).call([&conf, ckey = ckey](auto &&value) {
-                value_t v{};
-                clipp::set(v)(std::forward<decltype(value)>(value));
-                conf.set(ckey, v);
-            });
-        } else {
-            // func is value factory
-            return func(key, conf.template get_typed<value_t>(ckey));
-        }
-    }
-    static constexpr auto is_optional = is_optional_;
-};
-
-template <typename value_t, bool is_optional, typename... Args>
-auto make_valspec(Args &&...args) {
-    return valspec_t<value_t, is_optional, Args...>(
-        std::forward<decltype(args)>(args)...);
-}
-
-// normalize value
+// A helper to normalize value to vspec value types
 // const char*, enum -> string
 template <typename T>
 auto normalize_value(T &&v) {
@@ -150,6 +121,83 @@ auto normalize_value(T &&v) {
         return std::forward<T>(v);
     }
 };
+
+// A helper class to hold additional information of a value factory. When
+// called, it will return the clipp::values create by value_factory
+template <typename value_t_, bool is_optional_, bool is_repeated_,
+          typename value_factory_t>
+struct valspec_t {
+    valspec_t(value_factory_t value_factory_)
+        : value_factory{std::move(value_factory_)} {}
+    value_factory_t value_factory;
+    static constexpr auto is_optional = is_optional_;
+    static constexpr auto is_repeated = is_repeated_;
+    using value_t = value_t_;
+    using defval_t =
+        std::conditional_t<is_repeated_, std::vector<value_t>, value_t>;
+
+    template <typename Conf, typename key_t>
+    auto operator()(Conf &conf, key_t key) const {
+        return value_factory(conf, std::move(key));
+    }
+};
+
+template <typename value_t, auto... options, typename... Args>
+auto make_valspec(Args &&...args) {
+    return valspec_t<value_t, options..., Args...>(std::forward<Args>(args)...);
+}
+
+
+template <
+    typename value_t,
+    bool is_repeated,
+    typename clipp_value_func_t, typename ...Args>
+auto make_clipp_value_factory(
+            clipp_value_func_t clipp_value_func,
+            std::string default_metavar,
+            Args&& ...args
+            ) {
+    return [clipp_value_func = std::move(clipp_value_func), default_metavar = std::move(default_metavar), args=std::tuple{std::forward<Args>(args)...}](
+               auto &conf, auto key) {
+        auto _make_args = [&default_metavar, &args] () -> decltype(auto){
+            using args_t = decltype(args);
+            // this is to add the default metavar to the args passed
+            // to clipp value func.
+            if constexpr (std::tuple_size_v<args_t> == 0) {
+                // no args
+                return std::tuple{default_metavar};
+            } else if constexpr (std::tuple_size_v<args_t> == 1) {
+                if constexpr (tula::meta::StringLike<typename std::tuple_element_t<0, args_t>>)
+                                        {
+                        // one arg, string, so no need to set
+                    return args;
+                } else {
+                    // one arg, not string, so append string meta var
+                    return std::tuple_cat(args, std::tuple{default_metavar});
+                }
+            } else {
+                // multiple args, use as is
+                return args;
+            }
+        };
+        return std::apply(
+            clipp_value_func, _make_args()).call(
+            [&conf, key = std::move(key)](auto &&value) {
+                value_t v{};
+                clipp::set(v)(std::forward<decltype(value)>(value));
+                if constexpr (is_repeated) {
+                    // initialize if not exists for list
+                    if (!conf.has(key)) {
+                        conf.set(key, std::vector<value_t>{});
+                    }
+                    conf.append(key, v);
+                } else {
+                    // just set the value
+                    conf.set(key, v);
+                }
+            });
+    };
+}
 
 } // namespace internal
 
@@ -168,12 +216,12 @@ struct ConfigMapper {
     auto operator()(Param &&param, Doc &&doc) {
         return internal::arg(
             std::forward<Param>(param), std::forward<Doc>(doc),
-            [this](const auto &key, auto &&param, auto &&doc) {
+            [this](auto key, auto &&param, auto &&doc) {
                 // initialize as false
-                decltype(auto) c = this->config();
-                c.set(key, false);
-                return std::forward<decltype(param)>(param).set(
-                           c.template get_typed<bool>(key)) %
+                this->config().set(key, false);
+                return std::forward<decltype(param)>(param).call(
+                           // in params set the flag to true
+                           [this, key=std::move(key)]() { this->config().set(key, true); }) %
                        doc;
             });
     }
@@ -181,12 +229,21 @@ struct ConfigMapper {
     /// @brief Positional argument according to valspec
     template <typename Doc, typename VSpec>
     auto operator()(std::string key, Doc &&doc, VSpec &&valspec) {
-        decltype(auto) c = this->config();
-        c.set(key, undef{});
-        return valspec.make_value(c, std::move(key)) % std::forward<Doc>(doc);
+        // initialize as undef
+        this->config().set(key, config_t::undef);
+        // config is set in value.call
+        return valspec(this->config(), std::move(key)) % std::forward<Doc>(doc);
     };
 
-    /// @brief Option with value, according to valspec
+    /// @brief Option with value, according to valspec, defualt value inferred.
+    template <typename Param, typename Doc, typename VSpec> requires (!tula::meta::StringLike<Param>)
+    auto operator()(Param &&param, Doc &&doc, VSpec &&valspec) {
+        return operator()(std::forward<Param>(param), std::forward<Doc>(doc),
+                          typename VSpec::defval_t{},
+                          std::forward<VSpec>(valspec));
+    }
+
+    /// @brief Option with value, according to valspec, default value specified
     template <typename Param, typename Doc, typename V, typename VSpec>
     auto operator()(Param &&param, Doc &&doc, V &&defval, VSpec &&valspec) {
         return internal::arg(
@@ -194,28 +251,31 @@ struct ConfigMapper {
             [this, defval_ = std::forward<V>(defval),
              valspec = std::forward<VSpec>(valspec)](const auto &key,
                                                      auto param, auto &&doc_) {
-                // normalize value to value type
-                value_t defval{internal::normalize_value(defval_)};
+                // normalize value to default value type for valspec
+                using defval_t = typename VSpec::defval_t;
+                defval_t defval{internal::normalize_value(defval_)};
                 std::string doc{std::forward<Doc>(doc_)};
-                decltype(auto) c = this->config();
                 // setup option param
                 if constexpr (VSpec::is_optional) {
                     // initialize to undef if value is optional
-                    // and set to default var in option callback
-                    c.set(key, undef{});
+                    // and set to default var in param callback
+                    // so when the param is not specified
+                    // it remains undef.
+                    this->config().set(key, config_t::undef);
                     param = param.call(
-                        [this, key = key, defvar = defval]() mutable {
+                        [this, key = key, defvar = defval]() {
                             this->config().set(key, std::move(defvar));
                         });
                 } else {
                     // initialize to default value directly
-                    c.set(key, defval);
+                    this->config().set(key, defval);
+                    // and set the value in value.call
                 }
                 // append the doc with default value if defined
                 if constexpr (!std::is_same_v<V, undef>) {
                     doc = fmt::format("{}. Default is {}", doc, defval);
                 }
-                return (param & valspec.make_value(c, key)) % doc;
+                return (param & valspec(this->config(), key)) % doc;
             });
     }
 
@@ -262,49 +322,146 @@ auto p(Args &&...args) {
         "-", "--", clipp::option(std::forward<decltype(args)>(args)...));
 };
 
+
+
 // valspecs
-inline constexpr auto str = [](const std::string &k = "arg") {
-    return internal::make_valspec<std::string, false>(k,
-                                                      TULA_LIFT(clipp::value));
-};
-inline constexpr auto opt_str = [](const std::string &k = "arg") {
-    return internal::make_valspec<std::string, true>(
-        k, TULA_LIFT(clipp::opt_value));
-};
-
-inline constexpr auto int_ = [](const std::string &k = "num") {
-    return internal::make_valspec<int, false>(k, TULA_LIFT(clipp::integer));
+inline constexpr auto str = [](auto && ...args) {
+    using value_t = std::string;
+    constexpr auto is_optional = false;
+    constexpr auto is_repeated = false;
+    return internal::make_valspec<value_t, is_optional, is_repeated>(
+        internal::make_clipp_value_factory<value_t, is_repeated>(
+            TULA_LIFT(clipp::value), "arg", std::forward<decltype(args)>(args)...));
 };
 
-inline constexpr auto opt_int = [](const std::string &k = "num") {
-    return internal::make_valspec<int, true>(k, TULA_LIFT(clipp::opt_integer));
+inline constexpr auto opt_str = [](auto && ...args) {
+    using value_t = std::string;
+    constexpr auto is_optional = true;
+    constexpr auto is_repeated = false;
+    return internal::make_valspec<value_t, is_optional, is_repeated>(
+        internal::make_clipp_value_factory<value_t, is_repeated>(
+            TULA_LIFT(clipp::opt_value), "arg", std::forward<decltype(args)>(args)...));
 };
-inline constexpr auto doub = [](const std::string &k = "value") {
-    return internal::make_valspec<double, false>(k, TULA_LIFT(clipp::number));
+
+inline constexpr auto strs = [](auto && ...args) {
+    using value_t = std::string;
+    constexpr auto is_optional = false;
+    constexpr auto is_repeated = true;
+    return internal::make_valspec<value_t, is_optional, is_repeated>(
+        internal::make_clipp_value_factory<value_t, is_repeated>(
+            TULA_LIFT(clipp::values), "arg", std::forward<decltype(args)>(args)...));
+};
+
+inline constexpr auto opt_strs = [](auto && ...args) {
+    using value_t = std::string;
+    constexpr auto is_optional = true;
+    constexpr auto is_repeated = true;
+    return internal::make_valspec<value_t, is_optional, is_repeated>(
+        internal::make_clipp_value_factory<value_t, is_repeated>(
+            TULA_LIFT(clipp::opt_values), "arg", std::forward<decltype(args)>(args)...));
+};
+
+
+inline constexpr auto int_ = [](std::string metavar = "num") {
+    using value_t = int;
+    constexpr auto is_optional = false;
+    constexpr auto is_repeated = false;
+    return internal::make_valspec<value_t, is_optional, is_repeated>(
+        internal::make_clipp_value_factory<value_t, is_repeated>(
+            TULA_LIFT(clipp::integer), std::move(metavar)));
+};
+
+inline constexpr auto opt_int = [](std::string metavar = "num") {
+    using value_t = int;
+    constexpr auto is_optional = true;
+    constexpr auto is_repeated = false;
+    return internal::make_valspec<value_t, is_optional, is_repeated>(
+        internal::make_clipp_value_factory<value_t, is_repeated>(
+            TULA_LIFT(clipp::opt_integer), std::move(metavar)));
+};
+
+inline constexpr auto ints = [](std::string metavar = "num") {
+    using value_t = int;
+    constexpr auto is_optional = false;
+    constexpr auto is_repeated = true;
+    return internal::make_valspec<value_t, is_optional, is_repeated>(
+        internal::make_clipp_value_factory<value_t, is_repeated>(
+            TULA_LIFT(clipp::integers), std::move(metavar)));
+};
+
+inline constexpr auto opt_ints = [](std::string metavar = "num") {
+    using value_t = int;
+    constexpr auto is_optional = true;
+    constexpr auto is_repeated = true;
+    return internal::make_valspec<value_t, is_optional, is_repeated>(
+        internal::make_clipp_value_factory<value_t, is_repeated>(
+            TULA_LIFT(clipp::opt_integers), std::move(metavar)));
+};
+
+inline constexpr auto doub = [](std::string metavar = "value") {
+    using value_t = double;
+    constexpr auto is_optional = false;
+    constexpr auto is_repeated = false;
+    return internal::make_valspec<value_t, is_optional, is_repeated>(
+        internal::make_clipp_value_factory<value_t, is_repeated>(
+            TULA_LIFT(clipp::number), std::move(metavar)));
+};
+
+inline constexpr auto opt_doub = [](std::string metavar = "value") {
+    using value_t = double;
+    constexpr auto is_optional = true;
+    constexpr auto is_repeated = false;
+    return internal::make_valspec<value_t, is_optional, is_repeated>(
+        internal::make_clipp_value_factory<value_t, is_repeated>(
+            TULA_LIFT(clipp::opt_number), std::move(metavar)));
+};
+
+inline constexpr auto doubs = [](std::string metavar = "value") {
+    using value_t = double;
+    constexpr auto is_optional = false;
+    constexpr auto is_repeated = true;
+    return internal::make_valspec<value_t, is_optional, is_repeated>(
+        internal::make_clipp_value_factory<value_t, is_repeated>(
+            TULA_LIFT(clipp::numbers), std::move(metavar)));
+};
+
+inline constexpr auto opt_doubs = [](std::string metavar = "value") {
+    using value_t = double;
+    constexpr auto is_optional = true;
+    constexpr auto is_repeated = true;
+    return internal::make_valspec<value_t, is_optional, is_repeated>(
+        internal::make_clipp_value_factory<value_t, is_repeated>(
+            TULA_LIFT(clipp::opt_numbers), std::move(metavar)));
 };
 
 inline constexpr auto list = [](auto &&choices_) {
-    using T = std::decay_t<decltype(choices_)>;
+    // figure out the choices names, if they are from enum
     auto choices = [](auto &&c) {
+        using T = std::decay_t<decltype(choices_)>;
         if constexpr (std::is_enum_v<T>) {
             return enum_utils::names<T>();
         } else {
             return std::forward<decltype(c)>(c);
         }
     }(std::forward<decltype(choices_)>(choices_));
-    return internal::make_valspec<std::string, false>(
-        std::move(choices), [](auto &&choices, auto &val) {
+    using value_t = std::string;
+    constexpr auto is_optional = false;
+    constexpr auto is_repeated = false;
+    return internal::make_valspec<value_t, is_optional, is_repeated>(
+        [choices=std::move(choices)](auto &conf, auto key) {
             clipp::group g;
-            for (auto &x : choices) {
+            for (const auto &x : choices) {
                 std::ostringstream oss;
                 oss << x;
                 g.push_back(clipp::command(oss.str()).call(
-                    [x = x, &val]() mutable { val = x; }));
+                    [ &conf, key=key, x=x](){ conf.set(key, x); }));
             }
             g.exclusive(true);
             return g;
         });
 };
+
+namespace m = clipp::match;
 
 } // namespace clipp_builder
 } // namespace tula::cli

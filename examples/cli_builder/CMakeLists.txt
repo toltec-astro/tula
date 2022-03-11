@@ -16,5 +16,6 @@ target_link_libraries(test_cli_builder
         tula::Clipp
         tula::Grppi
         tula::Enum
+        tula::Yaml
         )
 add_dependencies(test_progs test_cli_builder)

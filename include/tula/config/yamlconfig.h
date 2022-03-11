@@ -4,9 +4,20 @@
 #include "../logging.h"
 #include "../meta.h"
 #include "tula/traits.h"
+#include <tuple>
+#include <type_traits>
 #include <yaml-cpp/yaml.h>
 
 namespace tula::config {
+
+namespace internal {
+
+template <typename U>
+concept YamlNodeKeyType = requires(U &&u) {
+    YAML::Node()[std::forward<U>(u)];
+};
+
+} // namespace internal
 
 /**
  * @brief The YamlConfig struct
@@ -14,18 +25,12 @@ namespace tula::config {
  */
 struct YamlConfig {
 
-    template <typename U>
-    struct is_valid_key_t : std::false_type {};
-
-    template <tula::meta::CStr U>
-    struct is_valid_key_t<U> : std::true_type {};
+    inline static const auto undef{YAML::Node(YAML::NodeType::Undefined)};
 
     template <typename U>
-    requires(!tula::meta::CStr<U>) struct is_valid_key_t<U>
-        : std::is_invocable<decltype((YAML::Node(YAML::Node::*)(U)) &
-                                     YAML::Node::operator[]),
-                            YAML::Node, U> {
-    };
+    using is_valid_key_t = std::conditional_t<internal::YamlNodeKeyType<U>,
+                                              std::true_type, std::false_type>;
+
     using value_t = YAML::Node;
     using storage_t = YAML::Node;
     YamlConfig() = default;
@@ -33,29 +38,26 @@ struct YamlConfig {
     template <typename Path>
     explicit YamlConfig(const storage_t &node, Path filepath)
         : m_node(node), m_filepath{std::move(filepath)} {}
-    template <typename key_t>
-    auto get_node(key_t &&key) const -> decltype(auto) {
-        auto multiget_node_impl = meta::y_combinator(
-            [](const auto &get_node, auto &&node, auto &&x, auto &&...rest) {
-                if constexpr (sizeof...(rest) == 0) {
-                    return std::forward<decltype(node)>(
-                        node)[std::forward<decltype(x)>(x)];
-                } else {
-                    return get_node(std::forward<decltype(node)>(
-                                        node)[std::forward<decltype(x)>(x)],
-                                    std::forward<decltype(rest)>(rest)...);
-                }
-            });
-        if constexpr (meta::is_instance<std::remove_cvref_t<key_t>,
-                                        std::tuple>::value) {
-            return std::apply(multiget_node_impl,
-                              std::tuple_cat(std::tuple{m_node},
-                                             std::forward<decltype(key)>(key)));
-        } else if constexpr (is_valid_key_t<key_t>::value) {
-            return std::apply(
-                multiget_node_impl,
-                std::make_tuple(m_node, std::forward<decltype(key)>(key)));
-        }
+
+    template <typename... Keys>
+    auto get_node(Keys &&...keys) -> decltype(auto) {
+        return _get_node_impl(*this, std::forward<Keys>(keys)...);
+    }
+    template <typename... Keys>
+    auto get_node(Keys &&...keys) const -> decltype(auto) {
+        return _get_node_impl(*this, std::forward<Keys>(keys)...);
+    }
+
+    template <typename key_t, typename value_t>
+    void set(key_t &&key, value_t &&value) {
+        get_node(std::forward<decltype(key)>(key)) =
+            std::forward<decltype(value)>(value);
+    }
+
+    template <typename key_t, typename value_t>
+    void append(key_t &&key, value_t &&value) {
+        get_node(std::forward<decltype(key)>(key))
+            .push_back(std::forward<decltype(value)>(value));
     }
 
     template <typename key_t>
@@ -151,6 +153,32 @@ struct YamlConfig {
 private:
     storage_t m_node{};
     std::optional<std::filesystem::path> m_filepath{std::nullopt};
+
+    static auto _multiget_node_impl(auto &&node, auto &&k, auto &&...rest)
+        -> decltype(auto) {
+        decltype(auto) r =
+            std::forward<decltype(node)>(node)[std::forward<decltype(k)>(k)];
+        if constexpr (sizeof...(rest) == 0) {
+            return r;
+        } else {
+            return _multiget_node_impl(r,
+                                       std::forward<decltype(rest)>(rest)...);
+        }
+    }
+
+    template<typename Self, typename ...Keys>
+    static auto _get_node_impl(Self& self, Keys&& ...keys) ->decltype(auto) {
+        if constexpr (sizeof...(keys) == 0) {
+            return self.m_node;
+        } else {
+            return std::apply(
+                [&self](auto &&...args) mutable {
+                    return _multiget_node_impl(
+                        self.m_node, std::forward<decltype(args)>(args)...);
+                },
+                tula::meta::flatten(std::forward<Keys>(keys)...));
+        }
+    }
 };
 
 } // namespace tula::config
