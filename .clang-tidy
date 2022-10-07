@@ -41,4 +41,8 @@ CheckOptions:
     value:           'false'
   - key:             google-readability-function-size.StatementThreshold
     value:           '800'
+  - key:             readability-identifier-length.MinimumVariableNameLength
+    value:           '2'
+  - key:             readability-identifier-length.MinimumParameterNameLength
+    value:           '2'
 ...

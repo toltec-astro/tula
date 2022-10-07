@@ -130,6 +130,30 @@ constexpr auto flatten(Args &&...args) {
     return std::tuple_cat(internal::flatten_impl(std::forward<Args>(args))...);
 }
 
+namespace internal {
+
+// https://stackoverflow.com/a/60868425
+template <size_t I, typename T, typename Tuple_t>
+constexpr auto index_in_tuple_fn() -> size_t {
+    static_assert(I < std::tuple_size<Tuple_t>::value,
+                  "The element is not in the tuple");
+
+    using el = typename std::tuple_element<I, Tuple_t>::type;
+    if constexpr (std::is_same<T, el>::value) {
+        return I;
+    } else {
+        return index_in_tuple_fn<I + 1, T, Tuple_t>();
+    }
+}
+
+} // namespace internal
+
+template <typename T, typename Tuple_t>
+struct index_in_tuple {
+    static constexpr size_t value =
+        internal::index_in_tuple_fn<0, T, Tuple_t>();
+};
+
 } // namespace tula::meta
 
 /** Some commonly used constructs

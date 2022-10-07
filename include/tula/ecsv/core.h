@@ -38,8 +38,8 @@ struct convert<std::variant<Ts...>> {
                     result = std::monostate{};
                 }
             } else {
-                if (vt v{}; YAML::convert<vt>::decode(n, v)) {
-                    result = v;
+                if (vt value{}; YAML::convert<vt>::decode(n, value)) {
+                    result = value;
                 }
             }
             return result.has_value() ? std::move(result.value())
@@ -80,8 +80,8 @@ struct convert<std::optional<T>> {
             rhs = std::nullopt;
             return true;
         }
-        if (T v{}; convert<T>::decode(node, v)) {
-            rhs = std::move(v);
+        if (T value{}; convert<T>::decode(node, value)) {
+            rhs = std::move(value);
             return true;
         }
         return false;
@@ -96,11 +96,11 @@ namespace internal {
 
 /// @brief Returns true if \p v ends with \p ending.
 template <tula::meta::SizedIterable T, tula::meta::SizedIterable U>
-auto startswith(const T &v, const U &prefix) -> bool {
-    if (prefix.size() > v.size()) {
+auto startswith(const T &value, const U &prefix) -> bool {
+    if (prefix.size() > value.size()) {
         return false;
     }
-    return std::equal(prefix.begin(), prefix.end(), v.begin());
+    return std::equal(prefix.begin(), prefix.end(), value.begin());
 }
 
 } // namespace internal
@@ -166,8 +166,8 @@ auto parse_header(IStream &is, std::vector<std::string> *lines = nullptr) {
 
     std::stringstream ss_header; // stream to hold all header info.
 
-    std::size_t l = 0; // running line number
-    std::string ln{};  // running line content
+    std::size_t li = 0; // running line number
+    std::string ln{};   // running line content
     std::string ecsv_spec_version{};
     std::optional<std::string>
         csv_header{}; // csv header, immediately after the ECSV header
@@ -181,21 +181,21 @@ auto parse_header(IStream &is, std::vector<std::string> *lines = nullptr) {
                      return !std::isspace(ch);
                  }));
         // check first line.
-        if (l == 0) {
-            std::smatch m;
-            if (std::regex_match(ln, m, re_ecsv_version)) {
+        if (li == 0) {
+            std::smatch sm;
+            if (std::regex_match(ln, sm, re_ecsv_version)) {
                 // update the version number
-                ecsv_spec_version = m[1];
+                ecsv_spec_version = sm[1];
             } else {
                 throw ParseError("no ECSV version line found");
             }
-            ++l;
+            ++li;
             continue;
         }
         // l > 0
         if (ln == "#") {
             // this is an empty line, just ignore
-            ++l;
+            ++li;
             continue;
         }
         if (internal::startswith(ln, spec::ECSV_HEADER_PREFIX)) {
@@ -206,14 +206,14 @@ auto parse_header(IStream &is, std::vector<std::string> *lines = nullptr) {
                 ss_header << *it;
             }
             ss_header << "\n";
-            ++l;
+            ++li;
             continue;
         }
         // else
         // this line is not the yaml header and is expect to be the csv header
         {
             csv_header = ln;
-            ++l;
+            ++li;
             break;
         }
     }
@@ -285,13 +285,13 @@ auto check_uniform_dtype(DataTypes &&dtypes) -> bool {
 /// @brief Return a YAML node representing a column.
 template <typename T>
 auto make_column_node(const std::string &name) {
-    YAML::Node n{};
-    n.SetStyle(YAML::EmitterStyle::Flow);
+    YAML::Node node{};
+    node.SetStyle(YAML::EmitterStyle::Flow);
     std::string k_name{spec::k_name};
     std::string k_datatype{spec::k_datatype};
-    n[k_name] = name;
-    n[k_datatype] = dtype_str<T>();
-    return n;
+    node[k_name] = name;
+    node[k_datatype] = dtype_str<T>();
+    return node;
 }
 
 /**
@@ -318,18 +318,18 @@ void dump_header(OStream &os, const std::vector<std::string> &colnames,
     std::string k_meta{spec::k_meta};
     if constexpr (ntypes == 1) {
         // all types are T. uniform.
-        for (const auto &c : colnames) {
-            header[k_datatype].push_back(make_column_node<T>(c));
+        for (const auto &colname : colnames) {
+            header[k_datatype].push_back(make_column_node<T>(colname));
         }
     } else {
         // types are differnet
         tula::meta::apply_const_sequence(
-            [&](auto &&i_) {
-                constexpr auto i = std::decay_t<decltype(i_)>::value;
+            [&](auto &&index_) {
+                constexpr auto index = std::decay_t<decltype(index_)>::value;
                 // data type
-                using U = std::tuple_element_t<i, std::tuple<T, Ts...>>;
+                using U = std::tuple_element_t<index, std::tuple<T, Ts...>>;
                 header[k_datatype].push_back(
-                    (make_column_node<U>(colnames[i])));
+                    (make_column_node<U>(colnames[index])));
             },
             std::make_index_sequence<ntypes>{});
     }
@@ -345,28 +345,28 @@ void dump_header(OStream &os, const std::vector<std::string> &colnames,
 /// @brief Create meta node from map-like data structure.
 template <typename Map>
 auto map_to_meta(Map &&map) {
-    YAML::Node n;
+    YAML::Node node;
     using key_t = typename std::decay_t<Map>::key_type;
     using value_t = typename std::decay_t<Map>::mapped_type;
     for (const auto &item : std::forward<Map>(map)) {
         // handle value types
         if constexpr (tula::meta::is_instance<value_t, std::variant>::value) {
             std::visit(
-                [&](const auto &v) {
-                    using vt = std::decay_t<decltype(v)>;
+                [&](const auto &value) {
+                    using vt = std::decay_t<decltype(value)>;
                     if constexpr (std::is_same_v<vt, std::monostate>) {
-                        n.push_back(YAML::Null);
+                        node.push_back(YAML::Null);
                     } else {
-                        n.push_back(std::map{std::pair{item.first, v}});
+                        node.push_back(std::map{std::pair{item.first, value}});
                     };
                 },
                 item.second);
         } else {
-            n.push_back(std::map{std::pair{item.first, item.second}});
+            node.push_back(std::map{std::pair{item.first, item.second}});
         }
     };
-    n.SetTag(std::string{spec::ECSV_META_TAG});
-    return n;
+    node.SetTag(std::string{spec::ECSV_META_TAG});
+    return node;
 }
 
 /// @brief Create map from meta, if viable.
@@ -395,21 +395,21 @@ auto meta_to_map(const YAML::Node &meta, YAML::Node *rest = nullptr)
     rest_.SetTag(meta.Tag());
     if (meta.IsSequence() && (meta.Tag() == spec::ECSV_META_TAG)) {
         // ordered map
-        for (const auto &v : meta) {
-            assert(v.IsMap() && v.size() == 1);
-            const auto it = v.begin();
+        for (const auto &value : meta) {
+            assert(value.IsMap() && value.size() == 1);
+            const auto it = value.begin();
             if (auto opt_item = decode_item(*it); opt_item) {
                 result[opt_item.value().first] = opt_item.value().second;
             } else if (rest != nullptr) {
-                rest_.push_back(v);
+                rest_.push_back(value);
             }
         }
     } else if (meta.IsMap()) {
-        for (const auto &v : meta) {
-            if (auto opt_item = decode_item(v); opt_item) {
+        for (const auto &value : meta) {
+            if (auto opt_item = decode_item(value); opt_item) {
                 result[opt_item.value().first] = opt_item.value().second;
             } else if (rest != nullptr) {
-                rest_.operator[](v.first) = v.second;
+                rest_.operator[](value.first) = value.second;
             }
         }
     } else {

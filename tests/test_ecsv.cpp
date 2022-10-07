@@ -1,6 +1,6 @@
 #include "test_common.h"
 #include "tula/ecsv/core.h"
-// #include <fmt/ostream.h>
+#include <csv_parser/parser.hpp>
 #include <gtest/gtest.h>
 #include <sstream>
 #include <tula/ecsv/table.h>
@@ -20,7 +20,7 @@ auto apt_header = R"apt_header(# %ECSV 0.9
 #   datatype: string
 #   description: Unique id composed as "nw_pg_loc_ori".
 #   meta: {uid_format: '{nw:02d}_{pg:1d}_{loc:03d}_{ori:1d}', uid_regex: '(?P<nw>\d{2})_(?P<pg>\d)_(?P<loc>\d{3})_(?P<ori>\d)'}
-# - {name: nw, datatype: int64, description: Network index. Unique across all three arrays.}
+# - {name: nw, datatype: int32, description: Network index. Unique across all three arrays.}
 # - {name: pg, datatype: int64, description: 'Polarization group. 0 for "+", and 1 for "-".'}
 # - {name: loc, datatype: int64, description: Location index in polarization group.}
 # - {name: ori, datatype: int64, description: 'Orientation index at given location. 0 is for the one with lower frequency, 1 is for the
@@ -31,7 +31,7 @@ auto apt_header = R"apt_header(# %ECSV 0.9
 # - {name: i, datatype: int64, description: The vertical sorted (row) index of the detector on the array grid.}
 # - {name: j, datatype: int64, description: The horizontal sorted (column) index of the detector on the array grid.}
 # - {name: k, datatype: int64, description: The per-network frequency-wise sorted index of the detector.}
-# - {name: x, unit: um, datatype: int64, description: The x position designed.}
+# - {name: x, unit: um, datatype: float64, description: The x position designed.}
 # - {name: y, unit: um, datatype: float64, description: The y position designed.}
 # - {name: f, unit: GHz, datatype: float64, description: The frequency designed.}
 # - name: flag
@@ -95,6 +95,8 @@ auto apt_header = R"apt_header(# %ECSV 0.9
 # - {version: v1.0.0}
 # schema: astropy-2.0
 uid nw pg loc ori fg design_group i j k x y f flag flag_summary
+00_0_169_0 0 0 169 0 0 PXA 0 31 1 -22000 -61920.816 0.51677 1 dark
+00_1_159_1 0 1 159 1 3 PXB 0 37 525 -13750 -61920.816 0.873886 0 active
 )apt_header";
 // clang-format on
 
@@ -102,11 +104,11 @@ TEST(ecsv, parse_header) {
 
     using namespace tula::ecsv;
 
-    std::stringstream ss;
-    ss << apt_header;
+    std::stringstream content;
+    content << apt_header;
 
     std::vector<std::string> processed;
-    auto [ecsv_hdr, csv_hdr] = parse_header(ss, &processed);
+    auto [ecsv_hdr, csv_hdr] = parse_header(content, &processed);
 
     EXPECT_EQ(processed[0], "# %ECSV 0.9");
     EXPECT_EQ(ecsv_hdr["schema"].as<std::string>(), "astropy-2.0");
@@ -116,11 +118,11 @@ TEST(ecsv, hdr) {
 
     using namespace tula::ecsv;
 
-    std::stringstream ss;
-    ss << apt_header;
+    std::stringstream content;
+    content << apt_header;
 
     std::vector<std::string> processed;
-    auto hdr = ECSVHeader::read(ss, &processed);
+    auto hdr = ECSVHeader::read(content, &processed);
 
     fmtlog("hdr={}", hdr);
     fmtlog("cols={}", hdr.cols());
@@ -156,11 +158,11 @@ TEST(ecsv, hdr_view) {
 
     using namespace tula::ecsv;
 
-    std::stringstream ss;
-    ss << apt_header;
+    std::stringstream content;
+    content << apt_header;
 
     std::vector<std::string> processed;
-    auto hdr = ECSVHeader::read(ss, &processed);
+    auto hdr = ECSVHeader::read(content, &processed);
     auto hdrv = ECSVHeaderView(hdr);
 
     EXPECT_EQ(hdrv.col(0).name, hdr.cols()[0].name);
@@ -179,9 +181,9 @@ TEST(ecsv, hdr_view) {
 TEST(ecsv, array_data) {
 
     using namespace tula::ecsv;
-    std::stringstream ss;
-    ss << apt_header;
-    auto hdr = ECSVHeader::read(ss);
+    std::stringstream content;
+    content << apt_header;
+    auto hdr = ECSVHeader::read(content);
 
     // create hdrview for double type columns
     auto hdrv0 = ECSVHeaderView(hdr, [](const auto &col) {
@@ -191,7 +193,7 @@ TEST(ecsv, array_data) {
     // data container for holding the selected columns
     auto data0 = ArrayData<double>{hdrv0};
     static_assert(std::is_same_v<decltype(data0)::data_t, Eigen::ArrayXXd>);
-    EXPECT_EQ(hdrv0.colnames(), (std::vector<std::string>{"y", "f"}));
+    EXPECT_EQ(hdrv0.colnames(), (std::vector<std::string>{"x", "y", "f"}));
     EXPECT_EQ(data0.row(100).size(), data0.size());
     // data container for holding the selected columns, using directly the
     // constructor
@@ -200,7 +202,7 @@ TEST(ecsv, array_data) {
     static_assert(std::is_same_v<decltype(data1)::data_t, Eigen::ArrayXXi>);
     EXPECT_EQ(data1.colnames(),
               (std::vector<std::string>{"nw", "pg", "loc", "ori", "fg", "i",
-                                        "j", "k", "x", "flag"}));
+                                        "j", "k", "flag"}));
     EXPECT_EQ(data1.row(3000).size(), data1.size());
     // data container for holding string types
     auto data2 = ArrayData<std::string>{hdr, [](const auto &col) {
@@ -217,9 +219,9 @@ TEST(ecsv, array_data) {
 TEST(ecsv, dataloader) {
 
     using namespace tula::ecsv;
-    std::stringstream ss;
-    ss << apt_header;
-    auto hdr = ECSVHeader::read(ss);
+    std::stringstream content;
+    content << apt_header;
+    auto hdr = ECSVHeader::read(content);
 
     auto data0 = ArrayData<double>{hdr, {"x", "y", "f", "nw"}};
     auto data1 = ArrayData<int>{hdr, {"nw", "pg", "loc", "ori", "fg"}};
@@ -243,6 +245,82 @@ TEST(ecsv, dataloader) {
     fmtlog("data0{}", data0.array());
     fmtlog("data1{}", data1.array());
     fmtlog("data2{}", data2.array());
+}
+
+TEST(ecsv, readdata_csvparser) {
+
+    using namespace tula::ecsv;
+    std::stringstream content;
+    content << apt_header;
+    auto hdr = ECSVHeader::read(content);
+
+    auto data0 = ArrayData<double>{hdr, {"x", "y", "f", "nw"}};
+    auto data1 = ArrayData<int>{hdr, {"nw", "pg", "loc", "ori", "fg"}};
+    auto data2 = ArrayData<std::string>{hdr, [](const auto &col) {
+                                            return col.datatype ==
+                                                   dtype_str<std::string>();
+                                        }};
+    auto loader = ECSVDataLoader{hdr, data0, data1, data2};
+    {
+        // run the csv parser to get data
+        auto parser = aria::csv::CsvParser(content).delimiter(hdr.delimiter());
+        int row_idx = 0;
+        for (const auto &row : parser) {
+            // populate data
+            loader.ensure_row_size_for_index(row_idx);
+            for (std::size_t j = 0; j < row.size(); ++j) {
+                loader.visit_col(j, [&row_idx, &j, &row](auto colref) {
+                    using value_t = typename decltype(colref)::value_t;
+                    value_t value;
+                    std::istringstream(row.at(j)) >> value;
+                    colref.set_value(row_idx, value);
+                });
+            }
+            ++row_idx;
+        }
+        // trim the extra data rows.
+        loader.truncate(row_idx);
+    }
+    loader.visit_col("uid", [](auto colref) {
+        fmtlog("col: {} {}", colref.col, colref.data);
+    });
+    loader.visit_col("f", [](auto colref) {
+        fmtlog("col: {} {}", colref.col, colref.data);
+    });
+
+    fmtlog("data0{}", data0.array());
+    fmtlog("data1{}", data1.array());
+    fmtlog("data2{}", data2.array());
+}
+
+TEST(ecsv, table) {
+
+    using namespace tula::ecsv;
+    std::stringstream content;
+    content << apt_header;
+    auto hdr_standalone = ECSVHeader::read(content);
+    auto tbl = ECSVTable(hdr_standalone);
+    // run the csv parser to get data to tbl
+    auto parser =
+        aria::csv::CsvParser(content).delimiter(tbl.header().delimiter());
+    tbl.load_rows(parser);
+
+    fmtlog("hdr_standalone: {}", hdr_standalone);
+    fmtlog("tbl: {}", tbl);
+    fmtlog("tbl_info:\n{}", tbl.info());
+    fmtlog("tbl header: {}", tbl.header());
+    fmtlog("tbl loader: {}", tbl.loader());
+    fmtlog("tbl bool data: {}", tbl.array_data<bool>());
+    fmtlog("tbl int data: {}", tbl.array_data<int>());
+    fmtlog("tbl int64 data: {}", tbl.array_data<int64_t>());
+    fmtlog("tbl double data: {}", tbl.array_data<double>());
+    fmtlog("tbl complex data: {}", tbl.array_data<std::complex<double>>());
+    fmtlog("tbl str data: {}", tbl.array_data<std::string>());
+    fmtlog("colref uid: {}", tbl.col<std::string>("uid"));
+    fmtlog("colref nw: {}", tbl.col<int32_t>("nw"));
+    fmtlog("col data uid{}", tbl.col<std::string>("uid").data);
+    fmtlog("col data nw{}", tbl.col<int32_t>("nw").data);
+    fmtlog("col data x{}", tbl.col<double>("x").data);
 }
 
 } // namespace

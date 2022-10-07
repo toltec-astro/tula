@@ -1,10 +1,11 @@
 #pragma once
 
+#include "../container.h"
+#include "../eigen.h"
 #include "../nddata/eigen.h"
 #include "../nddata/labelmapper.h"
-#include "../container.h"
 #include "hdr.h"
-#include "../eigen.h"
+#include "tula/meta.h"
 #include <functional>
 #include <ranges>
 #include <stdexcept>
@@ -74,13 +75,15 @@ struct ECSVHeaderView : tula::nddata::LabelMapper<ECSVHeaderView> {
     using labels_t = Base::labels_t;
 
     ECSVHeaderView(const ECSVHeader &hdr)
-        : ECSVHeaderView{hdr, tula::container_utils::to_stdvec(hdr.colnames())} {}
+        : ECSVHeaderView{hdr,
+                         tula::container_utils::to_stdvec(hdr.colnames())} {}
 
     /// @brief Create a view that maps a subset of columns
     ECSVHeaderView(const ECSVHeader &hdr, std::vector<label_t> colnames)
         : Base{std::move(colnames)}, m_hdr(hdr) {
 
-        auto base_mapper = Base(tula::container_utils::to_stdvec(hdr.colnames()));
+        auto base_mapper =
+            Base(tula::container_utils::to_stdvec(hdr.colnames()));
         for (const auto &view_colname : this->labels()) {
             m_view_index.push_back(base_mapper.index(view_colname));
             m_view_cols.push_back(
@@ -107,8 +110,8 @@ struct ECSVHeaderView : tula::nddata::LabelMapper<ECSVHeaderView> {
     }
 
     [[nodiscard]] auto cols() const -> decltype(auto) {
-        return std::ranges::transform_view(
-            m_view_cols, [] (auto ref) {return ref.get();});
+        return std::ranges::transform_view(m_view_cols,
+                                           [](auto ref) { return ref.get(); });
     }
 
     /// @brief Return the list of indices of columns in the original header.
@@ -213,10 +216,10 @@ struct ArrayData : ECSVHeaderView {
     auto operator()(index_t i) const {
         if constexpr (is_eigen_data) {
             auto c = data.col(i);
-            return ColDataRef<value_t, decltype(c)>{c};
+            return ColDataRef<value_t, decltype(c)>{c, this->col(i)};
         } else {
             return ColDataRef<value_t, const std::vector<value_t> &>{
-                data.at(i)};
+                data.at(i), this->col(i)};
         }
     }
 
@@ -238,7 +241,7 @@ struct ArrayData : ECSVHeaderView {
         }
     }
 
-    auto array() const &noexcept -> const auto & { return data; }
+    [[nodiscard]] auto array() const &noexcept -> const auto & { return data; }
     auto array() &&noexcept { return std::move(data); }
 
     /// @brief Truncate the data to have n records.
@@ -343,6 +346,15 @@ struct ECSVDataLoader {
         visit_col(m_hdr_view.index(name), std::forward<F>(f));
     }
 
+    auto colrefs(index_t idx) -> decltype(auto) {
+        using colref_t = std::variant<decltype(std::declval<ArrayDataTypes &>()(
+            index_t()))...>;
+        using colrefs_t = std::vector<colref_t>;
+        colrefs_t result;
+        visit_col(idx, [&result](auto colref) { result.emplace_back(colref); });
+        return result;
+    }
+
     void ensure_row_size_for_index(index_t j) {
         for (const auto &array_data : m_array_data_refs) {
             std::visit(
@@ -357,7 +369,13 @@ struct ECSVDataLoader {
         }
     }
 
-    auto get_ref_index() const -> decltype(auto) { return m_ref_index; }
+    [[nodiscard]] auto get_ref_index() const -> decltype(auto) {
+        return m_ref_index;
+    }
+
+    [[nodiscard]] auto header_view() const -> decltype(auto) {
+        return m_hdr_view;
+    }
 
 private:
     ECSVHeaderView m_hdr_view;
@@ -365,6 +383,131 @@ private:
     // This holds the list of index pairs to locate the data col for each
     // hdr col
     std::vector<std::vector<std::pair<index_t, index_t>>> m_ref_index;
+};
+
+namespace internal {
+template <internal::ECSVDataType... Ts>
+struct table_data_traits_impl {
+    using value_t = std::tuple<ArrayData<Ts>...>;
+    using loader_t = ECSVDataLoader<ArrayData<Ts>...>;
+    using supported_dtypes_t = std::tuple<Ts...>;
+
+    template <internal::ECSVDataType T>
+    constexpr static auto dtype_index() {
+        return tula::meta::index_in_tuple<T, supported_dtypes_t>::value;
+    }
+
+    static auto init_value(const ECSVHeader &hdr) {
+        return value_t{ArrayData<Ts>(hdr, [](const auto &col) {
+            return col.datatype == dtype_str<Ts>();
+        })...};
+    }
+
+    static auto init_loader(const ECSVHeader &hdr, value_t &value) {
+        return ECSVDataLoader(hdr, std::get<ArrayData<Ts>>(value)...);
+    }
+};
+} // namespace internal
+
+struct ECSVTable {
+    using index_t = ECSVHeaderView::index_t;
+    using label_t = ECSVHeaderView::label_t;
+    // bool, int8, int16, int32, int64
+    // uint8, uint16, uint32, uint64
+    // float16, float32, float64, float128
+    // complex64, complex128, complex256
+    using table_data_traits = internal::table_data_traits_impl<
+        bool, int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t, uint32_t,
+        uint64_t, float, double, long double, std::complex<float>,
+        std::complex<double>, std::complex<long double>, std::string>;
+    using table_data_t = table_data_traits::value_t;
+    using loader_t = table_data_traits::loader_t;
+
+    ECSVTable(ECSVHeader hdr)
+        : m_hdr{std::move(hdr)}, m_data{table_data_traits::init_value(m_hdr)},
+          m_loader{table_data_traits::init_loader(m_hdr, m_data)} {};
+
+    auto header() const -> decltype(auto) { return m_hdr; }
+    auto header_view() const -> decltype(auto) {
+        return m_loader.header_view();
+    }
+    auto loader() const -> decltype(auto) { return m_loader; }
+
+    template <internal::ECSVDataType T>
+    auto array_data() const -> decltype(auto) {
+        return std::get<ArrayData<T>>(m_data);
+    }
+    template <internal::ECSVDataType T>
+    auto col(index_t idx) {
+        auto colref = m_loader.colrefs(idx).front();
+        // because there is no duplicate in the loader, we can just get the
+        // first col
+        // unwrap the variant
+        return std::get<decltype(std::declval<ArrayData<T> &>()(index_t()))>(
+            colref);
+    }
+    template <internal::ECSVDataType T>
+    auto col(const label_t &name) -> decltype(auto) {
+        return col<T>(this->header_view().index(name));
+    }
+
+    auto cols() const -> std::size_t { return m_hdr.size(); }
+    auto rows() const -> std::size_t { return m_current_rows; }
+    auto empty() const -> bool { return rows() == 0; }
+
+    template <tula::meta::Iterable It>
+    void load_rows(It &rows) {
+        if (!empty()) {
+            throw std::runtime_error(fmt::format(
+                "table already contains data n_rows={}", m_current_rows));
+        }
+        int row_idx = 0;
+        for (const auto &row : rows) {
+            // populate data
+            m_loader.ensure_row_size_for_index(row_idx);
+            for (std::size_t col_idx = 0; col_idx < row.size(); ++col_idx) {
+                m_loader.visit_col(
+                    col_idx, [&row_idx, &col_idx, &row](auto colref) {
+                        using value_t = typename decltype(colref)::value_t;
+                        value_t value;
+                        std::istringstream(row.at(col_idx)) >> value;
+                        colref.set_value(row_idx, value);
+                    });
+            }
+            ++row_idx;
+        }
+        m_loader.truncate(row_idx);
+        m_current_rows = row_idx;
+    }
+    auto info() -> std::string {
+        std::stringstream ss;
+        ss << fmt::format("ECSVTable n_cols={} n_rows={}\n", this->cols(),
+                          this->rows());
+        ss << "Data Containers:\n";
+        // make a list of column names by type
+        std::apply(
+            [&ss](auto &...array_data) {
+                auto get_array_data_info = [&ss](const auto &array_data) {
+                    using array_data_t = TULA_DECAY(array_data);
+                    auto n_cols = array_data.size();
+                    if (n_cols > 0) {
+                        ss << fmt::format(
+                            "{:>10s}: n_cols={} {}\n",
+                            dtype_str<typename array_data_t::value_t>(),
+                            array_data.size(), array_data.colnames());
+                    }
+                };
+                (..., get_array_data_info(array_data));
+            },
+            m_data);
+        return ss.str();
+    }
+
+private:
+    ECSVHeader m_hdr;
+    table_data_t m_data;
+    loader_t m_loader;
+    std::size_t m_current_rows{0};
 };
 
 } // namespace tula::ecsv
@@ -400,6 +543,28 @@ struct formatter<tula::ecsv::ColDataRef<Ts...>>
                 FormatContext &ctx) {
         auto it = ctx.out();
         return format_to(it, "ECSVColRef(name={})", colref.col.name);
+    }
+};
+
+template <typename... Ts>
+struct formatter<tula::ecsv::ECSVDataLoader<Ts...>>
+    : tula::fmt_utils::nullspec_formatter_base {
+    template <typename FormatContext>
+    auto format(const tula::ecsv::ECSVDataLoader<Ts...> &loader,
+                FormatContext &ctx) {
+        auto it = ctx.out();
+        return format_to(it, "ECSVDataLoader(n_cols={})",
+                         loader.get_ref_index().size());
+    }
+};
+
+template <>
+struct formatter<tula::ecsv::ECSVTable>
+    : tula::fmt_utils::nullspec_formatter_base {
+    template <typename FormatContext>
+    auto format(const tula::ecsv::ECSVTable &tbl, FormatContext &ctx) {
+        auto it = ctx.out();
+        return format_to(it, "ECSVTable(n_cols={})", tbl.header().size());
     }
 };
 } // namespace fmt
