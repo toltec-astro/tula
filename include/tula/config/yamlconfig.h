@@ -18,46 +18,42 @@ concept YamlNodeKeyType = requires(U &&u) {
 };
 
 // https://stackoverflow.com/a/41337824/1824372
-const YAML::Node & cnode(const YAML::Node &n) {
-    return n;
-}
+inline const YAML::Node &cnode(const YAML::Node &n) { return n; }
 
-YAML::Node merge_nodes(YAML::Node a, YAML::Node b)
-{
-  if (!b.IsMap()) {
-    // If b is not a map, merge result is b, unless b is null
-    return b.IsNull() ? a : b;
-  }
-  if (!a.IsMap()) {
-    // If a is not a map, merge result is b
-    return b;
-  }
-  if (!b.size()) {
-    // If a is a map, and b is an empty map, return a
-    return a;
-  }
-  // Create a new map 'c' with the same mappings as a, merged with b
-  auto c = YAML::Node(YAML::NodeType::Map);
-  for (auto n : a) {
-    if (n.first.IsScalar()) {
-      const std::string & key = n.first.Scalar();
-      auto t = YAML::Node(cnode(b)[key]);
-      if (t) {
-        c[n.first] = merge_nodes(n.second, t);
-        continue;
-      }
+inline YAML::Node merge_nodes(YAML::Node a, YAML::Node b) {
+    if (!b.IsMap()) {
+        // If b is not a map, merge result is b, unless b is null
+        return b.IsNull() ? a : b;
     }
-    c[n.first] = n.second;
-  }
-  // Add the mappings from 'b' not already in 'c'
-  for (auto n : b) {
-    if (!n.first.IsScalar() || !cnode(c)[n.first.Scalar()]) {
-      c[n.first] = n.second;
+    if (!a.IsMap()) {
+        // If a is not a map, merge result is b
+        return b;
     }
-  }
-  return c;
+    if (!b.size()) {
+        // If a is a map, and b is an empty map, return a
+        return a;
+    }
+    // Create a new map 'c' with the same mappings as a, merged with b
+    auto c = YAML::Node(YAML::NodeType::Map);
+    for (auto n : a) {
+        if (n.first.IsScalar()) {
+            const std::string &key = n.first.Scalar();
+            auto t = YAML::Node(cnode(b)[key]);
+            if (t) {
+                c[n.first] = merge_nodes(n.second, t);
+                continue;
+            }
+        }
+        c[n.first] = n.second;
+    }
+    // Add the mappings from 'b' not already in 'c'
+    for (auto n : b) {
+        if (!n.first.IsScalar() || !cnode(c)[n.first.Scalar()]) {
+            c[n.first] = n.second;
+        }
+    }
+    return c;
 }
-
 
 } // namespace internal
 
@@ -191,7 +187,7 @@ struct YamlConfig {
         return os << fmt::format("{}\n<config filepath: {}>", config.pformat(),
                                  pformat_opt_filepath(config.filepath()));
     }
-    friend YamlConfig merge(const YamlConfig& left, const YamlConfig& right);
+    friend YamlConfig merge(const YamlConfig &left, const YamlConfig &right);
 
 private:
     storage_t m_node{};
@@ -209,8 +205,8 @@ private:
         }
     }
 
-    template<typename Self, typename ...Keys>
-    static auto _get_node_impl(Self& self, Keys&& ...keys) ->decltype(auto) {
+    template <typename Self, typename... Keys>
+    static auto _get_node_impl(Self &self, Keys &&...keys) -> decltype(auto) {
         if constexpr (sizeof...(keys) == 0) {
             return self.m_node;
         } else {
@@ -224,10 +220,10 @@ private:
     }
 };
 
-YamlConfig merge(const YamlConfig& left, const YamlConfig& right) {
-        return YamlConfig(internal::merge_nodes(left.m_node, right.m_node), left.filepath());
-    }
-
+inline YamlConfig merge(const YamlConfig &left, const YamlConfig &right) {
+    return YamlConfig(internal::merge_nodes(left.m_node, right.m_node),
+                      left.filepath());
+}
 
 } // namespace tula::config
 

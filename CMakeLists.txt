@@ -17,7 +17,10 @@ target_include_directories(tula_headers
 
 include(config_header)
 target_link_libraries(tula_headers INTERFACE tula::config_header)
-
+file(GLOB_RECURSE TULA_HEADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/tula/*.h")
+target_precompile_headers(tula_headers INTERFACE
+    ${TULA_HEADER_FILES}
+)
 # Do not add any link libs since we'll be pulling in dependencies
 # as they are needed in the user code
 add_library(tula::headers ALIAS tula_headers)

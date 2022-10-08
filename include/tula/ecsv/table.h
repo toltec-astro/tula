@@ -32,9 +32,9 @@ requires tula::meta::Invocable<Pred, const ECSVColumn &>
 auto get_colnames_filtered(const ECSVHeader &hdr, Pred &&pred) {
     using label_t = tula::nddata::type_traits<ECSVHeaderView>::label_t;
     std::vector<label_t> colnames;
-    for (const auto &c : hdr.cols()) {
-        if (pred(c)) {
-            colnames.push_back(c.name);
+    for (const auto &col : hdr.cols()) {
+        if (pred(col)) {
+            colnames.push_back(col.name);
         }
     }
     return colnames;
@@ -97,13 +97,13 @@ struct ECSVHeaderView : tula::nddata::LabelMapper<ECSVHeaderView> {
         : ECSVHeaderView{hdr, internal::get_colnames_filtered(
                                   hdr, std::forward<Pred>(pred))} {}
 
-    [[nodiscard]] auto col(index_t i) const -> const ECSVColumn & {
-        if (i >= m_view_index.size()) {
+    [[nodiscard]] auto col(index_t idx) const -> const ECSVColumn & {
+        if (idx >= m_view_index.size()) {
             throw std::runtime_error(
-                fmt::format("column index {} out of range 0-{}", i,
+                fmt::format("column index {} out of range 0-{}", idx,
                             m_view_index.size() - 1));
         }
-        return m_hdr.cols()[this->m_view_index[i]];
+        return m_hdr.cols()[this->m_view_index[idx]];
     }
     [[nodiscard]] auto col(const label_t &name) const -> const ECSVColumn & {
         return m_hdr.cols()[this->m_view_index[this->index(name)]];
@@ -124,7 +124,8 @@ struct ECSVHeaderView : tula::nddata::LabelMapper<ECSVHeaderView> {
         // return std::ranges::transform_view(cols(), &ECSVColumn::name);
     }
     [[nodiscard]] auto datatypes() const noexcept -> decltype(auto) {
-        return std::ranges::transform_view(cols(), &ECSVColumn::datatype);
+        return std::ranges::transform_view(
+            cols(), [](const auto &col) { return col.datatype; });
     }
 
 private:
@@ -146,27 +147,28 @@ struct ColDataRef {
 
     col_data_t data;
     const ECSVColumn &col;
-    auto operator()(index_t i) -> value_t & {
+
+    auto operator()(index_t idx) -> value_t & {
         if constexpr (is_eigen_data) {
-            return data.coeffRef(i);
+            return data.coeffRef(idx);
         } else {
-            return data[i];
+            return data[idx];
         }
     }
-    auto operator()(index_t i) const -> const value_t & {
+    auto operator()(index_t idx) const -> const value_t & {
         if constexpr (is_eigen_data) {
-            return data.coeffRef(i);
+            return data.coeffRef(idx);
         } else {
-            return data[i];
+            return data[idx];
         }
     }
 
     template <typename T>
-    auto set_value(index_t i, const T &v) {
+    auto set_value(index_t idx, const T &value) {
         // this checks the value T for string like, and dispatch coordingly
         if constexpr ((is_eigen_data && !tula::meta::StringLike<T>) ||
                       (!is_eigen_data && tula::meta::StringLike<T>)) {
-            this->operator()(i) = v;
+            this->operator()(idx) = value;
         }
     }
 };
@@ -203,23 +205,25 @@ struct ArrayData : ECSVHeaderView {
         : ArrayData{hdr, internal::get_colnames_filtered(
                              hdr, std::forward<Pred>(pred))} {}
 
-    auto operator()(index_t i) {
+    auto operator()(index_t idx) {
         if constexpr (is_eigen_data) {
-            auto c = data.col(i);
-            return ColDataRef<value_t, decltype(c)>{c, this->col(i)};
+            auto data_col = data.col(idx);
+            return ColDataRef<value_t, decltype(data_col)>{data_col,
+                                                           this->col(idx)};
         } else {
-            return ColDataRef<value_t, std::vector<value_t> &>{data.at(i),
-                                                               this->col(i)};
+            return ColDataRef<value_t, std::vector<value_t> &>{data.at(idx),
+                                                               this->col(idx)};
         }
     }
 
-    auto operator()(index_t i) const {
+    auto operator()(index_t idx) const {
         if constexpr (is_eigen_data) {
-            auto c = data.col(i);
-            return ColDataRef<value_t, decltype(c)>{c, this->col(i)};
+            auto data_col = data.col(idx);
+            return ColDataRef<value_t, decltype(data_col)>{data_col,
+                                                           this->col(idx)};
         } else {
             return ColDataRef<value_t, const std::vector<value_t> &>{
-                data.at(i), this->col(i)};
+                data.at(idx), this->col(idx)};
         }
     }
 
@@ -230,14 +234,16 @@ struct ArrayData : ECSVHeaderView {
         return this->operator()(this->index(name));
     }
 
-    [[nodiscard]] auto row(index_t j) {
-        this->ensure_row_size_for_index(j);
+    [[nodiscard]] auto row(index_t idx) {
+        this->ensure_row_size_for_index(idx);
         if constexpr (is_eigen_data) {
-            return data.row(j);
+            return data.row(idx);
         } else {
-            // We need to build a view to the j th element in each vector
+            // We need to build a view to the idx-th element in each vector
             return std::ranges::transform_view(
-                data, [j = j](auto &v) -> index_t & { return v.at(j); });
+                data, [idx = idx](auto &value) -> index_t & {
+                    return value.at(idx);
+                });
         }
     }
 
@@ -249,21 +255,21 @@ struct ArrayData : ECSVHeaderView {
         if constexpr (is_eigen_data) {
             this->data.conservativeResize(n, Eigen::NoChange);
         } else {
-            for (auto &v : this->data) {
-                v.resize(n);
+            for (auto &value : this->data) {
+                value.resize(n);
             }
         }
     }
 
-    void ensure_row_size_for_index(index_t j) {
+    void ensure_row_size_for_index(index_t idx) {
         auto get_new_size = [](index_t old_size,
-                               index_t j) -> std::optional<index_t> {
-            if (j >= old_size) {
+                               index_t idx) -> std::optional<index_t> {
+            if (idx >= old_size) {
                 index_t n_blocks{0};
                 if (old_size == 0) {
                     n_blocks = 1;
                 } else {
-                    n_blocks = j / old_size + index_t(j % old_size > 0);
+                    n_blocks = idx / old_size + index_t(idx % old_size > 0);
                     // when j = 0 this happens
                     if (n_blocks == 0) {
                         n_blocks = 1;
@@ -275,11 +281,11 @@ struct ArrayData : ECSVHeaderView {
         };
         std::optional<index_t> new_size{std::nullopt};
         if constexpr (is_eigen_data) {
-            new_size = get_new_size(this->data.rows(), j);
+            new_size = get_new_size(this->data.rows(), idx);
 
         } else {
             new_size = get_new_size(
-                tula::meta::size_cast<index_t>(this->data[0].size()), j);
+                tula::meta::size_cast<index_t>(this->data[0].size()), idx);
         }
         if (new_size.has_value()) {
             this->truncate(new_size.value());
@@ -296,8 +302,8 @@ private:
             this->data.resize(this->size());
             // for std vector type, each inner vector is a column.
             // the elements in the inner vector are records of that column
-            for (auto &v : this->data) {
-                v.resize(block_size);
+            for (auto &value : this->data) {
+                value.resize(block_size);
             }
         }
     }
@@ -315,35 +321,35 @@ struct ECSVDataLoader {
         for (std::size_t i = 0; i < m_array_data_refs.size(); ++i) {
             auto [cols, indices] = std::visit(
                 [](auto ref) {
-                    decltype(auto) d = ref.get();
-                    return std::tuple{d.cols(), d.indices()};
+                    decltype(auto) data = ref.get();
+                    return std::tuple{data.cols(), data.indices()};
                 },
                 m_array_data_refs[i]);
             for (std::size_t j = 0; j < indices.size(); ++j) {
-                auto k = indices[j];
-                // k: original header index,
+                auto col_idx = indices[j];
+                // col_idx: original header index,
                 // i: array data refs index
                 // j: col index in array data
-                m_ref_index[k].emplace_back(i, j);
+                m_ref_index[col_idx].emplace_back(i, j);
             }
         }
     }
 
     template <tula::meta::IsUnary F>
-    void visit_col(index_t k, F &&f) {
-        for (auto [i, j] : m_ref_index[k]) {
+    void visit_col(index_t idx, F &&func) {
+        for (auto [i, data_col_idx] : m_ref_index[idx]) {
             std::visit(
-                [&f, j = j](auto ref) -> void {
+                [&func, data_col_idx = data_col_idx](auto ref) -> void {
                     auto &array_data = ref.get();
-                    f(array_data(j));
+                    func(array_data(data_col_idx));
                 },
                 m_array_data_refs[i]);
         }
     }
 
     template <tula::meta::IsUnary F>
-    void visit_col(const label_t &name, F &&f) {
-        visit_col(m_hdr_view.index(name), std::forward<F>(f));
+    void visit_col(const label_t &name, F &&func) {
+        visit_col(m_hdr_view.index(name), std::forward<F>(func));
     }
 
     auto colrefs(index_t idx) -> decltype(auto) {
@@ -355,16 +361,18 @@ struct ECSVDataLoader {
         return result;
     }
 
-    void ensure_row_size_for_index(index_t j) {
+    void ensure_row_size_for_index(index_t idx) {
         for (const auto &array_data : m_array_data_refs) {
             std::visit(
-                [j = j](auto ref) { ref.get().ensure_row_size_for_index(j); },
+                [idx = idx](auto ref) {
+                    ref.get().ensure_row_size_for_index(idx);
+                },
                 array_data);
         }
     }
-    void truncate(index_t n) {
+    void truncate(index_t size) {
         for (const auto &array_data : m_array_data_refs) {
-            std::visit([n = n](auto ref) { ref.get().truncate(n); },
+            std::visit([size = size](auto ref) { ref.get().truncate(size); },
                        array_data);
         }
     }

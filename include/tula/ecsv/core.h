@@ -217,7 +217,7 @@ auto parse_header(IStream &is, std::vector<std::string> *lines = nullptr) {
             break;
         }
     }
-    assert(lines ? (l == lines->size()) : true); // sanity check
+    assert(lines ? (li == lines->size()) : true); // sanity check
     // Create yaml node
     auto node = YAML::Load(ss_header);
     // we update some additional info in to the node for internal usage

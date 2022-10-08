@@ -15,9 +15,9 @@ inline auto logger() {
 
 template <typename FmtStr, typename... Args>
 std::string fmtlog(FmtStr &&fmt_str, Args &&...args) {
-    auto s = fmt::format(fmt::runtime(fmt_str), args...);
-    logger()->log(tula::logging::active_level, s);
-    return s;
+    auto result = fmt::format(fmt::runtime(fmt_str), args...);
+    logger()->log(tula::logging::active_level, result);
+    return result;
 };
 
 } // namespace tula::testing
