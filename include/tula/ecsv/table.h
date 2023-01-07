@@ -250,43 +250,62 @@ struct ArrayData : ECSVHeaderView {
     [[nodiscard]] auto array() const &noexcept -> const auto & { return data; }
     auto array() &&noexcept { return std::move(data); }
 
-    /// @brief Truncate the data to have n records.
+    /// @brief Truncate the data to have n rows.
     void truncate(index_t n) {
+        if (this->empty()) {
+            // no-op if empty
+            return;
+        }
+        SPDLOG_TRACE("trucate data with n_rows={}", n);
         if constexpr (is_eigen_data) {
+            SPDLOG_TRACE("prev data_shape {} {}", this->data.rows(), this->data.cols());
             this->data.conservativeResize(n, Eigen::NoChange);
+            SPDLOG_TRACE("current data_shape {} {}", this->data.rows(), this->data.cols());
         } else {
             for (auto &value : this->data) {
                 value.resize(n);
             }
         }
     }
+    auto row_size() const noexcept -> index_t {
+        if (this->empty()) {
+            return 0;
+        }
+        if constexpr (is_eigen_data) {
+            SPDLOG_TRACE("current data_shape {} {}", this->data.rows(), this->data.cols());
+            return this->data.rows();
+        } else {
+            SPDLOG_TRACE("current data_shape {} {}", this->data[0].size(), this->data.size());
+            return tula::meta::size_cast<index_t>(this->data[0].size());
+        }
+    }
 
     void ensure_row_size_for_index(index_t idx) {
+        if (this->empty()) {
+            // no-op if empty
+            return;
+        }
         auto get_new_size = [](index_t old_size,
                                index_t idx) -> std::optional<index_t> {
+            SPDLOG_TRACE("check row size for idx: old_size={} idx={}", old_size, idx);
+            // here we always requrest n_rows as multiples of block_size
             if (idx >= old_size) {
-                index_t n_blocks{0};
-                if (old_size == 0) {
+                auto new_size = idx + 1;
+                auto n_blocks = new_size / block_size + index_t(new_size % block_size > 0);
+                SPDLOG_TRACE("computed n_blocks={}", n_blocks);
+                if (n_blocks == 0) {
+                    // this should never happen
+                    SPDLOG_TRACE("n_blocks=0, set n_blocks={}", n_blocks);
                     n_blocks = 1;
-                } else {
-                    n_blocks = idx / old_size + index_t(idx % old_size > 0);
-                    // when j = 0 this happens
-                    if (n_blocks == 0) {
-                        n_blocks = 1;
-                    }
                 }
+                SPDLOG_TRACE("set new size to n_blocks={}, size={}", n_blocks, n_blocks * block_size);
                 return n_blocks * block_size;
+            } else {
+                SPDLOG_TRACE("no new size needed");
             }
             return std::nullopt;
         };
-        std::optional<index_t> new_size{std::nullopt};
-        if constexpr (is_eigen_data) {
-            new_size = get_new_size(this->data.rows(), idx);
-
-        } else {
-            new_size = get_new_size(
-                tula::meta::size_cast<index_t>(this->data[0].size()), idx);
-        }
+        auto new_size = get_new_size(this->row_size(), idx);
         if (new_size.has_value()) {
             this->truncate(new_size.value());
         }
@@ -295,6 +314,10 @@ struct ArrayData : ECSVHeaderView {
 private:
     data_t data;
     void init_data() {
+        if (this->empty()) {
+            // do not do any initialization as this does not hold any data.
+            return;
+        }
         if constexpr (is_eigen_data) {
             // for eigen type, each column is the column, each row is a record
             this->data.resize(block_size, this->size());
@@ -473,7 +496,12 @@ struct ECSVTable {
         for (const auto &row : rows) {
             // populate data
             m_loader.ensure_row_size_for_index(row_idx);
-            for (std::size_t col_idx = 0; col_idx < row.size(); ++col_idx) {
+            auto row_size = row.size();
+            if (row_size != this->cols()) {
+                throw std::runtime_error(fmt::format(
+                    "inconsistent number of fields at row {}: {} != {}", row_idx, row_size, this->cols()));
+            }
+            for (std::size_t col_idx = 0; col_idx < row_size; ++col_idx) {
                 m_loader.visit_col(
                     col_idx, [&row_idx, &col_idx, &row](auto colref) {
                         using value_t = typename decltype(colref)::value_t;

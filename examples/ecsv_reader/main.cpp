@@ -1,10 +1,13 @@
-#include <thread>
 #include <tula/cli.h>
 #include <tula/config/flatconfig.h>
 #include <tula/config/yamlconfig.h>
 #include <tula/logging.h>
 #include <tula_config/config.h>
 #include <tula_config/gitversion.h>
+#include <tula/ecsv/table.h>
+#include <tula/formatter/matrix.h>
+#include <fstream>
+#include <csv_parser/parser.hpp>
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 auto parse_args(int argc, char *argv[]) {
@@ -37,7 +40,7 @@ auto parse_args(int argc, char *argv[]) {
     c(p(          "version"), "Print version information and exit."),
     //=======================================================================//
     r( (        "filepath"), "The path of input ecsv file.",
-                              opt_strs("filepath")),
+                              str("filepath")),
     //=======================================================================//
            "common options"  % g(
     c(p(   "l", "log_level"), "Set the log level.",
@@ -63,45 +66,34 @@ auto parse_args(int argc, char *argv[]) {
     return std::move(rc);
 }
 
-auto read_ecsv(std::string filepath) -> decltype(auto)
-    : using namespace tula::ecsv;
+auto read_ecsv(std::string filepath)
+{
+    using namespace tula::ecsv;
+    auto fmtlog = [](auto &&fmt_str, auto && ... args) {
+        auto result = fmt::format(fmt::runtime(fmt_str), args...);
+        SPDLOG_DEBUG(result);
+    };
 
-std::ifstream fo(filepath);
+    std::ifstream fo(filepath);
+    auto tbl = ECSVTable(ECSVHeader::read(fo));
+    auto parser = aria::csv::CsvParser(fo).delimiter(tbl.header().delimiter());
+    tbl.load_rows(parser);
 
-// SPDLOG_INFO("content {}",content.str());
-
-auto hdr_standalone = ECSVHeader::read(content);
-
-// auto data0 = ArrayData<double>{hdr_standalone, {"x_t"}};
-// auto loader = ECSVDataLoader{hdr_standalone, data0};
-
-// loader.ensure_row_size_for_index(2000);
-
-auto tbl = ECSVTable(ECSVHeader::read(fo));
-auto parser = aria::csv::CsvParser(content).delimiter(tbl.header().delimiter());
-
-tbl.load_rows(parser);
-
-auto fmtlog = [](auto &&fmt_str, auto &&args) {
-    auto result = fmt::format(fmt::runtime(fmt_str), args...);
-    SPDLOG_INFO(result);
-};
-fmtlog("hdr_standalone: {}", hdr_standalone);
-fmtlog("tbl: {}", tbl);
-fmtlog("tbl_info:\n{}", tbl.info());
-fmtlog("tbl header: {}", tbl.header());
-fmtlog("tbl loader: {}", tbl.loader());
-fmtlog("tbl bool data: {}", tbl.array_data<bool>());
-fmtlog("tbl int data: {}", tbl.array_data<int>());
-fmtlog("tbl int64 data: {}", tbl.array_data<int64_t>());
-fmtlog("tbl double data: {}", tbl.array_data<double>());
-fmtlog("tbl complex data: {}", tbl.array_data<std::complex<double>>());
-fmtlog("tbl str data: {}", tbl.array_data<std::string>());
-fmtlog("colref uid: {}", tbl.col<std::string>("uid"));
-fmtlog("colref nw: {}", tbl.col<int32_t>("nw"));
-fmtlog("col data uid{}", tbl.col<std::string>("uid").data);
-fmtlog("col data nw{}", tbl.col<int32_t>("nw").data);
-fmtlog("col data x{}", tbl.col<double>("x").data);
+    fmtlog("tbl: {}", tbl);
+    fmtlog("tbl_info:\n{}", tbl.info());
+    fmtlog("tbl header: {}", tbl.header());
+    fmtlog("tbl meta:\n{}", YAML::Dump(tbl.header().meta()));
+    fmtlog("tbl loader: {}", tbl.loader());
+    fmtlog("tbl bool data: {}", tbl.array_data<bool>());
+    fmtlog("tbl int data: {}", tbl.array_data<int>());
+    fmtlog("tbl int64 data: {}", tbl.array_data<int64_t>());
+    fmtlog("tbl double data: {}", tbl.array_data<double>());
+    fmtlog("tbl complex data: {}", tbl.array_data<std::complex<double>>());
+    fmtlog("tbl str data: {}", tbl.array_data<std::string>());
+    fmtlog("col data nw{}", tbl.col<double>("nw").data);
+    fmtlog("col data fg{}", tbl.col<double>("fg").data);
+    fmtlog("all double data array {}", tbl.array_data<double>().array());
+    return tbl;
 }
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
@@ -111,8 +103,11 @@ int main(int argc, char *argv[]) {
         auto rc = parse_args(argc, argv);
         SPDLOG_INFO("rc: {}", rc.pformat());
         auto filepath = rc.get_str("filepath");
+        {
+        tula::logging::scoped_timeit TULA_X("read ECSV table");
         auto tbl = read_ecsv(filepath);
-        SPDLOG_INFO("tbl {}\n{}", filepath, tbl.pformat());
+        SPDLOG_INFO("tbl {}\n{}", filepath, tbl.info());
+        }
         return EXIT_SUCCESS;
     } catch (std::exception const &e) {
         SPDLOG_ERROR("abort: {}", e.what());

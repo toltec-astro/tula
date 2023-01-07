@@ -21,6 +21,9 @@ struct LabelMapper {
     auto size() const noexcept -> index_t {
         return tula::meta::size_cast<index_t>(m_labels.size());
     }
+    auto empty() const noexcept -> bool {
+        return size() == 0;
+    }
     auto index(const label_t &label) const -> index_t {
         auto it = m_label_index.find(label);
         if (it != m_label_index.end()) {

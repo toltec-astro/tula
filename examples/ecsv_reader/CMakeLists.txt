@@ -13,8 +13,13 @@ target_link_libraries(test_ecsv_reader
     PRIVATE
         tula::headers
         tula::logging
+        tula::Enum
         tula::Clipp
         tula::Yaml
+        tula::Eigen3
         tula::Csv
         )
+set_target_properties(test_ecsv_reader PROPERTIES 
+    DISABLE_PRECOMPILE_HEADERS ON
+)
 add_dependencies(test_progs test_ecsv_reader)
