@@ -55,6 +55,19 @@ constexpr auto t2a(tuple_t &&tuple) {
     return std::apply(get_array, std::forward<tuple_t>(tuple));
 }
 
+namespace internal {
+template <typename T, T Begin, class Func, T... Is>
+constexpr void static_for_impl(Func &&f, std::integer_sequence<T, Is...>) {
+    (std::forward<Func>(f)(std::integral_constant<T, Begin + Is>{}), ...);
+}
+} //  namespace internal
+
+template <typename T, T Begin, T End, class Func>
+constexpr void static_for(Func &&func) {
+    internal::static_for_impl<T, Begin>(
+        std::forward<Func>(func), std::make_integer_sequence<T, End - Begin>{});
+}
+
 // overload pattern
 // https://www.bfilipek.com/2018/06/variant.html
 template <class... Ts>
@@ -94,11 +107,12 @@ namespace internal {
 // This somehow does not work with cstr. We explicitly exclude this case
 // upfront
 template <class T>
-concept Bindable = (!StringLike<std::remove_cvref_t<T>>)&&(requires(T arg) {
-    typename std::tuple_element<0, T>::type;
-    std::tuple_size<T>::value;
-    std::get<0>(arg);
-});
+concept Bindable = (!StringLike<std::remove_cvref_t<T>>) &&
+                   (requires(T arg) {
+                        typename std::tuple_element<0, T>::type;
+                        std::tuple_size<T>::value;
+                        std::get<0>(arg);
+                    });
 
 template <class>
 struct flatten_helper;
