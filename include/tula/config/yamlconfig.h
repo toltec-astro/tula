@@ -100,9 +100,15 @@ struct YamlConfig {
 
     template <typename key_t>
     auto has(key_t &&key) const -> bool {
-        decltype(auto) node = get_node(std::forward<key_t>(key));
-        return node.IsDefined();
-    }
+        bool node_defined;
+        try {
+            decltype(auto) node = get_node(std::forward<key_t>(key));
+            node_defined = node.IsDefined();
+        } catch (const YAML::InvalidNode &) {
+            node_defined = false;
+        }
+        return node_defined;
+]    }
 
     template <typename key_t>
     auto has_list(key_t &&key) const -> bool {
