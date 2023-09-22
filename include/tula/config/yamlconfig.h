@@ -108,7 +108,7 @@ struct YamlConfig {
             node_defined = false;
         }
         return node_defined;
-]    }
+    }
 
     template <typename key_t>
     auto has_list(key_t &&key) const -> bool {
