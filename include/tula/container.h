@@ -310,7 +310,7 @@ struct formatter<tula::container_utils::Slice<T>, Char>
 
     template <typename FormatContext>
     auto format(const tula::container_utils::Slice<T> &slice,
-                FormatContext &ctx) {
+                FormatContext &ctx) const {
         auto it = ctx.out();
         const auto &[start, stop, step] = slice;
         return format_to(it, "[{}:{}:{}]", start, stop, step);
@@ -323,7 +323,7 @@ struct formatter<tula::container_utils::BoundedSlice<T>, Char>
 
     template <typename FormatContext>
     auto format(const tula::container_utils::BoundedSlice<T> &slice,
-                FormatContext &ctx) {
+                FormatContext &ctx) const {
         auto it = ctx.out();
         const auto &[start, stop, step, size] = slice;
         return format_to(it, "[{}:{}:{}]({})", start, stop, step, size);

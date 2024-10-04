@@ -3,6 +3,7 @@
 #include <array>
 #include <cassert>
 #include <string>
+#include <cstdint>
 
 #include "../concepts.h"
 

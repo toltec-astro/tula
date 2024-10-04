@@ -441,7 +441,7 @@ template <typename var_t>
 struct formatter<tula::nc_utils::pprint<var_t>>
     : tula::fmt_utils::nullspec_formatter_base {
     template <typename FormatContext>
-    auto format(const tula::nc_utils::pprint<var_t> &pp, FormatContext &ctx) {
+    auto format(const tula::nc_utils::pprint<var_t> &pp, FormatContext &ctx) const {
         auto it = ctx.out();
         return format_to(it, "{}", pp.str());
     }

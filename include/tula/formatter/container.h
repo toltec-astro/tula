@@ -9,12 +9,12 @@ namespace fmt {
 template <typename T>
 struct formatter<std::optional<T>> : formatter<T> {
     template <typename FormatContext>
-    auto format(const std::optional<T> &opt, FormatContext &ctx)
+    auto format(const std::optional<T> &opt, FormatContext &ctx) const
         -> decltype(ctx.out()) {
         if (opt) {
             return formatter<T>::format(opt.value(), ctx);
         }
-        return format_to(ctx.out(), "(nullopt)");
+        return fmt::format_to(ctx.out(), "(nullopt)");
     }
 };
 
@@ -22,9 +22,9 @@ template <>
 struct formatter<std::nullopt_t, char, void>
     : tula::fmt_utils::nullspec_formatter_base {
     template <typename FormatContext>
-    auto format(const std::nullopt_t & /*unused*/, FormatContext &ctx) noexcept
+    auto format(const std::nullopt_t & /*unused*/, FormatContext &ctx) const noexcept
         -> decltype(ctx.out()) {
-        return format_to(ctx.out(), "(nullopt)");
+        return fmt::format_to(ctx.out(), "(nullopt)");
     }
 };
 
@@ -32,9 +32,9 @@ template <>
 struct formatter<std::monostate, char, void>
     : tula::fmt_utils::nullspec_formatter_base {
     template <typename FormatContext>
-    auto format(const std::monostate & /*unused*/, FormatContext &ctx) noexcept
+    auto format(const std::monostate & /*unused*/, FormatContext &ctx) const noexcept
         -> decltype(ctx.out()) {
-        return format_to(ctx.out(), "(undef)");
+        return fmt::format_to(ctx.out(), "(undef)");
     }
 };
 
@@ -46,12 +46,12 @@ struct formatter<std::unordered_map<Ts...>, char, void> {
     constexpr static auto postfix = '}';
 
     template <typename ParseContext>
-    FMT_CONSTEXPR auto parse(ParseContext &ctx) -> decltype(ctx.begin()) {
+    FMT_CONSTEXPR auto parse(ParseContext &ctx) const -> decltype(ctx.begin()) {
         return ctx.begin();
     }
 
     template <typename FormatContext>
-    auto format(const std::unordered_map<Ts...> &values, FormatContext &ctx)
+    auto format(const std::unordered_map<Ts...> &values, FormatContext &ctx) const
         -> decltype(ctx.out()) {
         auto out = detail::copy(prefix, ctx.out());
         size_t i = 0;
@@ -70,9 +70,9 @@ template <typename T, typename U>
 struct formatter<std::pair<T, U>, char, void>
     : tula::fmt_utils::nullspec_formatter_base {
     template <typename FormatContext>
-    auto format(const std::pair<T, U> &p, FormatContext &ctx)
+    auto format(const std::pair<T, U> &p, FormatContext &ctx) const
         -> decltype(ctx.out()) {
-        return format_to(ctx.out(), "{{{}: {}}}", p.first, p.second);
+        return fmt::format_to(ctx.out(), "{{{}: {}}}", p.first, p.second);
     }
 };
 */
@@ -84,7 +84,7 @@ struct formatter<std::variant<T, Rest...>, char, void>
     // s: value (t)
     // l: value (type) (default)
     template <typename FormatContext>
-    auto format(const std::variant<T, Rest...> &v, FormatContext &ctx)
+    auto format(const std::variant<T, Rest...> &v, FormatContext &ctx) const
         -> decltype(ctx.out()) {
         auto it = ctx.out();
         auto spec = spec_handler();
@@ -92,9 +92,9 @@ struct formatter<std::variant<T, Rest...>, char, void>
             [&it, &spec](const auto &v) {
                 using V = std::decay_t<decltype(v)>;
                 if constexpr (tula::meta::StringLike<V>) {
-                    format_to(it, "\"{}\"", v);
+                    fmt::format_to(it, "\"{}\"", v);
                 } else {
-                    format_to(it, "{}", v);
+                    fmt::format_to(it, "{}", v);
                 }
                 if (spec == '0') {
                     return;
@@ -117,11 +117,11 @@ struct formatter<std::variant<T, Rest...>, char, void>
                 }
                 switch (spec) {
                 case 's': {
-                    format_to(it, " ({})", t[0]);
+                    fmt::format_to(it, " ({})", t[0]);
                     return;
                 }
                 case 'l': {
-                    format_to(it, " ({})", t);
+                    fmt::format_to(it, " ({})", t);
                     return;
                 }
                 }

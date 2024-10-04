@@ -6,10 +6,13 @@
 
 namespace fmt {
 
-template <typename T>
-requires tula::meta::is_instance<T, std::chrono::duration>::value
+// template <typename T>
+// requires tula::meta::is_instance<T, std::chrono::duration>::value
 
-    struct formatter<T>
+//    struct formatter<T>
+template <typename Rep, typename Period>
+struct formatter<std::chrono::duration<Rep, Period>, char>
+
     : tula::fmt_utils::charspec_formatter_base<'a', 'H', 'M', 'S', 'm', 'u',
                                                'n'> {
     // a: human-readable (default)
@@ -19,8 +22,9 @@ requires tula::meta::is_instance<T, std::chrono::duration>::value
     // m: milliseconds
     // u: microseconds
     // n: nanoseconds
+    using T = std::chrono::duration<Rep, Period>;
     template <typename FormatContext>
-    auto format(const T &t, FormatContext &ctx) -> decltype(ctx.out()) {
+    auto format(const T &t, FormatContext &ctx) const -> decltype(ctx.out()) {
         auto it = ctx.out();
         auto spec = spec_handler();
         constexpr auto h_to_s = 3600;
@@ -29,35 +33,35 @@ requires tula::meta::is_instance<T, std::chrono::duration>::value
         case 'a':
             return this->human_time(t, it);
         case 'H':
-            return format_to(
+            return fmt::format_to(
                 it, "{:g}h",
                 std::chrono::duration_cast<
                     std::chrono::duration<double, std::ratio<h_to_s>>>(t)
                     .count());
         case 'M':
-            return format_to(
+            return fmt::format_to(
                 it, "{:g}m",
                 std::chrono::duration_cast<
                     std::chrono::duration<double, std::ratio<m_to_s>>>(t)
                     .count());
         case 'S':
-            return format_to(
+            return fmt::format_to(
                 it, "{:g}s",
                 std::chrono::duration_cast<std::chrono::duration<double>>(t)
                     .count());
         case 'm':
-            return format_to(it, "{:g}ms",
+            return fmt::format_to(it, "{:g}ms",
                              std::chrono::duration_cast<
                                  std::chrono::duration<double, std::milli>>(t)
                                  .count());
         case 'u':
-            return format_to(it, "{:g}us",
+            return fmt::format_to(it, "{:g}us",
                              std::chrono::duration_cast<
                                  std::chrono::duration<double, std::micro>>(t)
                                  .count());
 
         case 'n':
-            return format_to(
+            return fmt::format_to(
                 it, "{:d}ns",
                 std::chrono::duration_cast<std::chrono::nanoseconds>(t)
                     .count());
@@ -67,34 +71,34 @@ requires tula::meta::is_instance<T, std::chrono::duration>::value
 
 private:
     template <typename Iter>
-    auto human_time(T value, Iter &it) -> decltype(auto) {
+    auto human_time(T value, Iter &it) const -> decltype(auto) {
         using namespace std::chrono;
         auto ns = duration_cast<nanoseconds>(value);
         if (ns.count() == 0) {
-            format_to(it, "0ns");
+            fmt::format_to(it, "0ns");
             return it;
         }
         bool found_non_zero = false; // marks leading figure
         auto fmt_value = []<typename U>(auto &it, const auto &v,
                                         const auto &found_non_zero) {
             if constexpr (std::is_same_v<U, years>) {
-                format_to(it, "{:d}y", v);
+                fmt::format_to(it, "{:d}y", v);
             } else if constexpr (std::is_same_v<U, days>) {
                 if (v > 0) {
-                    format_to(it, "{:d}d", v);
+                    fmt::format_to(it, "{:d}d", v);
                 }
             }
             if constexpr (std::is_same_v<U, hours>) {
                 if (found_non_zero) {
-                    format_to(it, "{:02d}h", v);
+                    fmt::format_to(it, "{:02d}h", v);
                 } else {
-                    format_to(it, "{:d}h", v);
+                    fmt::format_to(it, "{:d}h", v);
                 }
             } else if constexpr (std::is_same_v<U, minutes>) {
                 if (found_non_zero) {
-                    format_to(it, "{:02d}m", v);
+                    fmt::format_to(it, "{:02d}m", v);
                 } else {
-                    format_to(it, "{:d}m", v);
+                    fmt::format_to(it, "{:d}m", v);
                 }
             } else {
                 //
@@ -119,7 +123,7 @@ private:
             return it;
         }
         if (found_non_zero) {
-            format_to(it, " "); // separation between yd and hms
+            fmt::format_to(it, " "); // separation between yd and hms
         }
         fmt_part.template operator()<hours>(it, ns, found_non_zero);
         fmt_part.template operator()<minutes>(it, ns, found_non_zero);
@@ -129,15 +133,15 @@ private:
         constexpr auto ms_to_ns = 1000000;
         constexpr auto us_to_ns = 1000;
         if (v >= s_to_ns) /* >= 1s */ {
-            format_to(it, "{}s", double(v) / s_to_ns);
+            fmt::format_to(it, "{}s", double(v) / s_to_ns);
         } else if (v >= ms_to_ns) /* >=1ms */
         {
-            format_to(it, "{}ms", double(v) / ms_to_ns);
+            fmt::format_to(it, "{}ms", double(v) / ms_to_ns);
         } else if (v >= us_to_ns) /* >=1us */
         {
-            format_to(it, "{}us", double(v) / us_to_ns);
+            fmt::format_to(it, "{}us", double(v) / us_to_ns);
         } else {
-            format_to(it, "{}ns", v);
+            fmt::format_to(it, "{}ns", v);
         }
         return it;
     };

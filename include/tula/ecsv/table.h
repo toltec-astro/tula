@@ -565,7 +565,7 @@ template <>
 struct formatter<tula::ecsv::ECSVHeaderView>
     : tula::fmt_utils::nullspec_formatter_base {
     template <typename FormatContext>
-    auto format(const tula::ecsv::ECSVHeaderView &hdr, FormatContext &ctx) {
+    auto format(const tula::ecsv::ECSVHeaderView &hdr, FormatContext &ctx) const {
         auto it = ctx.out();
         return format_to(it, "ECSVHeaderView(ncols={})", hdr.size());
     }
@@ -576,7 +576,7 @@ struct formatter<tula::ecsv::ArrayData<T, vs...>>
     : tula::fmt_utils::nullspec_formatter_base {
     template <typename FormatContext>
     auto format(const tula::ecsv::ArrayData<T, vs...> &array_data,
-                FormatContext &ctx) {
+                FormatContext &ctx) const {
         auto it = ctx.out();
         return format_to(it, "ECSVArrayData(ncols={})", array_data.size());
     }
@@ -587,7 +587,7 @@ struct formatter<tula::ecsv::ColDataRef<Ts...>>
     : tula::fmt_utils::nullspec_formatter_base {
     template <typename FormatContext>
     auto format(const tula::ecsv::ColDataRef<Ts...> &colref,
-                FormatContext &ctx) {
+                FormatContext &ctx) const {
         auto it = ctx.out();
         return format_to(it, "ECSVColRef(name={})", colref.col.name);
     }
@@ -609,7 +609,7 @@ template <>
 struct formatter<tula::ecsv::ECSVTable>
     : tula::fmt_utils::nullspec_formatter_base {
     template <typename FormatContext>
-    auto format(const tula::ecsv::ECSVTable &tbl, FormatContext &ctx) {
+    auto format(const tula::ecsv::ECSVTable &tbl, FormatContext &ctx) const {
         auto it = ctx.out();
         return format_to(it, "ECSVTable(n_cols={})", tbl.header().size());
     }

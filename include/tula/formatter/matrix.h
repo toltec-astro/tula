@@ -5,6 +5,7 @@
 #include <array>
 #include <fmt/ranges.h>
 #include <vector>
+#include "atomic.h"
 
 #if defined(__GNUC__) && !defined(__clang__)
 #if __has_include(<charconv>)
@@ -311,36 +312,39 @@ struct formatter<tula::fmt_utils::pprint<T, Format>> {
 
     template <typename FormatContext>
     auto format(const tula::fmt_utils::pprint<T, Format> &pp,
-                FormatContext &ctx) -> decltype(ctx.out()) {
+                FormatContext &ctx) const -> decltype(ctx.out()) {
         auto it = ctx.out();
         if (pp.matrix.size() == 0) {
-            return format_to(it, "(empty)");
+            return fmt::format_to(it, "(empty)");
         }
         // SPDLOG_TRACE("max_rows {}", max_rows);
         // SPDLOG_TRACE("max_cols {}", max_cols);
         // SPDLOG_TRACE("max_size {}", max_size);
         // shape
-        it = format_to(it, "({},{})", pp.matrix.rows(), pp.matrix.cols());
+        it = fmt::format_to(it, "({},{})", pp.matrix.rows(), pp.matrix.cols());
         // omit content if any of the parsed args is zero
         if ((max_rows == 0) || (max_cols == 0) || (max_size == 0)) {
-            return format_to(it, "[...]");
+            return fmt::format_to(it, "[...]");
         }
         // dynamic size if args is not specified (-1)
-        if (max_rows < 0) {
-            max_rows = pp.matrix.rows();
+	auto _max_rows = max_rows;
+        if (_max_rows < 0) {
+            _max_rows = pp.matrix.rows();
         }
-        if (max_cols < 0) {
-            max_cols = pp.matrix.cols();
+	auto _max_cols = max_cols;
+        if (_max_cols < 0) {
+            _max_cols = pp.matrix.cols();
         }
-        if (max_size < 0) {
-            max_size = pp.matrix.size();
+	auto _max_size = max_size;
+        if (_max_size < 0) {
+            _max_size = pp.matrix.size();
         }
         // pprint content
         std::stringstream ss;
-        return format_to(it, "{}",
+        return fmt::format_to(it, "{}",
                          tula::fmt_utils::pprint_matrix(ss, pp.matrix,
-                                                        pp.format, max_rows,
-                                                        max_cols, max_size)
+                                                        pp.format, _max_rows,
+                                                        _max_cols, _max_size)
                              .str());
     }
 };
@@ -374,7 +378,7 @@ requires(tula::meta::is_instance<T, std::vector>::value ||
     struct formatter<T, Char>
     : formatter<tula::fmt_utils::pprint<typename T::value_type>> {
     template <typename FormatContext>
-    auto format(const T &arr, FormatContext &ctx) -> decltype(ctx.out()) {
+    auto format(const T &arr, FormatContext &ctx) const -> decltype(ctx.out()) {
         return formatter<tula::fmt_utils::pprint<typename T::value_type>>::
             format(
                 tula::fmt_utils::pprint{arr.data(),

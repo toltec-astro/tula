@@ -34,15 +34,15 @@ struct formatter<tula::fmt_utils::ptr<T>>
         auto spec = spec_handler();
         switch (spec) {
         case 'x':
-            return format_to(it, "{:x}", ptr.value());
+            return fmt::format_to(it, "{:x}", ptr.value());
         case 'y': {
             constexpr auto base = 32;
-            return format_to(it, "{}",
+            return fmt::format_to(it, "{}",
                              tula::fmt_utils::itoa<base>(ptr.value()));
         }
         case 'z': {
             constexpr auto base = 62;
-            return format_to(it, "{}",
+            return fmt::format_to(it, "{}",
                              tula::fmt_utils::itoa<base>(ptr.value()));
         }
         }

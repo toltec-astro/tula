@@ -22,9 +22,9 @@ template <>
 struct formatter<std::filesystem::path>
     : tula::fmt_utils::nullspec_formatter_base {
     template <typename FormatContext>
-    auto format(const std::filesystem::path &p, FormatContext &ctx) {
+    auto format(const std::filesystem::path &p, FormatContext &ctx) const -> decltype(ctx.out()) {
         auto it = ctx.out();
-        return format_to(it, "{}", p.string());
+        return fmt::format_to(it, "{}", p.string());
     }
 };
 

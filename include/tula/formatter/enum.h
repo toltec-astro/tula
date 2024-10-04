@@ -135,7 +135,7 @@ struct formatter<T> : tula::fmt_utils::charspec_formatter_base<'s', 'd', 'l'>
 {
 
     template <typename FormatContext>
-    auto format(const T &value, FormatContext &ctx) -> decltype(ctx.out()) {
+    auto format(const T &value, FormatContext &ctx) const -> decltype(ctx.out()) {
         auto it = ctx.out();
         auto spec = spec_handler();
         if (spec == 'd') {
@@ -155,7 +155,7 @@ struct formatter<bitmask::bitmask<T>>
 // l: the name and value (default)
 {
     template <typename FormatContext>
-    auto format(const bitmask::bitmask<T> &bm, FormatContext &ctx)
+    auto format(const bitmask::bitmask<T> &bm, FormatContext &ctx) const
         -> decltype(ctx.out()) {
         auto it = ctx.out();
         auto spec = spec_handler();
@@ -183,7 +183,7 @@ struct formatter<meta_enum::MetaEnum<EnumType, UnderlyingType, size>>
 
     template <typename FormatContext>
     auto format(const meta_enum::MetaEnum<EnumType, UnderlyingType, size> &meta,
-                FormatContext &ctx) -> decltype(ctx.out()) {
+                FormatContext &ctx) const -> decltype(ctx.out()) {
         auto it = ctx.out();
         auto spec = spec_handler();
         auto str = tula::fmt_utils::remove_space(std::string(meta.string));
@@ -211,7 +211,7 @@ struct formatter<meta_enum::MetaEnumMember<EnumType>>
     : tula::fmt_utils::charspec_formatter_base<'l', 'd', 's'> {
     template <typename FormatContext>
     auto format(const meta_enum::MetaEnumMember<EnumType> &meta,
-                FormatContext &ctx) -> decltype(ctx.out()) {
+                FormatContext &ctx) const -> decltype(ctx.out()) {
         auto it = ctx.out();
         auto spec = this->spec_handler();
         return tula::fmt_utils::format_enum_value_meta(it, spec, meta);

@@ -1,12 +1,13 @@
 #pragma once
 
-#include "formatter/duration.h"
 #include "meta.h"
 #include <array>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+#include <fmt/chrono.h>
 #include <fmt/ostream.h>
 #include <sstream>
+#include "formatter/duration.h"
 
 #ifdef SPDLOG_ACTIVE_LEVEL
 #undef SPDLOG_ACTIVE_LEVEL
