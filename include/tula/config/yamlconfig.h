@@ -239,7 +239,7 @@ template <>
 struct formatter<tula::config::YamlConfig>
     : tula::fmt_utils::nullspec_formatter_base {
     template <typename FormatContext>
-    auto format(const tula::config::YamlConfig &config, FormatContext &ctx) {
+    auto format(const tula::config::YamlConfig &config, FormatContext &ctx) const {
         auto it = ctx.out();
         auto pformat_opt_filepath =
             [](auto &&opt_filepath) -> std::optional<std::string> {
