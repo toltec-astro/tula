@@ -40,11 +40,12 @@ class TulaRecipe(ConanFile):
     # Option names match CMake package names in tula_cmake/cmake/targets/*.cmake
     # 
     # Usage (conan install . -o <pattern>):
-    #   Scoped (recommended):        -o "tula/*:Eigen3=True" -o "tula/*:Yaml=True"
-    #   Unscoped (legacy warning):   -o Eigen3=True -o Yaml=True
+    #   Self-reference (recommended):  -o "&:Eigen3=True" -o "&:Yaml=True"
+    #   Explicit package scope:        -o "tula/*:Eigen3=True" -o "tula/*:Yaml=True"
+    #   Unscoped (legacy warning):     -o Eigen3=True -o Yaml=True
     # 
-    # When consuming tula as a dependency, use the same pattern:
-    #   conan install . -o "tula/*:Eigen3=True"
+    # The "&:" syntax is cleaner as it's self-referencing (refers to current recipe)
+    # When consuming tula as a dependency, use "tula/*:Eigen3=True"
     options = {dep["option"]: [True, False] for dep in TULA_DEPENDENCIES}
     default_options = {dep["option"]: False for dep in TULA_DEPENDENCIES}
     
