@@ -39,15 +39,12 @@ class TulaRecipe(ConanFile):
     # Generate options and default_options from TULA_DEPENDENCIES
     # Option names match CMake package names in tula_cmake/cmake/targets/*.cmake
     # 
-    # Usage:
-    #   With scope (explicit, no warnings):
-    #     conan install . -o "&:Eigen3=True" -o "&:Yaml=True"
-    #   
-    #   Without scope (implicit, shows legacy warning but works):
-    #     conan install . -o Eigen3=True -o Yaml=True
-    #   
-    #   Suppress warnings (set environment variable):
-    #     CONAN_V2_MODE_SECTION=None conan install . -o Eigen3=True -o Yaml=True
+    # Usage (conan install . -o <pattern>):
+    #   Scoped (recommended):        -o "tula/*:Eigen3=True" -o "tula/*:Yaml=True"
+    #   Unscoped (legacy warning):   -o Eigen3=True -o Yaml=True
+    # 
+    # When consuming tula as a dependency, use the same pattern:
+    #   conan install . -o "tula/*:Eigen3=True"
     options = {dep["option"]: [True, False] for dep in TULA_DEPENDENCIES}
     default_options = {dep["option"]: False for dep in TULA_DEPENDENCIES}
     
