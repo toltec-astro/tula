@@ -34,7 +34,7 @@ if(TULA_STANDALONE)
     # include(logging)  # Registers fmt and spdlog
     include(Yaml)  # Testing v3 migration
     include(Spectra)  # Testing v3 migration
-    # include(Ceres)  # TODO: Fix export issue with CPM-fetched Eigen
+    include(Ceres)  # Testing v3 migration with Eigen3 shim
     # include(NetCDFCXX4)
     # include(MXX)
     # include(CCfits)
