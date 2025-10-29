@@ -39,17 +39,21 @@ class TulaRecipe(ConanFile):
     # Generate options and default_options from TULA_DEPENDENCIES
     # Option names match CMake package names in tula_cmake/cmake/targets/*.cmake
     # 
-    # Usage:
-    #   When installing tula directly (conan install . in tula directory):
-    #     -o "&:Eigen3=True" -o "&:Yaml=True"              # Self-reference (cleanest)
-    #     -o "tula/*:Eigen3=True" -o "tula/*:Yaml=True"    # Explicit scope
+    # CONAN OPTIONS (this file):
+    #   Direct installation:
+    #     conan install . -o "&:Eigen3=True"              # Self-reference
+    #     conan install . -o "tula/*:Eigen3=True"         # Explicit scope
+    #   
+    #   As conan dependency:
+    #     conan install . -o "tula/*:Eigen3=True"         # MUST use explicit scope
     # 
-    #   When tula is a dependency of downstream package:
-    #     -o "tula/*:Eigen3=True" -o "tula/*:Yaml=True"    # MUST use explicit scope
-    #     (Cannot use "&:" as it refers to the consumer, not tula)
-    # 
-    # Note: CPM fetches don't use conan options - these only apply when tula is
-    # consumed via conan (e.g., conan install, not CPMAddPackage)
+    # CMAKE VARIABLES (when using add_subdirectory):
+    #   CMake options completely bypass this conanfile.py
+    #   Use CMake variables instead:
+    #     cmake -DTULA_Eigen3_MODE=CONAN|CPM|SYSTEM       # Per-package control
+    #     cmake -DTULA_DEFAULT_MODE=CONAN|CPM|SYSTEM      # Global default
+    #   
+    #   This is how v1 worked and still works in v3 when included as subdirectory
     options = {dep["option"]: [True, False] for dep in TULA_DEPENDENCIES}
     default_options = {dep["option"]: False for dep in TULA_DEPENDENCIES}
     
