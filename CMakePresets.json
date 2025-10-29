@@ -3,12 +3,13 @@
   "configurePresets": [
     {
       "name": "base",
-      "description": "Default using ninja generator",
+      "description": "Default using vcpkg (if available) or system packages",
       "hidden": true,
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build_${presetName}",
       "cacheVariables": {
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CONAN_COMMAND": "/Users/ma/.pyenv/versions/3.14.0_brew/envs/conan2/bin/conan"
       },
       "vendor": {
         "tula_cmake": {
@@ -21,8 +22,8 @@
       "description": "Brew installed LLVM on macOS",
       "hidden": true,
       "cacheVariables": {
-        "CMAKE_C_COMPILER": "/usr/local/opt/llvm/bin/clang",
-        "CMAKE_CXX_COMPILER": "/usr/local/opt/llvm/bin/clang++"
+        "CMAKE_C_COMPILER": "/opt/homebrew/opt/llvm/bin/clang",
+        "CMAKE_CXX_COMPILER": "/opt/homebrew/opt/llvm/bin/clang++"
       },
       "condition": {
         "type": "equals",
@@ -36,12 +37,12 @@
       }
     },
     {
-      "name": "brew-gcc-11",
-      "description": "Brew installed GCC-11 on macOS",
+      "name": "brew-gcc-15",
+      "description": "Brew installed GCC-15 on macOS",
       "hidden": true,
       "cacheVariables": {
-        "CMAKE_C_COMPILER": "/usr/local/opt/gcc/bin/gcc-11",
-        "CMAKE_CXX_COMPILER": "/usr/local/opt/gcc/bin/g++-11"
+        "CMAKE_C_COMPILER": "/opt/homebrew/opt/gcc/bin/gcc-15",
+        "CMAKE_CXX_COMPILER": "/opt/homebrew/opt/gcc/bin/g++-15"
       },
       "condition": {
         "type": "equals",
@@ -109,11 +110,11 @@
       ]
     },
     {
-      "name": "brew-gcc-11-release",
-      "description": "Release with brew-gcc-11",
+      "name": "brew-gcc-15-release",
+      "description": "Release with brew-gcc-15",
       "inherits": [
         "release",
-        "brew-gcc-11",
+        "brew-gcc-15",
         "base"
       ]
     },
@@ -136,11 +137,11 @@
       ]
     },
     {
-      "name": "brew-gcc-11-debug",
-      "description": "Debug with brew-gcc-11",
+      "name": "brew-gcc-15-debug",
+      "description": "Debug with brew-gcc-15",
       "inherits": [
         "debug",
-        "brew-gcc-11",
+        "brew-gcc-15",
         "base"
       ]
     },
