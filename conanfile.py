@@ -39,13 +39,17 @@ class TulaRecipe(ConanFile):
     # Generate options and default_options from TULA_DEPENDENCIES
     # Option names match CMake package names in tula_cmake/cmake/targets/*.cmake
     # 
-    # Usage (conan install . -o <pattern>):
-    #   Self-reference (recommended):  -o "&:Eigen3=True" -o "&:Yaml=True"
-    #   Explicit package scope:        -o "tula/*:Eigen3=True" -o "tula/*:Yaml=True"
-    #   Unscoped (legacy warning):     -o Eigen3=True -o Yaml=True
+    # Usage:
+    #   When installing tula directly (conan install . in tula directory):
+    #     -o "&:Eigen3=True" -o "&:Yaml=True"              # Self-reference (cleanest)
+    #     -o "tula/*:Eigen3=True" -o "tula/*:Yaml=True"    # Explicit scope
     # 
-    # The "&:" syntax is cleaner as it's self-referencing (refers to current recipe)
-    # When consuming tula as a dependency, use "tula/*:Eigen3=True"
+    #   When tula is a dependency of downstream package:
+    #     -o "tula/*:Eigen3=True" -o "tula/*:Yaml=True"    # MUST use explicit scope
+    #     (Cannot use "&:" as it refers to the consumer, not tula)
+    # 
+    # Note: CPM fetches don't use conan options - these only apply when tula is
+    # consumed via conan (e.g., conan install, not CPMAddPackage)
     options = {dep["option"]: [True, False] for dep in TULA_DEPENDENCIES}
     default_options = {dep["option"]: False for dep in TULA_DEPENDENCIES}
     
