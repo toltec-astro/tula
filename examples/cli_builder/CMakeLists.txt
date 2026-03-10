@@ -1,15 +1,13 @@
-project (tula_test_cli_builder LANGUAGES CXX C)
+cmake_minimum_required(VERSION 4.1)
 
-add_executable(test_cli_builder EXCLUDE_FROM_ALL)
-set_target_properties(test_cli_builder
-    PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+project(cli_builder
+    DESCRIPTION "tula v3 example: CLI builder with config and grppi"
+    LANGUAGES CXX C
 )
-target_sources(test_cli_builder
-    PRIVATE
-        main.cpp
-        )
-target_link_libraries(test_cli_builder
+
+add_executable(cli_builder)
+target_sources(cli_builder PRIVATE main.cpp)
+target_link_libraries(cli_builder
     PRIVATE
         tula::headers
         tula::logging
@@ -17,5 +15,5 @@ target_link_libraries(test_cli_builder
         tula::Grppi
         tula::Enum
         tula::Yaml
-        )
-add_dependencies(test_progs test_cli_builder)
+)
+target_compile_features(cli_builder PRIVATE cxx_std_23)

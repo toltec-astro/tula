@@ -215,15 +215,15 @@ TEST(yamlconfig, validate) {
 
     auto apt = ArrayPropTable(
         config.get_config(std::tuple{"inputs", 0, "cal_items", 0}));
-    fmtlog("apt: {}", apt);
+    fmtlog("apt: {}", fmt::streamed(apt));
 
     auto apt2 = ArrayPropTable::from_config(
         config.get_config(std::tuple{"inputs", 0, "cal_items", 0}));
-    fmtlog("apt2: {}", apt2);
+    fmtlog("apt2: {}", fmt::streamed(apt2));
 
     auto apt3 = ArrayPropTable::from_config(
         config.get_config(std::tuple{"inputs", 0, "cal_items", 0}), false);
-    fmtlog("apt3: {}", apt3);
+    fmtlog("apt3: {}", fmt::streamed(apt3));
 
     try {
         auto apt4 = ArrayPropTable::from_config(

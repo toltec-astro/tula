@@ -6,6 +6,8 @@
 
 namespace fmt {
 
+// fmt 11+ provides formatter<std::byte> natively; only define ours for older versions.
+#if FMT_VERSION < 110000
 template <>
 struct formatter<std::byte>
     : tula::fmt_utils::charspec_formatter_base<'i', 'x'> {
@@ -26,5 +28,6 @@ struct formatter<std::byte>
         return it;
     }
 };
+#endif // FMT_VERSION < 110000
 
 } // namespace fmt

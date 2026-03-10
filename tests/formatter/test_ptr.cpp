@@ -20,7 +20,7 @@ TEST(formatter, ptr) {
 
     auto a1 = std::make_shared<int>(2);
     EXPECT_NO_THROW(fmtlog("shared a={}", *a1));
-    EXPECT_NO_THROW(fmtlog("shared *a@{}", fmt::ptr(a1)));
+    EXPECT_NO_THROW(fmtlog("shared *a@{}", fmt::ptr(a1.get())));
     EXPECT_NO_THROW(fmtlog("shared *a@{:x}", tula::fmt_utils::ptr(a1)));
     EXPECT_NO_THROW(fmtlog("shared *a@{:y}", tula::fmt_utils::ptr(a1)));
     EXPECT_NO_THROW(fmtlog("shared *a@{:z}", tula::fmt_utils::ptr(a1)));

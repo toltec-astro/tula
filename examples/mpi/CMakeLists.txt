@@ -1,20 +1,18 @@
-project (tula_test_mpi LANGUAGES CXX C)
+cmake_minimum_required(VERSION 4.1)
 
-add_executable(test_mpi EXCLUDE_FROM_ALL)
-set_target_properties(test_mpi
-    PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+project(mpi
+    DESCRIPTION "tula v3 example: MPI with grppi parallel patterns"
+    LANGUAGES CXX C
 )
-target_sources(test_mpi
-    PRIVATE
-        main.cpp
-        )
-target_link_libraries(test_mpi
+
+add_executable(mpi)
+target_sources(mpi PRIVATE main.cpp)
+target_link_libraries(mpi
     PRIVATE
         tula::headers
         tula::logging
         tula::MXX
         tula::Grppi
         tula::Eigen3
-        )
-add_dependencies(test_progs test_mpi)
+)
+target_compile_features(mpi PRIVATE cxx_std_23)

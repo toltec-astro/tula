@@ -1,15 +1,13 @@
-project (tula_test_ecsv_reader LANGUAGES CXX C)
+cmake_minimum_required(VERSION 4.1)
 
-add_executable(test_ecsv_reader EXCLUDE_FROM_ALL)
-set_target_properties(test_ecsv_reader
-    PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+project(ecsv_reader
+    DESCRIPTION "tula v3 example: ECSV table reader"
+    LANGUAGES CXX C
 )
-target_sources(test_ecsv_reader
-    PRIVATE
-        main.cpp
-        )
-target_link_libraries(test_ecsv_reader
+
+add_executable(ecsv_reader)
+target_sources(ecsv_reader PRIVATE main.cpp)
+target_link_libraries(ecsv_reader
     PRIVATE
         tula::headers
         tula::logging
@@ -18,8 +16,8 @@ target_link_libraries(test_ecsv_reader
         tula::Yaml
         tula::Eigen3
         tula::Csv
-        )
-set_target_properties(test_ecsv_reader PROPERTIES 
+)
+target_compile_features(ecsv_reader PRIVATE cxx_std_23)
+set_target_properties(ecsv_reader PROPERTIES
     DISABLE_PRECOMPILE_HEADERS ON
 )
-add_dependencies(test_progs test_ecsv_reader)

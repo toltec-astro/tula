@@ -443,7 +443,7 @@ struct formatter<tula::nc_utils::pprint<var_t>>
     template <typename FormatContext>
     auto format(const tula::nc_utils::pprint<var_t> &pp, FormatContext &ctx) const {
         auto it = ctx.out();
-        return format_to(it, "{}", pp.str());
+        return fmt::format_to(it, "{}", pp.str());
     }
 };
 

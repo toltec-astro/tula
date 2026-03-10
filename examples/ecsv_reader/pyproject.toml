@@ -1,0 +1,14 @@
+[project]
+name = "ecsv_reader"
+version = "0.0.0"
+requires-python = ">=3.10"
+dependencies = [
+    "conan>=2.10",
+    "tula-cmake",
+]
+
+[tool.uv.sources]
+# Within the tula monorepo (examples/ecsv_reader/ -> ../../tula_cmake):
+tula-cmake = { path = "../../tula_cmake" }
+# Standalone (copy this example to your own project, then switch to):
+# tula-cmake = { git = "https://github.com/toltec-astro/tula_cmake.git", branch = "v3.x" }

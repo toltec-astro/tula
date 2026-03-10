@@ -167,9 +167,9 @@ struct formatter<bitmask::bitmask<T>>
             return tula::fmt_utils::format_bitmask_with_meta(it, spec, bm);
         } else {
             // fallback to format value
-            it = format_to(it, "bits(");
+            it = fmt::format_to(it, "bits(");
             it = tula::fmt_utils::format_bits(it, bm.bits());
-            return format_to(it, ")");
+            return fmt::format_to(it, ")");
         }
     }
 };
@@ -188,14 +188,14 @@ struct formatter<meta_enum::MetaEnum<EnumType, UnderlyingType, size>>
         auto spec = spec_handler();
         auto str = tula::fmt_utils::remove_space(std::string(meta.string));
         if (str.empty()) {
-            return format_to(it, "{}", meta.name);
+            return fmt::format_to(it, "{}", meta.name);
         }
         switch (spec) {
         case 'l': {
-            return format_to(it, "{}{{{}}}", meta.name, str);
+            return fmt::format_to(it, "{}{{{}}}", meta.name, str);
         }
         case 's': {
-            return format_to(it, "{{{}}}", str);
+            return fmt::format_to(it, "{{{}}}", str);
         }
         default: {
             return it;

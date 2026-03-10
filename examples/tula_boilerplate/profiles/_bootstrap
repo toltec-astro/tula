@@ -1,0 +1,18 @@
+{% set _root = os.path.dirname(profile_dir) %}
+{% if not os.path.exists(os.path.join(_root, "build", "tula_cmake")) %}
+{% set _ = subprocess.run(["mkdir", "-p", os.path.join(_root, "build")]) %}
+{# Within the tula monorepo: examples/<name>/ -> ../../tula_cmake #}
+{% set _tc = os.path.abspath(os.path.join(_root, "..", "..", "tula_cmake")) %}
+{% if os.path.exists(os.path.join(_tc, "profiles")) %}
+{% set _ = subprocess.run(["ln", "-sfn", _tc, os.path.join(_root, "build", "tula_cmake")]) %}
+{% else %}
+{# Standalone: use installed tula-cmake CLI or uvx fallback #}
+{% set _bin = os.path.dirname(os.sys.executable) %}
+{% set _cli = os.path.join(_bin, "tula-cmake") %}
+{% if os.path.exists(_cli) %}
+{% set _ = subprocess.run([_cli, "setup", "--project-root", _root]) %}
+{% else %}
+{% set _ = subprocess.run(["uvx", "--from", "git+https://github.com/toltec-astro/tula_cmake.git@v3.x", "tula-cmake", "setup", "--project-root", _root]) %}
+{% endif %}
+{% endif %}
+{% endif %}

@@ -313,7 +313,7 @@ struct formatter<tula::container_utils::Slice<T>, Char>
                 FormatContext &ctx) const {
         auto it = ctx.out();
         const auto &[start, stop, step] = slice;
-        return format_to(it, "[{}:{}:{}]", start, stop, step);
+        return fmt::format_to(it, "[{}:{}:{}]", start, stop, step);
     }
 };
 
@@ -326,7 +326,7 @@ struct formatter<tula::container_utils::BoundedSlice<T>, Char>
                 FormatContext &ctx) const {
         auto it = ctx.out();
         const auto &[start, stop, step, size] = slice;
-        return format_to(it, "[{}:{}:{}]({})", start, stop, step, size);
+        return fmt::format_to(it, "[{}:{}:{}]({})", start, stop, step, size);
     }
 };
 

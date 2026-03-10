@@ -32,9 +32,9 @@ template <>
 struct formatter<tula::testing::Item, char, void>
     : tula::fmt_utils::nullspec_formatter_base {
     template <typename FormatContext>
-    auto format(const tula::testing::Item &item, FormatContext &ctx) noexcept
+    auto format(const tula::testing::Item &item, FormatContext &ctx) const noexcept
         -> decltype(ctx.out()) {
-        return format_to(ctx.out(), "Item");
+        return fmt::format_to(ctx.out(), "Item");
     }
 };
 

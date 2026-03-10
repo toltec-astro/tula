@@ -28,7 +28,7 @@ struct formatter<tula::fmt_utils::ptr<T>>
     // y: base32
     // z: base62 (default)
     template <typename FormatContext>
-    auto format(const tula::fmt_utils::ptr<T> &ptr, FormatContext &ctx)
+    auto format(const tula::fmt_utils::ptr<T> &ptr, FormatContext &ctx) const
         -> decltype(ctx.out()) {
         auto it = ctx.out();
         auto spec = spec_handler();

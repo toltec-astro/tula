@@ -248,7 +248,7 @@ struct formatter<tula::config::YamlConfig>
             }
             return opt_filepath.value().string();
         };
-        return format_to(it, "{}\n<config filepath: {}>", config.pformat(),
+        return fmt::format_to(it, "{}\n<config filepath: {}>", config.pformat(),
                          pformat_opt_filepath(config.filepath()));
     }
 };
