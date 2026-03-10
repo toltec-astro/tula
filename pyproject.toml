@@ -1,0 +1,18 @@
+# tula workspace root — NOT a Python package, just a uv workspace coordinator.
+#
+# When running from any subdirectory inside tula/, uv discovers this workspace
+# and overrides tula-cmake to use the LOCAL tula_cmake/ directory.
+# Examples copied outside the tula repo fall back to their own
+# [tool.uv.sources] git entry — no manual editing required.
+
+[tool.uv.workspace]
+members = [
+    "examples/tula_boilerplate",
+    "examples/cli_builder",
+    "examples/ecsv_reader",
+    "examples/mpi",
+]
+
+[tool.uv.sources]
+# Override examples' git source with the local tula_cmake/ when inside this workspace.
+tula-cmake = { path = "tula_cmake" }
