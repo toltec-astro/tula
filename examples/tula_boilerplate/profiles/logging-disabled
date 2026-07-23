@@ -1,0 +1,3 @@
+[options]
+&:logging=disabled
+&:logging_level=info

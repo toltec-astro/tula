@@ -1,14 +1,27 @@
-cmake_minimum_required(VERSION 4.1)
+cmake_minimum_required(VERSION 3.25)
 
 project(tula_boilerplate
-    DESCRIPTION "Minimum working example for tula v3"
+    VERSION 3.1.0
+    DESCRIPTION "Minimal Tula feature/provider workflow"
     LANGUAGES CXX
 )
 
-# tula::tula is provided by the Conan toolchain (TulaConan).
-# It bundles tula headers + all enabled dependency targets.
+include(TulaProject)
+tula_resolve_features()
+tula_add_config_header(
+    TARGET tula_boilerplate_config
+    ALIAS tula_boilerplate::config
+    PREFIX TULA_BOILERPLATE
+    OUTPUT tula_boilerplate/config.h
+)
 
-add_executable(tula_boilerplate)
-target_sources(tula_boilerplate PRIVATE src/main.cpp)
-target_link_libraries(tula_boilerplate PRIVATE tula::tula)
+add_executable(tula_boilerplate src/main.cpp)
+target_link_libraries(tula_boilerplate PRIVATE tula_boilerplate::config)
+if(TARGET tula::logging)
+    target_link_libraries(tula_boilerplate PRIVATE tula::logging)
+endif()
 target_compile_features(tula_boilerplate PRIVATE cxx_std_23)
+set_target_properties(
+    tula_boilerplate
+    PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)

@@ -1,0 +1,3 @@
+[options]
+&:logging=conan
+&:logging_level=info

@@ -380,3 +380,6 @@ test_all_packages_profile
 # macOS
 .DS_Store
 **/.DS_Store
+.venv/
+**/.venv/
+*.egg-info/

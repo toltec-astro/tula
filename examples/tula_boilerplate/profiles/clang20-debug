@@ -1,9 +1,0 @@
-include(_bootstrap)
-include(../build/tula_cmake/profiles/linux-clang20-debug)
-
-[options]
-*:Eigen3=conan
-*:logging=conan
-*:Yaml=conan
-*:Enum=cpm
-*:Grppi=cpm

@@ -1,0 +1,3 @@
+[options]
+&:logging=system
+&:logging_level=info

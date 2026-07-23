@@ -1,0 +1,3 @@
+[options]
+&:logging=cpm
+&:logging_level=info

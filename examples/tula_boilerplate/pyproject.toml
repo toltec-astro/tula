@@ -1,15 +1,5 @@
 [project]
-name = "tula_boilerplate"
-version = "0.0.0"
+name = "tula-boilerplate"
+version = "3.1.0"
 requires-python = ">=3.10"
-dependencies = [
-    "conan>=2.10",
-    "tula-cmake",
-]
-
-# tula-cmake source: when running inside the tula repo, the workspace root
-# (tula/pyproject.toml) automatically provides tula_cmake/ from the local path.
-#
-# Standalone (example copied outside tula repo): add this section:
-#   [tool.uv.sources]
-#   tula-cmake = { git = "https://github.com/toltec-astro/tula_cmake.git", branch = "v3.x" }
+dependencies = ["tula-cmake"]
