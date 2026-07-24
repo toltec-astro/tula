@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tula v3.1 — Current implementation</title>
+  <style>
+    :root {
+      --ink: #07111c;
+      --ink-2: #0c1b2a;
+      --paper: #edf5fa;
+      --muted: #9db2c1;
+      --line: #254052;
+      --cyan: #4dd3ff;
+      --amber: #ffb454;
+      --green: #55d98b;
+      --red: #ff7685;
+      --violet: #b49cff;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--ink); }
+    body { color: var(--paper); font-family: var(--sans); }
+
+    .deck { position: relative; width: 100vw; height: 100vh; background:
+      radial-gradient(circle at 78% 14%, rgba(77, 211, 255, .08), transparent 25%),
+      linear-gradient(135deg, #07111c 0%, #091724 58%, #06101a 100%);
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: none;
+      padding: clamp(34px, 5vh, 60px) clamp(46px, 6vw, 92px);
+      isolation: isolate;
+    }
+
+    .slide::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: clamp(20px, 2.2vw, 34px);
+      width: 1px;
+      background: linear-gradient(transparent, var(--line) 12%, var(--line) 88%, transparent);
+      z-index: -1;
+    }
+
+    .slide.active {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      animation: enter .32s ease-out;
+    }
+
+    @keyframes enter {
+      from { opacity: 0; transform: translateX(12px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .eyebrow {
+      color: var(--cyan);
+      font: 700 14px/1 var(--mono);
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      margin-bottom: 15px;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      max-width: 1080px;
+      margin-bottom: 26px;
+      font-size: clamp(54px, 7.2vw, 96px);
+      line-height: .98;
+      letter-spacing: -.045em;
+    }
+
+    h2 {
+      max-width: 1180px;
+      margin-bottom: 28px;
+      font-size: clamp(36px, 4.2vw, 58px);
+      line-height: 1.04;
+      letter-spacing: -.035em;
+    }
+
+    h3 {
+      margin-bottom: 10px;
+      color: var(--paper);
+      font-size: clamp(20px, 2vw, 29px);
+      line-height: 1.15;
+    }
+
+    p, li, td, th {
+      font-size: clamp(17px, 1.55vw, 23px);
+      line-height: 1.42;
+    }
+
+    .lede {
+      max-width: 900px;
+      color: #c8d8e2;
+      font-size: clamp(23px, 2.35vw, 34px);
+      line-height: 1.3;
+    }
+
+    .body { min-height: 0; display: flex; flex-direction: column; justify-content: center; }
+    .body.top { justify-content: flex-start; }
+    .columns { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(30px, 5vw, 78px); align-items: start; }
+    .columns.wide-left { grid-template-columns: 1.22fr .78fr; }
+    .columns.wide-right { grid-template-columns: .8fr 1.2fr; }
+    .columns.three { grid-template-columns: repeat(3, 1fr); gap: clamp(22px, 3vw, 44px); }
+    .stack { display: grid; gap: 20px; }
+
+    .rule { width: 100%; height: 1px; background: var(--line); margin: 15px 0 24px; }
+    .accent { color: var(--cyan); }
+    .warm { color: var(--amber); }
+    .good { color: var(--green); }
+    .bad { color: var(--red); }
+    .violet { color: var(--violet); }
+    .muted { color: var(--muted); }
+    .big-number {
+      color: var(--cyan);
+      font: 750 clamp(60px, 8vw, 112px)/.9 var(--mono);
+      letter-spacing: -.06em;
+    }
+
+    ul.clean { margin: 0; padding: 0; list-style: none; }
+    ul.clean li { position: relative; margin: 0 0 16px; padding-left: 25px; }
+    ul.clean li::before { content: "—"; position: absolute; left: 0; color: var(--cyan); }
+    ul.compact li { margin-bottom: 9px; }
+
+    .statement {
+      max-width: 1120px;
+      font-size: clamp(31px, 4.2vw, 58px);
+      font-weight: 650;
+      line-height: 1.13;
+      letter-spacing: -.025em;
+    }
+
+    .callout {
+      padding: 22px 26px;
+      border-left: 4px solid var(--cyan);
+      background: rgba(77, 211, 255, .06);
+    }
+
+    .callout.amber { border-color: var(--amber); background: rgba(255, 180, 84, .06); }
+    .callout.green { border-color: var(--green); background: rgba(85, 217, 139, .06); }
+
+    pre {
+      margin: 0;
+      padding: 22px 25px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #06101a;
+      color: #d9e7ef;
+      font: 500 clamp(13px, 1.22vw, 18px)/1.48 var(--mono);
+      white-space: pre-wrap;
+    }
+
+    code { font-family: var(--mono); }
+    .code-cyan { color: var(--cyan); }
+    .code-amber { color: var(--amber); }
+    .code-green { color: var(--green); }
+    .code-muted { color: #7890a0; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      padding: 0 18px 13px 0;
+      border-bottom: 1px solid var(--line);
+      color: var(--cyan);
+      font: 700 14px/1.2 var(--mono);
+      letter-spacing: .1em;
+      text-align: left;
+      text-transform: uppercase;
+    }
+    td { padding: 15px 18px 15px 0; border-bottom: 1px solid rgba(37, 64, 82, .7); vertical-align: top; }
+    tr:last-child td { border-bottom: 0; }
+
+    .mode {
+      display: inline-block;
+      min-width: 104px;
+      padding: 6px 10px;
+      border: 1px solid currentColor;
+      border-radius: 999px;
+      font: 700 14px/1 var(--mono);
+      text-align: center;
+    }
+
+    .sequence { display: grid; gap: 11px; counter-reset: flow; }
+    .sequence > div {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 18px;
+      align-items: start;
+      padding: 10px 0 12px;
+      border-bottom: 1px solid rgba(37, 64, 82, .65);
+    }
+    .sequence p { margin: 0; }
+    .sequence.dense { gap: 2px; }
+    .sequence.dense > div {
+      grid-template-columns: 42px 1fr;
+      gap: 12px;
+      padding: 4px 0 7px;
+    }
+    .sequence.dense strong { font-size: clamp(17px, 1.45vw, 21px); }
+    .sequence.dense span { font-size: clamp(14px, 1.1vw, 17px); }
+    .sequence > div::before {
+      counter-increment: flow;
+      content: counter(flow, decimal-leading-zero);
+      color: var(--cyan);
+      font: 700 17px/1.45 var(--mono);
+    }
+    .sequence strong { display: block; margin-bottom: 2px; font-size: clamp(18px, 1.6vw, 24px); }
+    .sequence span { color: var(--muted); font-size: clamp(15px, 1.25vw, 19px); line-height: 1.35; }
+
+    .tree { font: 600 clamp(16px, 1.4vw, 21px)/1.65 var(--mono); color: #cfe0ea; }
+    .tree .dim { color: #718898; }
+    .tree .focus { color: var(--cyan); }
+    .tree .safe { color: var(--green); }
+
+    .matrix td:first-child { width: 17%; font-family: var(--mono); font-weight: 700; }
+    .matrix td:nth-child(2) { width: 25%; color: var(--paper); }
+    .matrix td:nth-child(3) { color: var(--muted); }
+
+    .metric-row { display: flex; align-items: baseline; gap: 18px; margin-bottom: 18px; }
+    .metric-row .value { color: var(--green); font: 750 clamp(42px, 5vw, 72px)/1 var(--mono); }
+    .metric-row .label { max-width: 580px; color: #c7d6df; font-size: clamp(18px, 1.6vw, 24px); }
+
+    .status-line {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      margin: 12px 0;
+      font-size: clamp(18px, 1.7vw, 25px);
+    }
+    .status-line::before { content: "✓"; color: var(--green); font: 800 22px/1 var(--mono); }
+
+    .footer {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      padding-top: 16px;
+      color: #718898;
+      font: 600 12px/1.25 var(--mono);
+      letter-spacing: .04em;
+    }
+
+    .footer .source { max-width: 75%; }
+    .slide-number { color: var(--muted); }
+
+    .progress {
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      height: 4px;
+      width: 0;
+      z-index: 20;
+      background: linear-gradient(90deg, var(--cyan), var(--green));
+      transition: width .25s ease;
+    }
+
+    .hint {
+      position: fixed;
+      right: 18px;
+      top: 14px;
+      z-index: 20;
+      color: rgba(157, 178, 193, .55);
+      font: 600 11px/1 var(--mono);
+      letter-spacing: .06em;
+    }
+
+    .title-mark {
+      width: 92px;
+      height: 8px;
+      margin-bottom: 30px;
+      background: linear-gradient(90deg, var(--cyan) 0 58%, var(--amber) 58%);
+    }
+
+    .mode-strip { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 28px; border-top: 1px solid var(--line); }
+    .mode-strip > div { padding: 24px 18px 0 0; }
+    .mode-strip strong { display: block; margin-bottom: 7px; font: 700 clamp(18px, 1.6vw, 24px)/1 var(--mono); }
+    .mode-strip span { color: var(--muted); font-size: clamp(14px, 1.18vw, 18px); line-height: 1.35; }
+
+    @media (max-width: 900px), (max-aspect-ratio: 4/3) {
+      .slide { padding: 38px 42px 30px 58px; }
+      .columns, .columns.wide-left, .columns.wide-right, .columns.three { gap: 22px; }
+      p, li, td { font-size: 16px; }
+      pre { font-size: 12px; }
+    }
+
+    @media print {
+      html, body { overflow: visible; background: #fff; }
+      .deck { width: auto; height: auto; background: var(--ink); }
+      .slide, .slide.active {
+        position: relative;
+        display: grid !important;
+        width: 13.333in;
+        height: 7.5in;
+        page-break-after: always;
+        animation: none;
+      }
+      .hint, .progress { display: none; }
+    }
+  </style>
+</head>
+<body>
+<main class="deck" aria-label="Tula v3.1 current implementation slide deck">
+
+  <section class="slide active" data-section="Tula v3.1">
+    <header></header>
+    <div class="body">
+      <div class="title-mark"></div>
+      <div class="eyebrow">Architecture review · 24 July 2026</div>
+      <h1>Tula v3.1<br><span class="accent">what exists now</span></h1>
+      <p class="lede">A logging-first vertical slice proving feature selection, four acquisition modes, normalized CMake targets, downstream UX, and repeatable container acceptance.</p>
+    </div>
+    <footer class="footer"><span>v3.x-feature-providers</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Executive status">
+    <header><div class="eyebrow">Executive status</div><h2>The first complete slice is green</h2></header>
+    <div class="body">
+      <div class="columns wide-left">
+        <div>
+          <p class="statement">One logical feature now survives the entire path from profile selection to a running downstream C++ program.</p>
+          <div class="rule"></div>
+          <div class="status-line">The same source runs with logging disabled, system, Conan, or CPM.</div>
+          <div class="status-line">Tula configures under every mode.</div>
+          <div class="status-line">An installed wheel works outside the uv workspace.</div>
+        </div>
+        <div>
+          <div class="big-number">4</div>
+          <h3>provider modes</h3>
+          <p class="muted">One explicit contract, one normalized target, no compatibility layer.</p>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: features.yaml · boilerplate logs · wheel.log</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Workspace">
+    <header><div class="eyebrow">Workspace contract</div><h2>The active root contains only the new system</h2></header>
+    <div class="body">
+      <div class="columns wide-left">
+        <div class="tree">
+          <div><span class="focus">cpp/</span></div>
+          <div>├── <span class="focus">justfile</span> <span class="dim"># validation interface</span></div>
+          <div>├── <span class="focus">.devcontainer/</span> <span class="dim"># minimal runtime</span></div>
+          <div>├── <span class="focus">tula/</span> <span class="dim"># active v3</span></div>
+          <div>│   ├── design/</div>
+          <div>│   ├── examples/tula_boilerplate/</div>
+          <div>│   └── <span class="focus">tula_cmake/</span></div>
+          <div>├── <span class="safe">refs/</span> <span class="dim"># production reference, read-only</span></div>
+          <div>└── archive/ <span class="dim"># recoverable prior v3 work</span></div>
+        </div>
+        <div>
+          <div class="callout green">
+            <h3>Protected reference</h3>
+            <p><code>refs/tula</code> and <code>refs/kidscpp</code> remain clean, physically read-only snapshots of the Conan 1 production system.</p>
+          </div>
+          <div class="callout amber" style="margin-top:22px">
+            <h3>No hidden migration code</h3>
+            <p>v3 is a new contract. Archived approaches remain recoverable but do not execute in the active system.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Source: WORKSPACE.md · repository status</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Change from production">
+    <header><div class="eyebrow">Change from production</div><h2>The build interface is explicit and Conan 2 native</h2></header>
+    <div class="body top">
+      <table>
+        <thead><tr><th>Production reference</th><th>Current v3 slice</th><th>Why it matters</th></tr></thead>
+        <tbody>
+          <tr><td>Conan 1-era recipes and profiles</td><td><span class="accent">Conan ≥2.30</span>, CMakeDeps, CMakeToolchain</td><td>Uses supported lifecycle and dependency graph primitives.</td></tr>
+          <tr><td>Implicit project injection patterns</td><td>Visible <code>tula_resolve_features()</code> after <code>project()</code></td><td>Every downstream CMake file shows when resolution occurs.</td></tr>
+          <tr><td>Package-by-package CMake surface</td><td>Logical feature → <code>tula::feature</code></td><td>Consumers link intent, not acquisition details.</td></tr>
+          <tr><td>Historical behavior accumulated in place</td><td>No legacy or compatibility path</td><td>The only contracts are those exercised by this workspace.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <footer class="footer"><span class="source">Sources: refs/ · ARCHITECTURE.md · active CMake modules</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="User contract">
+    <header><div class="eyebrow">User contract</div><h2>Feature subset and acquisition policy remain independent</h2></header>
+    <div class="body">
+      <div class="callout">
+        <pre><span class="code-muted"># compiler policy comes from the installed package</span>
+base="$(uv run tula-cmake profile linux-gcc13-debug)"
+
+<span class="code-muted"># project profile chooses the feature policy</span>
+uv run conan install . \
+  --profile:all="$base" \
+  --profile:all=profiles/logging-conan</pre>
+      </div>
+      <div class="mode-strip">
+        <div><strong class="muted">disabled</strong><span>No acquisition. No <code>tula::logging</code> target.</span></div>
+        <div><strong class="violet">conan</strong><span>Conan requirements and generated CMake package files.</span></div>
+        <div><strong class="warm">cpm</strong><span>Checksummed upstream source archives at configure time.</span></div>
+        <div><strong class="good">system</strong><span>Config-mode discovery of installed fmt and spdlog.</span></div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: profiles/ · tula_conan.py · TulaLogging.cmake</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Responsibility boundary">
+    <header><div class="eyebrow">Responsibility boundary</div><h2>Conan orchestrates; Tula supplies the missing policy</h2></header>
+    <div class="body">
+      <div class="columns">
+        <div>
+          <h3 class="violet">Conan owns</h3>
+          <div class="rule"></div>
+          <ul class="clean">
+            <li>Settings, profiles, options, and graph resolution</li>
+            <li>Conan package acquisition and binary selection</li>
+            <li>CMakeDeps and CMakeToolchain generation</li>
+            <li>Build folders and generated presets</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="accent">tula_cmake owns</h3>
+          <div class="rule"></div>
+          <ul class="clean">
+            <li>Supported logical features and modes</li>
+            <li>Selection and dependency validation</li>
+            <li>CPM and system provider implementations</li>
+            <li>Normalized <code>tula::feature</code> targets and config headers</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Source: design/ARCHITECTURE.md</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Lifecycle">
+    <header><div class="eyebrow">Resolution lifecycle</div><h2>Provider choice is fixed before CMake runs</h2></header>
+    <div class="body top">
+      <div class="columns wide-right">
+        <div class="callout amber">
+          <h3>CMake does not choose</h3>
+          <p>It receives a generated manifest and executes the already-validated mode after languages are enabled.</p>
+        </div>
+        <div class="sequence dense">
+          <div><p><strong>Profile selects a mode</strong><span><code>&amp;:logging=disabled|conan|cpm|system</code></span></p></div>
+          <div><p><strong>Python validates the graph</strong><span>Mode support, prerequisites, and cycles are checked.</span></p></div>
+          <div><p><strong>Conan adds only Conan requirements</strong><span>CPM and system never enter the Conan dependency graph.</span></p></div>
+          <div><p><strong>Generation emits one manifest</strong><span>CMakeDeps, toolchain, mode, variables, and module path.</span></p></div>
+          <div><p><strong>Post-project resolution creates targets</strong><span>Enabled features must produce <code>tula::feature</code>.</span></p></div>
+          <div><p><strong>Config header records the result</strong><span>C++ sees version, presence, and provider.</span></p></div>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: tula_conan.py · TulaProject.cmake · TulaConfigHeader.cmake</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Registry">
+    <header><div class="eyebrow">Single source of truth</div><h2>The registry is data, validation is code</h2></header>
+    <div class="body">
+      <div class="columns wide-left">
+        <pre><span class="code-cyan">logging:</span>
+  modes: [conan, cpm, system]
+  dependencies: []
+  conan_requires:
+    - <span class="code-amber">spdlog/1.15.3</span>
+  cmake_module: TulaLogging.cmake
+  cmake_vars:
+    FMT_URL: .../11.2.0.tar.gz
+    FMT_SHA256: <span class="code-green">bc23066d…</span>
+    SPDLOG_URL: .../v1.15.3.tar.gz
+    SPDLOG_SHA256: <span class="code-green">15a04e69…</span></pre>
+        <div>
+          <h3>What the model enforces</h3>
+          <ul class="clean compact">
+            <li><code>disabled</code> is implicit for every feature.</li>
+            <li>Conan mode must declare requirements.</li>
+            <li>Provider modules must exist in the wheel.</li>
+            <li>Dependencies must name known features.</li>
+            <li>The dependency graph must remain acyclic.</li>
+            <li>Immutable data is exposed through frozen structures.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: features.yaml · model.py</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Python implementation">
+    <header><div class="eyebrow">Python implementation</div><h2>Four blocks translate policy into Conan</h2></header>
+    <div class="body">
+      <div class="columns three">
+        <div>
+          <h3 class="accent">FeatureSpec</h3>
+          <p class="muted">Frozen name, modes, dependencies, requirements, module, and CMake variables.</p>
+        </div>
+        <div>
+          <h3 class="accent">load + validate</h3>
+          <p class="muted">Pure parsing, schema checks, cycle detection, and selected-graph checks.</p>
+        </div>
+        <div>
+          <h3 class="accent">render manifest</h3>
+          <p class="muted">Deterministic CMake input with selected modes and provider variables.</p>
+        </div>
+      </div>
+      <div class="rule"></div>
+      <div class="columns wide-left">
+        <pre><span class="code-cyan">class TulaConan</span>(ConanFile):
+    settings = "os", "arch", "compiler", "build_type"
+    options = {
+        **feature_options,
+        "logging_level": LOG_LEVELS,
+    }
+
+    def requirements(self):
+        <span class="code-muted"># add only Conan-backed features</span>
+
+    def generate(self):
+        CMakeDeps(self).generate()
+        CMakeToolchain(self).generate()
+        <span class="code-muted"># write tula_features.cmake</span></pre>
+        <div class="callout">
+          <h3>Deliberately thin recipe layer</h3>
+          <p>No custom graph solver, no private Conan imports, and no generator framework parallel to Conan.</p>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: model.py · tula_conan.py</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="CMake implementation">
+    <header><div class="eyebrow">Generated CMake</div><h2>Resolution is visible, guarded, and target-based</h2></header>
+    <div class="body">
+      <div class="columns wide-left">
+        <pre><span class="code-cyan">project</span>(tula_boilerplate ...)
+
+include(TulaProject)
+<span class="code-amber">tula_resolve_features()</span>
+tula_add_config_header(
+  TARGET tula_boilerplate_config
+  ALIAS tula_boilerplate::config
+  PREFIX TULA_BOILERPLATE
+  OUTPUT tula_boilerplate/config.h
+)
+
+add_executable(tula_boilerplate src/main.cpp)
+if(TARGET <span class="code-green">tula::logging</span>)
+  target_link_libraries(
+    tula_boilerplate PRIVATE tula::logging
+  )
+endif()</pre>
+        <div>
+          <ul class="clean">
+            <li>Fails if called before <code>project()</code>.</li>
+            <li>Fails if Conan’s manifest is absent.</li>
+            <li>Includes one provider module per enabled feature.</li>
+            <li>Fails if the provider does not create its normalized target.</li>
+            <li>Uses a global guard to resolve once.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: TulaProject.cmake · boilerplate/CMakeLists.txt</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Provider behavior">
+    <header><div class="eyebrow">Logging implementation</div><h2>Four paths converge on one CMake target</h2></header>
+    <div class="body top">
+      <table class="matrix">
+        <thead><tr><th>Mode</th><th>Acquisition</th><th>Result</th></tr></thead>
+        <tbody>
+          <tr><td><span class="mode muted">disabled</span></td><td>Nothing is fetched or found.</td><td>No target is created; config header records disabled.</td></tr>
+          <tr><td><span class="mode violet">conan</span></td><td><code>spdlog/1.15.3</code>; fmt arrives through the Conan graph.</td><td>CMakeDeps targets are normalized as <code>tula::logging</code>.</td></tr>
+          <tr><td><span class="mode warm">cpm</span></td><td>CPM 0.42.0, fmt 11.2.0, spdlog 1.15.3; all downloads checksummed.</td><td>Built targets are normalized without entering Conan requirements.</td></tr>
+          <tr><td><span class="mode good">system</span></td><td><code>find_package(fmt CONFIG)</code> and <code>find_package(spdlog CONFIG)</code>.</td><td>Distribution-provided targets receive the same public contract.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout" style="margin-top:18px">
+        <p><strong>Common output:</strong> <code>tula::logging</code> links fmt + spdlog and applies one validated compile-time <code>SPDLOG_ACTIVE_LEVEL</code>.</p>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Source: TulaLogging.cmake</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Generated contract">
+    <header><div class="eyebrow">C++ contract</div><h2>The generated header makes resolved state observable</h2></header>
+    <div class="body">
+      <div class="columns">
+        <pre><span class="code-muted">// generated/tula_boilerplate/config.h</span>
+#define TULA_BOILERPLATE_VERSION "3.1.0"
+#define TULA_BOILERPLATE_HAS_LOGGING 1
+#define TULA_BOILERPLATE_LOGGING_PROVIDER "system"</pre>
+        <pre>#include &lt;tula_boilerplate/config.h&gt;
+
+#if TULA_BOILERPLATE_HAS_LOGGING
+#include &lt;spdlog/spdlog.h&gt;
+#endif
+
+std::cout &lt;&lt;
+  TULA_BOILERPLATE_LOGGING_PROVIDER;
+
+#if TULA_BOILERPLATE_HAS_LOGGING
+spdlog::info("normalized target is active");
+#endif</pre>
+      </div>
+      <div class="callout green" style="margin-top:26px">
+        <h3>One downstream source file</h3>
+        <p>The four modes alter generated state and linked targets—not the application’s dependency-acquisition code.</p>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: TulaConfig.h.in · boilerplate/src/main.cpp</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Packaging boundary">
+    <header><div class="eyebrow">Packaging boundary</div><h2>The wheel carries the complete integration surface</h2></header>
+    <div class="body">
+      <div class="columns wide-left">
+        <div>
+          <table>
+            <tbody>
+              <tr><td><code>features.yaml</code></td><td class="muted">Feature/provider registry</td></tr>
+              <tr><td><code>cmake/*.cmake</code></td><td class="muted">Resolver, logging, config helper</td></tr>
+              <tr><td><code>cmake/TulaConfig.h.in</code></td><td class="muted">Generated C++ contract</td></tr>
+              <tr><td><code>profiles/linux-gcc13-debug</code></td><td class="muted">Bundled compiler policy</td></tr>
+              <tr><td><code>tula-cmake</code></td><td class="muted">Profile discovery CLI</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <div class="callout">
+            <h3>Acceptance test</h3>
+            <p>The test copies the package source, builds a wheel, creates a fresh venv and Conan home, copies the boilerplate outside the uv workspace, then builds and runs it.</p>
+          </div>
+          <p class="muted" style="margin-top:22px">This catches missing package data and accidental source-tree coupling that editable installs would hide.</p>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: pyproject.toml · justfile wheel recipe · wheel.log</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Development environment">
+    <header><div class="eyebrow">Development environment</div><h2>The container installs only what the slice consumes</h2></header>
+    <div class="body">
+      <div class="columns wide-left">
+        <pre>sudo apt-get install --no-install-recommends \
+  cmake \
+  g++ \
+  just \
+  libfmt-dev \
+  libspdlog-dev \
+  ninja-build \
+  python3-venv
+
+uv sync --locked --all-packages --all-groups</pre>
+        <div>
+          <h3>Current baseline</h3>
+          <div class="metric-row"><span class="value">13.3</span><span class="label">GCC from Ubuntu 24.04</span></div>
+          <div class="metric-row"><span class="value">3.28</span><span class="label">CMake, above the documented 3.25 floor</span></div>
+          <div class="metric-row"><span class="value">2.30</span><span class="label">Conan in the locked development environment</span></div>
+        </div>
+      </div>
+      <p class="muted" style="margin-top:20px">No LLVM repository, editor automation, package matrix, or project-specific test logic lives in post-create.</p>
+    </div>
+    <footer class="footer"><span class="source">Sources: .devcontainer/postCreate.sh · uv.lock · GCC profile</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Validation">
+    <header><div class="eyebrow">Validation interface</div><h2><code>just</code> separates fast feedback from full acceptance</h2></header>
+    <div class="body">
+      <div class="columns wide-left">
+        <pre><span class="code-cyan">just unit</span>             <span class="code-muted"># lint, format, types, unit</span>
+<span class="code-cyan">just fast</span>             <span class="code-muted"># + disabled + system</span>
+<span class="code-cyan">just providers</span>        <span class="code-muted"># Conan + CPM</span>
+just boilerplate cpm
+just tula conan
+<span class="code-amber">just wheel</span>            <span class="code-muted"># installed-package boundary</span>
+<span class="code-green">just all</span>              <span class="code-muted"># definitive milestone gate</span></pre>
+        <div>
+          <h3>Isolation rules</h3>
+          <ul class="clean">
+            <li>Every provider gets a fresh temporary Conan output folder.</li>
+            <li>Generated user presets are removed after the run.</li>
+            <li>CPM sources are cached, not build trees.</li>
+            <li>The wheel uses its own temporary Conan home.</li>
+            <li>Full logs remain under <code>.devcontainer/logs/</code>.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: root justfile · design/TESTING.md</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Evidence">
+    <header><div class="eyebrow">Acceptance evidence</div><h2>The complete current slice passes in the rebuilt container</h2></header>
+    <div class="body">
+      <div class="columns">
+        <div>
+          <div class="metric-row"><span class="value">5/5</span><span class="label">feature-model unit tests</span></div>
+          <div class="metric-row"><span class="value">4/4</span><span class="label">boilerplate provider modes build and run</span></div>
+          <div class="metric-row"><span class="value">4/4</span><span class="label">standalone Tula modes configure and build</span></div>
+        </div>
+        <div class="stack">
+          <div class="callout green">
+            <h3>Wheel boundary passes</h3>
+            <p>Package data is present and a copied downstream project builds with Conan 2.31 in an isolated environment.</p>
+          </div>
+          <div class="callout">
+            <h3>Quality checks pass</h3>
+            <p>Ruff lint, Ruff format, and ty report clean results.</p>
+          </div>
+          <div class="callout amber">
+            <h3>Command</h3>
+            <p><code>just all</code></p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: .devcontainer/logs/*.log · just all, 24 Jul 2026</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Boundaries">
+    <header><div class="eyebrow">Explicit boundaries</div><h2>Green does not mean the full ecosystem is ported</h2></header>
+    <div class="body">
+      <div class="columns">
+        <div>
+          <h3 class="good">Established now</h3>
+          <div class="rule"></div>
+          <ul class="clean">
+            <li>Four-mode feature contract</li>
+            <li>Conan 2 / CMake lifecycle</li>
+            <li>Registry and validation model</li>
+            <li>Logging target and config header</li>
+            <li>Boilerplate, Tula, wheel acceptance</li>
+            <li>Minimal dev container and just gates</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="warm">Intentionally deferred</h3>
+          <div class="rule"></div>
+          <ul class="clean">
+            <li>Remaining production dependency features</li>
+            <li>Topological resolution exercised by a real dependency edge</li>
+            <li>Full Tula module/test restoration</li>
+            <li>Tula packaging as a downstream dependency</li>
+            <li><code>kidscpp</code> integration and behavior parity</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Source: design/TASKS.md</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Next decision">
+    <header><div class="eyebrow">Proposed next milestone</div><h2>Next: prove generic extension</h2></header>
+    <div class="body">
+      <div class="sequence dense">
+        <div><p><strong>Add one simple header-only feature</strong><span>Exercise the generic provider path without custom CMake behavior.</span></p></div>
+        <div><p><strong>Add one real dependency edge</strong><span>Validate disabled prerequisites and topological resolution in production code.</span></p></div>
+        <div><p><strong>Decide whether system wrappers are actually needed</strong><span>Use direct config-mode discovery unless evidence requires a recipe.</span></p></div>
+        <div><p><strong>Port Tula modules incrementally</strong><span>Compare behavior against read-only refs at every step.</span></p></div>
+        <div><p><strong>Reintroduce kidscpp last</strong><span>Integrate only after Tula is independently packaged and tested.</span></p></div>
+      </div>
+      <div class="callout green" style="margin-top:22px">
+        <p><strong>Approval requested:</strong> accept the logging slice as the architectural baseline and proceed with one header-only feature.</p>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Source: design/TASKS.md</span><span class="slide-number"></span></footer>
+  </section>
+
+</main>
+
+<div class="hint">← → navigate · F fullscreen · Home / End</div>
+<div class="progress" aria-hidden="true"></div>
+
+<script>
+  (() => {
+    const slides = [...document.querySelectorAll(".slide")];
+    const progress = document.querySelector(".progress");
+    let index = Math.max(0, Math.min(slides.length - 1, Number(location.hash.slice(1)) - 1 || 0));
+
+    slides.forEach((slide, i) => {
+      const number = slide.querySelector(".slide-number");
+      if (number) number.textContent = `${String(i + 1).padStart(2, "0")} / ${String(slides.length).padStart(2, "0")}`;
+    });
+
+    function show(next, updateHash = true) {
+      index = Math.max(0, Math.min(slides.length - 1, next));
+      slides.forEach((slide, i) => slide.classList.toggle("active", i === index));
+      progress.style.width = `${((index + 1) / slides.length) * 100}%`;
+      document.title = `${slides[index].dataset.section} — Tula v3.1`;
+      if (updateHash) history.replaceState(null, "", `#${index + 1}`);
+    }
+
+    addEventListener("keydown", event => {
+      if (["ArrowRight", "ArrowDown", "PageDown", " "].includes(event.key)) {
+        event.preventDefault(); show(index + 1);
+      } else if (["ArrowLeft", "ArrowUp", "PageUp"].includes(event.key)) {
+        event.preventDefault(); show(index - 1);
+      } else if (event.key === "Home") {
+        event.preventDefault(); show(0);
+      } else if (event.key === "End") {
+        event.preventDefault(); show(slides.length - 1);
+      } else if (event.key.toLowerCase() === "f") {
+        document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+      }
+    });
+
+    addEventListener("hashchange", () => {
+      const requested = Number(location.hash.slice(1));
+      if (Number.isFinite(requested)) show(requested - 1, false);
+    });
+
+    addEventListener("click", event => {
+      if (event.target.closest("a, button, pre, code")) return;
+      show(event.clientX > innerWidth / 2 ? index + 1 : index - 1);
+    });
+
+    show(index);
+  })();
+</script>
+</body>
+</html>
