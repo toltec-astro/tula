@@ -1,16 +1,41 @@
-# tula v3.1 development
+# Tula v3.1 development
 
-This branch rebuilds the dependency feature/provider system from a minimal
-vertical slice. The only registered feature is currently `logging`, and the
-downstream `tula_boilerplate` demonstrates all four supported selections:
+This branch implements a Conan 2.31-centric feature/provider superbuild.
+
+The active vertical slice contains two logical features:
 
 ```text
-disabled | conan | cpm | system
+formatting
+└── logging depends on formatting
 ```
 
-The previous provider-matrix implementation is preserved on the local
-`archive/v3-provider-matrix-2026-07-23` branches and in the workspace archive.
-The production Conan 1/CMake code under `../refs` is reference-only.
+Each feature may be disabled or acquired from Conan, CPM, or the system.
+Enabled providers normalize to `tula::formatting` and `tula::logging`.
 
-See `design/ARCHITECTURE.md` and `design/TESTING.md` before extending the
-registry.
+The workspace demonstrates three infrastructure levels:
+
+- `tula_cmake`: reusable superbuild infrastructure distributed as a Python
+  wheel and Conan `python_requires`;
+- `examples/tula_boilerplate`: a minimal real package built with
+  `tula_cmake`;
+- `examples/tula_downstream`: an independent consumer of the packaged
+  boilerplate.
+
+From the downstream project the complete build is one command:
+
+```sh
+./build
+```
+
+The command bootstraps `tula-cmake` with `uvx`, runs `conan install`, reads the
+generated CMake preset, configures, and builds. During workspace development,
+`TULA_CMAKE_DEV_PROJECT` selects the local uv project.
+
+Run the full container acceptance with:
+
+```sh
+just all
+```
+
+The production Conan 1/CMake sources under `../refs` are read-only references.
+See `design/ARCHITECTURE.md`, `design/TESTING.md`, and `design/TASKS.md`.

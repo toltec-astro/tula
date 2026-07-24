@@ -1,4 +1,4 @@
 [options]
-&:formatting=disabled
+&:formatting=system
 &:logging=disabled
 &:logging_level=info

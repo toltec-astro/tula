@@ -1,3 +1,4 @@
 [options]
+&:formatting=system
 &:logging=system
 &:logging_level=info

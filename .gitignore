@@ -381,4 +381,6 @@ test_all_packages_profile
 **/.DS_Store
 .venv/
 **/.venv/
+.tula/
+**/.tula/
 *.egg-info/
