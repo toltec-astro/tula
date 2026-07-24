@@ -11,6 +11,7 @@
 - [x] Reduce the test harness to layered provider acceptance.
 - [x] Pass unit, disabled, system, Conan, and CPM validation.
 - [x] Audit the built wheel and build a standalone boilerplate copy from it.
+- [x] Rebuild a minimal dev container and repeat the full GCC 13 acceptance.
 - [x] Commit the accepted logging slice.
 
 ## Next, only after this milestone

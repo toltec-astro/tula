@@ -38,20 +38,29 @@ milestone commits use this gate.
 
 ## Commands
 
-From the workspace root:
+The test runner is intentionally not part of dev-container provisioning.
+Provisioning prepares tools; acceptance invokes the project interfaces
+directly:
 
 ```sh
-.devcontainer/validate.sh fast
-.devcontainer/validate.sh providers
-.devcontainer/validate.sh all
+cd tula/tula_cmake
+uv run ruff check .
+uv run ruff format --check .
+uv run ty check
+uv run python -m unittest discover -s tests -v
+
+base="$(uv run tula-cmake profile linux-gcc13-debug)"
 ```
 
-Each stage streams output and preserves its full log under
-`.devcontainer/logs/`.
+For each provider mode, run `conan install` with `base`, the corresponding
+`examples/tula_boilerplate/profiles/logging-*` option profile, and a fresh
+`--output-folder`; then configure, build, and execute `tula_boilerplate`.
+Redirect through `tee` when a durable log is required. Dev-container
+acceptance logs are kept under `.devcontainer/logs/`.
 
 Every provider run uses a fresh temporary Conan output folder. This prevents a
 generated `CMakeDeps` file from one mode from satisfying another mode by
-accident. CPM source archives are cached separately under
+accident. CPM source archives may be cached separately under
 `.devcontainer/cache/cpm/`, so isolation does not require repeated downloads.
 
 ## Growth policy

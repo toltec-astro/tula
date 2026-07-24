@@ -50,7 +50,7 @@ Downstream projects compose their feature-only profile with a compiler profile
 bundled in the installed package:
 
 ```sh
-base="$(uv run tula-cmake profile linux-clang20-debug)"
+base="$(uv run tula-cmake profile linux-gcc13-debug)"
 uv run conan install . -pr:a="${base}" -pr:a=profiles/logging-conan
 ```
 
