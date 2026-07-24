@@ -250,25 +250,140 @@
     .footer .source { max-width: 75%; }
     .slide-number { color: var(--muted); }
 
-    .progress {
+    .navbar {
       position: fixed;
-      left: 0;
-      bottom: 0;
-      height: 4px;
+      top: 3px;
+      left: clamp(46px, 6vw, 92px);
+      right: clamp(46px, 6vw, 92px);
+      z-index: 40;
+      display: grid;
+      grid-template-columns: minmax(210px, auto) minmax(100px, 1fr) auto;
+      align-items: center;
+      gap: 20px;
+      min-height: 32px;
+      padding: 3px 6px 3px 14px;
+      border: 1px solid rgba(77, 211, 255, .2);
+      border-radius: 8px;
+      background: rgba(6, 16, 26, .94);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, .25);
+      backdrop-filter: blur(12px);
+    }
+
+    .nav-identity {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      min-width: 0;
+      font: 700 11px/1 var(--mono);
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .nav-brand { color: var(--cyan); }
+    .nav-section {
+      overflow: hidden;
+      color: var(--muted);
+      text-overflow: ellipsis;
+    }
+
+    .nav-progress {
+      height: 3px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(77, 211, 255, .12);
+    }
+
+    .nav-progress > span {
+      display: block;
       width: 0;
-      z-index: 20;
+      height: 100%;
       background: linear-gradient(90deg, var(--cyan), var(--green));
       transition: width .25s ease;
     }
 
-    .hint {
+    .nav-controls { display: flex; align-items: center; gap: 4px; }
+    .nav-button {
+      min-width: 28px;
+      height: 24px;
+      padding: 0 8px;
+      border: 1px solid transparent;
+      border-radius: 5px;
+      background: transparent;
+      color: #b7cad6;
+      cursor: pointer;
+      font: 700 11px/1 var(--mono);
+    }
+    .nav-button:hover, .nav-button:focus-visible {
+      border-color: rgba(77, 211, 255, .35);
+      background: rgba(77, 211, 255, .09);
+      color: var(--paper);
+      outline: none;
+    }
+    .nav-button:disabled { color: #405463; cursor: default; }
+    .nav-counter {
+      min-width: 54px;
+      color: var(--muted);
+      font: 700 11px/1 var(--mono);
+      text-align: center;
+    }
+
+    .overview {
       position: fixed;
-      right: 18px;
-      top: 14px;
-      z-index: 20;
-      color: rgba(157, 178, 193, .55);
-      font: 600 11px/1 var(--mono);
-      letter-spacing: .06em;
+      top: 41px;
+      right: clamp(46px, 6vw, 92px);
+      z-index: 39;
+      display: none;
+      width: min(590px, calc(100vw - 92px));
+      max-height: calc(100vh - 70px);
+      padding: 18px;
+      overflow: auto;
+      border: 1px solid rgba(77, 211, 255, .25);
+      border-radius: 8px;
+      background: rgba(6, 16, 26, .98);
+      box-shadow: 0 18px 60px rgba(0, 0, 0, .45);
+    }
+    .overview.open { display: block; }
+    .overview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      color: var(--paper);
+      font: 700 13px/1 var(--mono);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .overview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .overview-item {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 8px;
+      min-height: 42px;
+      padding: 8px 10px;
+      border: 1px solid rgba(37, 64, 82, .7);
+      border-radius: 5px;
+      background: transparent;
+      color: #b7cad6;
+      cursor: pointer;
+      font: 600 11px/1.25 var(--mono);
+      text-align: left;
+    }
+    .overview-item:hover, .overview-item:focus-visible {
+      border-color: rgba(77, 211, 255, .4);
+      background: rgba(77, 211, 255, .06);
+      outline: none;
+    }
+    .overview-item.active {
+      border-color: var(--cyan);
+      color: var(--paper);
+      background: rgba(77, 211, 255, .1);
+    }
+    .overview-number { color: var(--cyan); }
+    .overview-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .title-mark {
@@ -288,6 +403,10 @@
       .columns, .columns.wide-left, .columns.wide-right, .columns.three { gap: 22px; }
       p, li, td { font-size: 16px; }
       pre { font-size: 12px; }
+      .navbar { left: 58px; right: 42px; grid-template-columns: minmax(120px, 1fr) auto; }
+      .nav-progress { display: none; }
+      .nav-brand { display: none; }
+      .overview { right: 42px; width: min(590px, calc(100vw - 100px)); }
     }
 
     @media print {
@@ -301,7 +420,7 @@
         page-break-after: always;
         animation: none;
       }
-      .hint, .progress { display: none; }
+      .navbar, .overview { display: none !important; }
     }
   </style>
 </head>
@@ -772,27 +891,84 @@ just tula conan
 
 </main>
 
-<div class="hint">← → navigate · F fullscreen · Home / End</div>
-<div class="progress" aria-hidden="true"></div>
+<nav class="navbar" aria-label="Presentation navigation">
+  <div class="nav-identity"><span class="nav-brand">Tula v3.1</span><span class="nav-section"></span></div>
+  <div class="nav-progress" aria-hidden="true"><span></span></div>
+  <div class="nav-controls">
+    <button class="nav-button overview-toggle" type="button" aria-expanded="false" aria-controls="slide-overview">Slides</button>
+    <button class="nav-button previous" type="button" aria-label="Previous slide">←</button>
+    <span class="nav-counter" aria-live="polite"></span>
+    <button class="nav-button next" type="button" aria-label="Next slide">→</button>
+    <button class="nav-button fullscreen" type="button" aria-label="Toggle fullscreen">⛶</button>
+  </div>
+</nav>
+
+<aside class="overview" id="slide-overview" aria-label="Slide overview">
+  <div class="overview-header">
+    <span>Slide overview</span>
+    <button class="nav-button overview-close" type="button" aria-label="Close slide overview">×</button>
+  </div>
+  <div class="overview-grid"></div>
+</aside>
 
 <script>
   (() => {
     const slides = [...document.querySelectorAll(".slide")];
-    const progress = document.querySelector(".progress");
+    const nav = document.querySelector(".navbar");
+    const progress = document.querySelector(".nav-progress > span");
+    const section = document.querySelector(".nav-section");
+    const counter = document.querySelector(".nav-counter");
+    const previous = document.querySelector(".previous");
+    const next = document.querySelector(".next");
+    const overview = document.querySelector(".overview");
+    const overviewGrid = document.querySelector(".overview-grid");
+    const overviewToggle = document.querySelector(".overview-toggle");
     let index = Math.max(0, Math.min(slides.length - 1, Number(location.hash.slice(1)) - 1 || 0));
 
     slides.forEach((slide, i) => {
       const number = slide.querySelector(".slide-number");
       if (number) number.textContent = `${String(i + 1).padStart(2, "0")} / ${String(slides.length).padStart(2, "0")}`;
+      const item = document.createElement("button");
+      const title = slide.querySelector("h1, h2")?.textContent.trim() || slide.dataset.section;
+      item.type = "button";
+      item.className = "overview-item";
+      item.innerHTML = `<span class="overview-number">${String(i + 1).padStart(2, "0")}</span><span class="overview-title">${title}</span>`;
+      item.addEventListener("click", () => {
+        show(i);
+        setOverview(false);
+      });
+      overviewGrid.append(item);
     });
+
+    function setOverview(open) {
+      overview.classList.toggle("open", open);
+      overviewToggle.setAttribute("aria-expanded", String(open));
+    }
 
     function show(next, updateHash = true) {
       index = Math.max(0, Math.min(slides.length - 1, next));
       slides.forEach((slide, i) => slide.classList.toggle("active", i === index));
       progress.style.width = `${((index + 1) / slides.length) * 100}%`;
+      section.textContent = slides[index].dataset.section;
+      counter.textContent = `${String(index + 1).padStart(2, "0")} / ${String(slides.length).padStart(2, "0")}`;
+      previous.disabled = index === 0;
+      next.disabled = index === slides.length - 1;
+      [...overviewGrid.children].forEach((item, i) => {
+        item.classList.toggle("active", i === index);
+        if (i === index) item.setAttribute("aria-current", "page");
+        else item.removeAttribute("aria-current");
+      });
       document.title = `${slides[index].dataset.section} — Tula v3.1`;
       if (updateHash) history.replaceState(null, "", `#${index + 1}`);
     }
+
+    previous.addEventListener("click", () => show(index - 1));
+    next.addEventListener("click", () => show(index + 1));
+    overviewToggle.addEventListener("click", () => setOverview(!overview.classList.contains("open")));
+    document.querySelector(".overview-close").addEventListener("click", () => setOverview(false));
+    document.querySelector(".fullscreen").addEventListener("click", () => {
+      document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+    });
 
     addEventListener("keydown", event => {
       if (["ArrowRight", "ArrowDown", "PageDown", " "].includes(event.key)) {
@@ -803,6 +979,10 @@ just tula conan
         event.preventDefault(); show(0);
       } else if (event.key === "End") {
         event.preventDefault(); show(slides.length - 1);
+      } else if (event.key === "Escape") {
+        setOverview(false);
+      } else if (event.key.toLowerCase() === "o") {
+        setOverview(!overview.classList.contains("open"));
       } else if (event.key.toLowerCase() === "f") {
         document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
       }
@@ -814,7 +994,7 @@ just tula conan
     });
 
     addEventListener("click", event => {
-      if (event.target.closest("a, button, pre, code")) return;
+      if (event.target.closest("a, button, pre, code, .navbar, .overview")) return;
       show(event.clientX > innerWidth / 2 ? index + 1 : index - 1);
     });
 
