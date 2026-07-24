@@ -38,25 +38,20 @@ milestone commits use this gate.
 
 ## Commands
 
-The test runner is intentionally not part of dev-container provisioning.
-Provisioning prepares tools; acceptance invokes the project interfaces
-directly:
+The root `justfile` is the test interface. Dev-container provisioning installs
+the tools but contains no test orchestration:
 
 ```sh
-cd tula/tula_cmake
-uv run ruff check .
-uv run ruff format --check .
-uv run ty check
-uv run python -m unittest discover -s tests -v
-
-base="$(uv run tula-cmake profile linux-gcc13-debug)"
+just unit
+just fast
+just providers
+just boilerplate cpm
+just tula conan
+just wheel
+just all
 ```
 
-For each provider mode, run `conan install` with `base`, the corresponding
-`examples/tula_boilerplate/profiles/logging-*` option profile, and a fresh
-`--output-folder`; then configure, build, and execute `tula_boilerplate`.
-Redirect through `tee` when a durable log is required. Dev-container
-acceptance logs are kept under `.devcontainer/logs/`.
+Each gate streams output and keeps durable logs under `.devcontainer/logs/`.
 
 Every provider run uses a fresh temporary Conan output folder. This prevents a
 generated `CMakeDeps` file from one mode from satisfying another mode by
