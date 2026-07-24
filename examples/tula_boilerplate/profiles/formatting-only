@@ -1,4 +1,0 @@
-[options]
-&:formatting=system
-&:logging=disabled
-&:logging_level=info

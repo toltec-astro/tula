@@ -2,199 +2,192 @@
 
 ## Package roles
 
-The system has four distinct roles:
-
 | Package | Role |
 | --- | --- |
-| `tula_cmake` | Superbuild infrastructure: Conan recipe policy, feature registry, provider implementations, generated CMake, profiles, and the bootstrap CLI. |
-| `tula_boilerplate` | Minimal package built with `tula_cmake`. It is both provider acceptance code and a real Conan package. |
-| `tula` | Actual C++ package built with `tula_cmake`. The current slice compiles a supported header smoke target but does not package the full production interface yet. |
-| `kidscpp` | Actual downstream of packaged Tula. It remains outside the active slice until Tula packaging and behavior parity are complete. |
+| `tula_cmake` | Typed superbuild infrastructure: Conan recipe mixin, validated registry, CMake feature resolvers, profiles, templates, documentation, and bootstrap CLI. |
+| `tula_boilerplate` | Minimal package built with `tula_cmake`; both an example and a real Conan package. |
+| `tula_downstream` | Independent consumer requiring only `tula-boilerplate/3.1.0`. |
+| `tula` | Actual C++ package built with `tula_cmake`; the current slice compiles logging and perflibs contracts. |
+| `kidscpp` | Actual downstream of packaged Tula, deferred until Tula packaging and behavior parity are complete. |
 
-`tula_downstream` closes the current infrastructure loop. It is a minimal
-consumer that requires only `tula-boilerplate/3.1.0`, locates the
-Conan-generated CMake package, links `tula_boilerplate::headers`, and runs.
+Build infrastructure is not a C++ link dependency. Conan evaluates the
+boilerplate or Tula recipe's `python_requires`; ordinary downstream code sees
+only the package and CMake targets it consumes.
 
-Build infrastructure is not a C++ link dependency. A downstream package
-benefits transitively from the conventions established by `tula_cmake`, but it
-does not link or import `tula_cmake`. Conan resolves the boilerplate recipe's
-`python_requires` when the package graph needs that recipe.
+## User workflow
 
-## User experience
-
-The canonical Conan 2 flow remains explicit:
-
-1. Bootstrap the `tula-cmake` CLI and Conan.
-2. Run `conan install`.
-3. Configure and build with Conan's generated CMake preset.
-
-The downstream repository exposes that sequence as one command:
+The downstream repository exposes:
 
 ```sh
 ./build
 ```
 
-For a released system the script runs:
+For a release, that script executes:
 
 ```sh
 uvx --from tula-cmake==3.1.0 tula-cmake build .
 ```
 
-`uvx` creates an isolated Python environment containing `tula-cmake` and its
-pinned Conan dependency. `tula-cmake build` then:
+`BuildWorkflow` then:
 
-1. optionally runs `conan config install <source>` for organization remotes and
-   shared profiles;
-2. ensures a default profile exists when no explicit profile is supplied;
+1. optionally runs `conan config install`;
+2. ensures a default profile when no profile was supplied;
 3. runs `conan install --build=missing`;
-4. reads the generated `CMakeUserPresets.json`;
-5. runs `cmake --preset <generated> --fresh`;
-6. runs `cmake --build --preset <generated>`.
+4. validates `CMakeUserPresets.json` and Conan's generated preset document;
+5. configures with `cmake --preset <name> --fresh`;
+6. builds with `cmake --build --preset <name>`.
 
-This wrapper does not make CMake invoke Conan. It preserves the flow recommended
-by the Conan documentation while providing the one-command entry point users
-had in the production CMake system.
+This preserves Conan's explicit install-plus-preset flow. CMake never invokes
+Conan.
 
-The checked-in downstream script supports `TULA_CMAKE_DEV_PROJECT` so the same
-command uses the local uv workspace during development. The release path uses
-the published wheel.
+## Python package structure
 
-## Why `python_requires`
-
-`tula_cmake/3.1.0` is exported as a Conan `python-require`. Recipes opt in with:
-
-```python
-python_requires = "tula-cmake/3.1.0"
-python_requires_extend = "tula-cmake.TulaConan"
+```text
+tula_cmake/
+├── .cruft.json
+├── conanfile.py
+├── pyproject.toml
+├── justfile
+├── docs/
+├── tests/
+└── src/tula_cmake/
+    ├── models.py
+    ├── registry.py
+    ├── recipe.py
+    ├── workflow.py
+    ├── cli.py
+    ├── resources.py
+    ├── py.typed
+    └── data/
+        ├── registry.yaml
+        ├── cmake/
+        ├── templates/
+        └── profiles/
 ```
 
-This is Conan's supported distribution mechanism for shared recipe behavior.
-The exported recipe also carries the registry, CMake modules, configuration
-template, and profiles. `tula_boilerplate` and `tula` therefore contain only
-their package-specific recipe metadata and source/package methods.
+Responsibilities:
 
-The Python wheel and Conan python-require serve different bootstrap boundaries:
+- `models.py`: frozen Pydantic models for registry, options, selections, build
+  requests, and CMake preset JSON;
+- `registry.py`: YAML loading, resource validation, graph ordering, selection
+  validation, and deterministic CMake rendering;
+- `recipe.py`: thin Conan lifecycle adapter;
+- `workflow.py`: process orchestration independent of CLI parsing;
+- `cli.py`: Typer command surface and user-facing error translation;
+- `resources.py`: `importlib.resources` access to installed data.
 
-- the wheel supplies the user-facing CLI and an isolated Conan installation;
-- the Conan python-require supplies reusable recipe behavior and build files to
-  package graphs.
+CMake and templates are package data because their paths must remain valid from
+an installed wheel and a Conan export. Installing them as global data files
+would make ownership and discovery environment-dependent.
 
-Both artifacts have the same version and are tested independently.
+## Template management
+
+Cruft links `tula_cmake` to
+`https://github.com/Jerry-Ma/cookiecutter-pypackage.git`, checkout `v2026`.
+`.cruft.json` records the exact template commit and generation context.
+
+Project-specific choices intentionally override parts of the template:
+
+- Python `>=3.11` rather than the template's current `>=3.13`;
+- an explicit package version while the release process is still being built;
+- Conan-specific dependencies and package data;
+- Sphinx documentation focused on architecture and generated API.
+
+`just cruft-check` detects upstream template movement; `just cruft-update`
+provides the reviewed update path.
 
 ## Conan/CMake boundary
 
-Conan 2.31 owns:
+Conan owns settings, profiles, options, graph resolution, package acquisition,
+`CMakeDeps`, `CMakeToolchain`, presets, and `python_requires`.
 
-- settings, profiles, options, requirements, and graph resolution;
-- package acquisition and binary selection;
-- `CMakeDeps`, `CMakeToolchain`, and generated presets;
-- resolution of `python_requires`.
+`tula_cmake` owns the validated feature schema, semantic feature resolvers,
+normalized `tula::<feature>` targets, generated configuration headers, and the
+one-command orchestration layer.
 
-`tula_cmake` owns:
+The registry feeds:
 
-- the supported feature/provider registry;
-- dependency and provider validation;
-- dependency-first feature resolution order;
-- CPM and system provider implementations;
-- normalization to `tula::<feature>` targets;
-- generated project configuration headers;
-- the thin bootstrap/build CLI.
+1. Conan option domains and defaults;
+2. Conan requirements for selected Conan-backed features;
+3. the generated CMake feature manifest;
+4. configuration-header feature/provider macros.
 
-CMake never chooses a provider. It executes the manifest selected during
-`conan install`.
+## Feature contracts
 
-`CMakeDeps` remains the active stable generator. `CMakeConfigDeps` in Conan
-2.31 has important improvements but is still documented as experimental.
-`cmake-conan` is also not used because explicit `conan install` remains the
-recommended general flow.
+### Logging
 
-## Feature model
+`logging` is one meta-feature:
 
-The current registry contains:
+- Conan requires `fmt/11.2.0` and `spdlog/1.15.3`;
+- CPM downloads both pinned, checksummed archives;
+- system mode requires config packages for both;
+- all enabled paths create `tula::logging`;
+- the target links both normalized upstream targets;
+- `logging_level` maps to `SPDLOG_ACTIVE_LEVEL`.
+
+There is no independent fmt feature or option. Dependency splitting is deferred
+until the package matrix exposes a real consumer requiring such a public
+contract.
+
+### Perflibs
+
+`perflibs` ports the most complex production CMake behavior:
+
+- `Threads::Threads` is always required when enabled;
+- OpenMP policy is `auto`, `disabled`, or `required`;
+- runtime intent is `auto`, `gnu`, `intel`, or `llvm`;
+- oneAPI can enable config-mode `find_package(MKL CONFIG REQUIRED)`;
+- modern oneMKL is consumed as `MKL::MKL`;
+- MKL threading is `sequential`, `openmp`, or `tbb`;
+- invalid combinations fail before target creation.
+
+The normalized target exports:
 
 ```text
-formatting
-└── no logical prerequisites
-
-logging
-└── requires formatting
+TULA_PERFLIBS_HAS_THREADS
+TULA_PERFLIBS_HAS_OPENMP
+TULA_PERFLIBS_HAS_MKL
+TULA_PERFLIBS_OPENMP_RUNTIME
+TULA_PERFLIBS_MKL_THREADING
 ```
 
-Both features support:
-
-```text
-disabled | conan | cpm | system
-```
-
-`disabled` is implicit in the Python model. The YAML registry declares enabled
-providers, requirements, logical dependencies, resolver module/command, and
-immutable CPM inputs.
-
-`formatting` is the generic provider proof:
-
-- Conan requires `fmt/11.2.0`;
-- CPM fetches the checksummed fmt 11.2.0 archive;
-- system uses config-mode `find_package(fmt)`;
-- all enabled modes normalize to `tula::formatting`.
-
-`logging` is the custom provider:
-
-- it requires the already-resolved `tula::formatting` feature;
-- Conan requires `spdlog/1.15.3`;
-- CPM fetches the checksummed spdlog 1.15.3 archive with external fmt;
-- system uses config-mode `find_package(spdlog)`;
-- all enabled modes normalize to `tula::logging`.
-
-The generated manifest lists features in a stable dependency-first order.
-Selection validation rejects unknown modes, cycles, unknown dependencies, and
-enabled features whose prerequisites are disabled.
+The GCC 13 dev-container gate verifies Threads plus required GNU OpenMP. oneMKL
+branches require a dedicated oneAPI image before they can be marked verified.
 
 ## Generated C++ contract
 
-`tula_add_config_header()` iterates the resolved feature list. It emits, for
-every feature:
+For every registry feature, `tula_add_config_header()` emits:
 
 ```c
 #define <PREFIX>_HAS_<FEATURE> 0_or_1
 #define <PREFIX>_<FEATURE>_PROVIDER "disabled|conan|cpm|system"
 ```
 
-The template no longer contains logging-specific feature definitions. Adding a
-registry feature automatically extends the generated availability/provider
-contract.
+The template contains no feature-specific list. Adding a registry feature
+automatically extends the generated contract.
 
-## Current vertical slice
-
-The verified package chain is:
+## Verified package chain
 
 ```text
 tula-cmake wheel + Conan python-require
                 │
                 ▼
-tula-boilerplate/3.1.0 Conan package
+tula-boilerplate/3.1.0
                 │
                 ▼
 tula_downstream executable
 ```
 
-The package-chain test uses an isolated Conan home:
+The acceptance test uses an isolated Conan home, creates the boilerplate
+package, runs the checked-in downstream command, and verifies the resulting
+executable.
 
-1. export the local `tula-cmake` python-require;
-2. create `tula-boilerplate/3.1.0` with both features disabled;
-3. invoke `tula_downstream/build` once;
-4. let the CLI run Conan and the generated CMake preset;
-5. execute the downstream binary and verify package metadata.
+## Next boundary
 
-Tula itself now compiles and runs a smoke target that covers the dependency-free
-core headers plus formatting/logging headers when enabled. This is meaningful
-compile coverage, but it is not yet the complete production header/test surface.
-
-## Next package boundary
-
-The next software milestone is to make Tula a conventional packaged dependency:
-
-1. restore features needed by one coherent Tula module;
-2. restore that module's production tests;
-3. add Tula install/export and Conan package metadata;
-4. create a minimal consumer of `tula/3.1.0`;
-5. only then migrate `kidscpp` to the packaged Tula contract.
+1. Add a oneAPI-capable validation image for MKL/runtime combinations.
+2. Grow the package matrix one dependency row at a time.
+3. Split meta-features only when concrete package UX requires it.
+4. Restore one coherent production Tula module and its unchanged tests.
+5. Complete Tula install/export and verify an independent `tula/3.1.0`
+   consumer.
+6. Move `kidscpp` only after that boundary is green.

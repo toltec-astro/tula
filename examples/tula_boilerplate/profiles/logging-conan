@@ -1,4 +1,4 @@
 [options]
-&:formatting=conan
 &:logging=conan
+&:perflibs=disabled
 &:logging_level=info

@@ -1,41 +1,46 @@
 # Tula v3.1 development
 
-This branch implements a Conan 2.31-centric feature/provider superbuild.
+This branch implements a Conan 2.31-centric superbuild with a one-command
+downstream user experience.
 
-The active vertical slice contains two logical features:
+The active infrastructure features are:
 
 ```text
-formatting
-└── logging depends on formatting
+logging
+└── meta-feature: fmt + spdlog
+
+perflibs
+└── Threads + optional OpenMP + optional oneMKL
 ```
 
-Each feature may be disabled or acquired from Conan, CPM, or the system.
-Enabled providers normalize to `tula::formatting` and `tula::logging`.
+`logging` may be disabled or acquired from Conan, CPM, or the system. Every
+enabled mode produces `tula::logging`. `perflibs` is disabled or system-resolved
+and produces `tula::perflibs`.
 
-The workspace demonstrates three infrastructure levels:
+The workspace demonstrates:
 
-- `tula_cmake`: reusable superbuild infrastructure distributed as a Python
-  wheel and Conan `python_requires`;
-- `examples/tula_boilerplate`: a minimal real package built with
-  `tula_cmake`;
-- `examples/tula_downstream`: an independent consumer of the packaged
-  boilerplate.
+- `tula_cmake`: typed superbuild infrastructure distributed as a Python wheel
+  and Conan `python_requires`;
+- `examples/tula_boilerplate`: minimal real package using `tula_cmake`;
+- `examples/tula_downstream`: independent consumer of the packaged
+  boilerplate;
+- `tula`: actual C++ package with logging and perflibs compile acceptance.
 
-From the downstream project the complete build is one command:
+From the downstream project:
 
 ```sh
 ./build
 ```
 
-The command bootstraps `tula-cmake` with `uvx`, runs `conan install`, reads the
-generated CMake preset, configures, and builds. During workspace development,
-`TULA_CMAKE_DEV_PROJECT` selects the local uv project.
+The command bootstraps `tula-cmake`, runs `conan install`, reads the generated
+CMake preset, configures, and builds. `TULA_CMAKE_DEV_PROJECT` selects the local
+uv project during workspace development.
 
-Run the full container acceptance with:
+Run the complete container acceptance with:
 
 ```sh
 just all
 ```
 
-The production Conan 1/CMake sources under `../refs` are read-only references.
-See `design/ARCHITECTURE.md`, `design/TESTING.md`, and `design/TASKS.md`.
+The Conan 1/CMake production sources under `../refs` remain read-only. See
+`design/ARCHITECTURE.md`, `design/TESTING.md`, and `design/TASKS.md`.

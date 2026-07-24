@@ -22,11 +22,11 @@ target_include_directories(
     INTERFACE "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
 )
 target_link_libraries(tula_headers INTERFACE tula::config)
-if(TARGET tula::formatting)
-    target_link_libraries(tula_headers INTERFACE tula::formatting)
-endif()
 if(TARGET tula::logging)
     target_link_libraries(tula_headers INTERFACE tula::logging)
+endif()
+if(TARGET tula::perflibs)
+    target_link_libraries(tula_headers INTERFACE tula::perflibs)
 endif()
 add_library(tula::headers ALIAS tula_headers)
 

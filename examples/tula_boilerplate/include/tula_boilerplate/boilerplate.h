@@ -7,8 +7,6 @@
 namespace tula_boilerplate {
 
 inline constexpr std::string_view version = TULA_BOILERPLATE_VERSION;
-inline constexpr std::string_view formatting_provider =
-    TULA_BOILERPLATE_FORMATTING_PROVIDER;
 inline constexpr std::string_view logging_provider = TULA_BOILERPLATE_LOGGING_PROVIDER;
 
 }  // namespace tula_boilerplate

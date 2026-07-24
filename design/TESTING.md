@@ -2,105 +2,100 @@
 
 ## Objectives
 
-The test loop must provide quick local feedback, exercise every acquisition
-provider, and verify both distribution boundaries:
+The test loop must provide fast Python feedback, exercise semantic CMake
+features, and verify both distribution boundaries:
 
 - installed `tula-cmake` wheel;
-- packaged `tula_boilerplate` consumed by an independent downstream project.
+- packaged `tula_boilerplate` consumed independently.
 
-## Layers
-
-### Unit
+## Unit and documentation gate
 
 `just unit` runs:
 
-- Ruff lint;
-- Ruff format check;
-- ty;
-- seven pure Python model tests.
+- Ruff lint and formatting checks;
+- `ty` static analysis;
+- 14 Pytest tests;
+- branch coverage with an 85% threshold;
+- Sphinx HTML documentation build.
 
-The model tests cover the four-mode contract, registry validation, disabled
-prerequisites, dependency-first ordering, deterministic manifest generation,
-and installed profile discovery.
+Tests cover Pydantic invariants, registry loading, missing resources, selection
+rendering, CLI behavior, installed resources, typed generated-preset parsing,
+and exact external-command ordering.
 
-### Fast integration
+`recipe.py` is excluded from unit coverage because it is executed by every real
+Conan integration gate.
 
-`just fast` builds and executes `tula_boilerplate` with:
+## Fast integration
 
-- both features disabled;
-- formatting from the system with logging disabled;
-- formatting and logging from the system.
+`just fast` verifies:
 
-This proves feature subsets and the system provider without network downloads.
+- boilerplate with logging disabled;
+- boilerplate using system fmt + spdlog through `tula::logging`;
+- Tula using system perflibs with Threads and required GNU OpenMP.
 
-### Provider acceptance
+## Provider acceptance
 
-`just providers` builds and executes the same source with:
+`just providers` builds the same boilerplate source with:
 
-- formatting/logging from Conan;
-- formatting/logging from CPM.
+- Conan-provided fmt + spdlog;
+- CPM-provided fmt + spdlog.
 
-Every provider run uses a fresh Conan output folder. CPM source archives may be
-reused from `.devcontainer/cache/cpm/`.
+CPM source archives may be reused from `.devcontainer/cache/cpm/`; build/output
+trees remain isolated.
 
-### Tula compile acceptance
+## Tula compile acceptance
 
-`just tula <mode>` configures Tula, compiles `tula_header_smoke`, and runs it
-with CTest. The target always compiles the supported dependency-free core. It
-also compiles formatting and logging headers when those features are enabled.
+`just tula <mode>` compiles `tula_header_smoke` and runs CTest. Logging modes
+compile both formatter and logging headers. `perflibs-system` verifies imported
+Threads/OpenMP targets and exported capability definitions.
 
-This gate does not claim full production behavior parity.
+This is meaningful compile/runtime coverage, not yet full production behavior
+parity.
 
-### Wheel boundary
+## Wheel boundary
 
 `just wheel`:
 
 1. copies `tula_cmake` and boilerplate outside the uv workspace;
-2. builds and audits the wheel;
-3. installs it into a fresh virtual environment;
-4. exports the copied Conan python-require into an isolated Conan home;
-5. locates the packaged GCC 13 profile;
-6. builds and runs the copied boilerplate.
+2. builds the wheel;
+3. verifies registry, CMake, template, profile, and `py.typed` contents;
+4. installs into a fresh virtual environment;
+5. exports the copied Python-require into an isolated Conan home;
+6. builds and runs copied boilerplate sources.
 
-### Package-chain boundary
+## Package-chain boundary
 
 `just downstream`:
 
 1. creates an isolated Conan home;
-2. exports the local `tula-cmake` python-require;
+2. exports the local `tula-cmake` Python-require;
 3. creates `tula-boilerplate/3.1.0`;
 4. invokes `tula_downstream/build` once;
-5. verifies that the downstream executable consumed the packaged boilerplate.
-
-This is the UX acceptance test. The checked-in downstream command performs the
-bootstrap, Conan, and CMake phases without hiding them in CMake.
+5. verifies the executable consumed packaged boilerplate.
 
 ## Commands
-
-The root `justfile` is the development and CI interface:
 
 ```sh
 just unit
 just fast
 just providers
-just boilerplate formatting-only
-just tula conan
+just boilerplate system
+just tula perflibs-system
 just wheel
 just downstream
 just all
 ```
 
-Each gate streams output and keeps durable logs under `.devcontainer/logs/`.
+Logs are retained under `.devcontainer/logs/`.
 
 ## Growth policy
 
-Do not recreate the old Cartesian package matrix. For each feature:
+Do not recreate a Cartesian matrix speculatively. For each package or semantic
+feature:
 
-1. add registry/schema tests;
-2. add one minimal consumer behavior assertion;
-3. test each supported provider;
-4. test declared dependency edges and meaningful mixed-provider cases;
-5. extend package-chain tests only when public package metadata changes.
-
-Coverage grows with contracts, providers, and dependency edges rather than all
-possible option combinations.
+1. record its versions, targets, modes, and platform requirements;
+2. add schema/model tests;
+3. add one minimal behavior assertion;
+4. exercise every claimed provider;
+5. add mixed cases only for meaningful dependency edges;
+6. extend package-chain tests when public package metadata changes.

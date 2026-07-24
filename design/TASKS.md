@@ -1,39 +1,42 @@
 # Staged implementation
 
-## Completed: provider and package-chain vertical slice
+## Completed: typed infrastructure and vertical slice
 
-- [x] Preserve the production reference as read-only input.
-- [x] Define the Conan 2 / CMake responsibility boundary.
-- [x] Distribute shared recipe behavior as `tula-cmake/3.1.0`
+- [x] Preserve `refs/` as read-only production input.
+- [x] Define the Conan/CMake responsibility boundary.
+- [x] Distribute recipe behavior as `tula-cmake/3.1.0`
   `python_requires`.
-- [x] Add generic `formatting` provider behavior.
-- [x] Make `logging` depend on `formatting`.
-- [x] Generate a stable dependency-first manifest.
-- [x] Make configuration-header feature macros registry-driven.
-- [x] Prove disabled, subset, system, Conan, and CPM selections.
-- [x] Compile and run the currently supported Tula header surface.
-- [x] Build and audit the installed `tula-cmake` wheel.
-- [x] Package `tula_boilerplate` as a real Conan package.
-- [x] Add `tula_downstream` as an independent package consumer.
-- [x] Provide a one-command downstream build entry point covering bootstrap,
-  Conan install, generated CMake configure preset, and build preset.
-- [x] Verify the complete slice in the rebuilt Ubuntu 24.04 / GCC 13 container.
+- [x] Provide the one-command bootstrap → Conan → generated-preset workflow.
+- [x] Refactor Python into a conventional `src/` layout.
+- [x] Validate registry and generated-preset inputs with frozen Pydantic models.
+- [x] Separate executable code from installed CMake/templates/profiles data.
+- [x] Add Ruff, `ty`, Pytest, coverage, Sphinx, and PEP 561 typing.
+- [x] Link the project to the TolTEC `v2026` cookiecutter through Cruft.
+- [x] Keep logging as one fmt + spdlog meta-feature.
+- [x] Port perflibs Threads/OpenMP/oneMKL configuration and validation.
+- [x] Verify required GNU OpenMP in the GCC 13 dev container.
+- [x] Generate feature/provider configuration-header macros from the registry.
+- [x] Package `tula_boilerplate` and consume it from `tula_downstream`.
 
-## Next: package one real Tula module
+## Next: system and package matrix
 
-1. Select one coherent production Tula module and enumerate its required
-   dependency features.
-2. Add only those features and their provider tests.
-3. Restore the module's production tests and examples without behavior changes.
-4. Add Tula install/export rules and Conan package metadata.
-5. Add a minimal downstream consumer of `tula/3.1.0`.
-6. Verify the package through the same one-command UX.
+1. Add a oneAPI-capable validation image.
+2. Test `MKL::MKL` with sequential, OpenMP, and TBB threading contracts.
+3. Build the package support matrix one package per row.
+4. Record provider modes and target names from executable evidence.
+5. Introduce dependency splitting only when a concrete package requires it.
+
+## Then: package one real Tula module
+
+1. Select one coherent production module.
+2. Restore its production tests without behavior changes.
+3. Add only the dependency features demonstrated by that module.
+4. Complete Tula install/export and Conan package metadata.
+5. Verify a minimal consumer of `tula/3.1.0` through the one-command workflow.
 
 ## Later: kidscpp
 
-Move `kidscpp` only after packaged Tula passes the downstream boundary:
-
-1. consume `tula/3.1.0` through Conan;
-2. preserve the production C++ behavior and test results;
-3. remove workspace-relative build coupling;
-4. run standalone and package-chain acceptance in the dev container.
+1. Consume packaged `tula/3.1.0`.
+2. Preserve production C++ behavior and test results.
+3. Remove workspace-relative build coupling.
+4. Run standalone and package-chain acceptance in the dev container.
