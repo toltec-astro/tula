@@ -14,13 +14,18 @@ features, and verify both distribution boundaries:
 
 - Ruff lint and formatting checks;
 - `ty` static analysis;
-- 14 Pytest tests;
+- 16 Pytest tests, with documentation sources included in collection;
 - branch coverage with an 85% threshold;
-- Sphinx HTML documentation build.
+- Sphinx HTML documentation build with warnings treated as errors.
 
 Tests cover Pydantic invariants, registry loading, missing resources, selection
-rendering, CLI behavior, installed resources, typed generated-preset parsing,
-and exact external-command ordering.
+rendering, convention-derived resolver paths and commands, CLI behavior,
+installed resources, typed generated-preset parsing, and exact
+external-command ordering.
+
+The generated Sphinx site has a dedicated model page using
+`autodoc-pydantic`; it renders field metadata, validator summaries, and JSON
+schemas from the runtime classes rather than maintaining parallel tables.
 
 `recipe.py` is excluded from unit coverage because it is executed by every real
 Conan integration gate.

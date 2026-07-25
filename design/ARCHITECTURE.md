@@ -61,6 +61,13 @@ tula_cmake/
     └── data/
         ├── registry.yaml
         ├── cmake/
+        │   ├── infrastructure/
+        │   │   ├── TulaProject.cmake
+        │   │   ├── TulaConfigHeader.cmake
+        │   │   └── TulaCPM.cmake
+        │   └── resolvers/
+        │       ├── logging.cmake
+        │       └── perflibs.cmake
         ├── templates/
         └── profiles/
 ```
@@ -80,6 +87,43 @@ CMake and templates are package data because their paths must remain valid from
 an installed wheel and a Conan export. Installing them as global data files
 would make ownership and discovery environment-dependent.
 
+The CMake tree separates framework code from package semantics:
+
+- `cmake/infrastructure/` contains the public modules placed on
+  `CMAKE_MODULE_PATH`;
+- `cmake/resolvers/` contains one implementation per registry feature.
+
+Resolver wiring is a checked convention, not YAML data. A feature named
+`logging` maps to `resolvers/logging.cmake` and must export
+`tula_resolve_logging()`. The loader fails if the derived file is absent;
+`TulaProject.cmake` derives the command directly and fails if that command or
+the `tula::logging` target is absent. This removes two values that could
+previously drift independently, without reintroducing the command in the
+generated manifest.
+
+The Pydantic models include field descriptions used by both runtime JSON
+schema and Sphinx. `autodoc-pydantic` renders each model explicitly, while
+Sphinx warnings are errors. This follows the useful documentation boundary in
+the read-only Tollan reference without importing Tollan's astronomy-specific
+Sphinx stack.
+
+## Repository ownership audit
+
+Every retained top-level directory has an active owner:
+
+- `include/` and `tests/` are the actual Tula C++ surface and compile gate;
+- `examples/tula_boilerplate/` and `examples/tula_downstream/` are standalone
+  vertical-slice projects;
+- `tula_cmake/` is the nested infrastructure repository;
+- `design/` is the current architecture record;
+- `licenses/` retains the project license artifact.
+
+The audit removed the unused `tula_cmake/include` parent-header symlink, four
+empty pre-refactor CMake/profile directories, and the orphan
+`examples/CMakeLists.txt` aggregate. Generated build, cache, documentation, and
+virtual-environment directories remain ignored and reproducible rather than
+source-owned.
+
 ## Template management
 
 Cruft links `tula_cmake` to
@@ -92,6 +136,11 @@ Project-specific choices intentionally override parts of the template:
 - an explicit package version while the release process is still being built;
 - Conan-specific dependencies and package data;
 - Sphinx documentation focused on architecture and generated API.
+
+The read-only Tollan package supplied the nominal TolTEC documentation
+conventions adopted here: generated Pydantic model pages, copyable code blocks,
+mixed Markdown/reStructuredText input, version metadata from the imported
+package, and documentation included in the test collection.
 
 `just cruft-check` detects upstream template movement; `just cruft-update`
 provides the reviewed update path.

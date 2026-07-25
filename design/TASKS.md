@@ -10,13 +10,19 @@
 - [x] Refactor Python into a conventional `src/` layout.
 - [x] Validate registry and generated-preset inputs with frozen Pydantic models.
 - [x] Separate executable code from installed CMake/templates/profiles data.
+- [x] Split packaged CMake into infrastructure and feature resolver layers.
+- [x] Derive resolver module and command names from the feature identifier.
 - [x] Add Ruff, `ty`, Pytest, coverage, Sphinx, and PEP 561 typing.
+- [x] Render Pydantic fields, validators, and JSON schemas in Sphinx.
+- [x] Treat documentation warnings as build failures.
 - [x] Link the project to the TolTEC `v2026` cookiecutter through Cruft.
 - [x] Keep logging as one fmt + spdlog meta-feature.
 - [x] Port perflibs Threads/OpenMP/oneMKL configuration and validation.
 - [x] Verify required GNU OpenMP in the GCC 13 dev container.
 - [x] Generate feature/provider configuration-header macros from the registry.
 - [x] Package `tula_boilerplate` and consume it from `tula_downstream`.
+- [x] Remove the unused parent-header symlink, empty pre-refactor folders, and
+  orphan aggregate examples CMake file.
 
 ## Next: system and package matrix
 

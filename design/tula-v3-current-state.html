@@ -479,6 +479,8 @@
     └── data/
         ├── registry.yaml
         ├── cmake/
+        │   ├── <span class="focus">infrastructure/</span>
+        │   └── <span class="focus">resolvers/</span>
         ├── templates/
         └── profiles/</div>
         <div>
@@ -487,10 +489,13 @@
             <dt>registry.py</dt><dd>YAML boundary, graph checks, ordering, and deterministic manifest rendering.</dd>
             <dt>recipe.py</dt><dd>Thin Conan lifecycle adapter distributed through <code>python_requires</code>.</dd>
             <dt>workflow.py</dt><dd>Bootstrap, install, generated-preset discovery, configure, and build.</dd>
+            <dt>infrastructure/</dt><dd>Public framework modules added to <code>CMAKE_MODULE_PATH</code>.</dd>
+            <dt>resolvers/</dt><dd>One convention-named CMake implementation per feature.</dd>
             <dt>data/</dt><dd>Wheel-owned resources accessed with <code>importlib.resources</code>.</dd>
           </dl>
         </div>
       </div>
+      <div class="note" style="margin-top:14px"><p><strong>Tree audit:</strong> removed the unused parent-header symlink, four empty pre-refactor directories, and the unreferenced aggregate examples CMake file.</p></div>
     </div>
     <footer class="footer"><span class="source">Source: tula_cmake/src/tula_cmake</span><span class="slide-number"></span></footer>
   </section>
@@ -514,8 +519,6 @@
     modes: tuple[FeatureMode, ...]
     dependencies: tuple[Identifier, ...] = ()
     conan_requires: tuple[str, ...] = ()
-    cmake_module: str
-    resolver: CMakeCommand
     options: dict[Identifier, OptionSpec]</pre>
         <div>
           <h3>Validation performed before Conan generation</h3>
@@ -525,6 +528,7 @@
             <li>Option defaults must belong to their allowed values.</li>
             <li>Conan-backed features must declare requirements.</li>
             <li>Dependencies must exist and the graph must be acyclic.</li>
+            <li>Resolver wiring is derived from the validated feature name.</li>
             <li>Models are frozen after validation.</li>
           </ul>
           <div class="note good"><p>The registry is configuration input, not an untyped dictionary passed between layers.</p></div>
@@ -534,21 +538,55 @@
     <footer class="footer"><span class="source">Source: src/tula_cmake/models.py</span><span class="slide-number"></span></footer>
   </section>
 
+  <section class="slide" data-section="Generated model docs">
+    <header class="slide-header">
+      <div><div class="section">Sphinx documentation</div><h2>Runtime Pydantic metadata is also the model reference</h2></div>
+    </header>
+    <div class="body">
+      <div class="columns">
+        <pre><span class="cm"># docs/models.rst</span>
+.. autopydantic_model::
+   tula_cmake.models.FeatureSpec
+   :members:
+   :model-show-json: true
+   :model-show-field-summary: true
+   :model-show-validator-summary: true
+
+<span class="cm"># quality gate</span>
+sphinx-build -M html \
+  docs docs/_build -T -W</pre>
+        <div>
+          <h3>Adopted from the nominal Tollan setup</h3>
+          <ul>
+            <li>Every public model has a generated field contract.</li>
+            <li>Validator summaries and JSON schemas come from runtime code.</li>
+            <li>Code blocks include copy controls.</li>
+            <li>Package version metadata drives the Sphinx release value.</li>
+            <li>Documentation sources participate in Pytest collection.</li>
+            <li>Any Sphinx warning fails the build.</li>
+          </ul>
+          <div class="note"><p>Tollan remains read-only; astronomy-specific Sphinx extensions were not copied into this infrastructure package.</p></div>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: read-only workspace tollan docs conventions · tula_cmake/docs/{conf.py,models.rst}</span><span class="slide-number"></span></footer>
+  </section>
+
   <section class="slide" data-section="Registry pipeline">
     <header class="slide-header">
       <div><div class="section">Python data flow</div><h2>One registry instance feeds Conan options, requirements, and CMake state</h2></div>
     </header>
     <div class="body">
       <div class="flow">
-        <div><p><strong><code>load_registry()</code></strong><span>Parse YAML, inject keyed feature names, call <code>FeatureRegistry.model_validate()</code>, and resolve installed CMake module paths.</span></p></div>
+        <div><p><strong><code>load_registry()</code></strong><span>Parse YAML, inject keyed feature names, validate the model, and verify <code>resolvers/&lt;feature&gt;.cmake</code> exists.</span></p></div>
         <div><p><strong><code>TulaConan.init()</code></strong><span>Derive Conan option domains and defaults from <code>FeatureSpec</code> and <code>OptionSpec</code>.</span></p></div>
         <div><p><strong><code>TulaConan.requirements()</code></strong><span>Declare only the requirements belonging to features whose selected provider is Conan.</span></p></div>
         <div><p><strong><code>render_manifest()</code></strong><span>Validate the complete selection and emit stable, dependency-ordered CMake variables.</span></p></div>
-        <div><p><strong><code>TulaProject.cmake</code></strong><span>Include each declared module, call its resolver, and verify its normalized target.</span></p></div>
+        <div><p><strong><code>TulaProject.cmake</code></strong><span>Include each derived module, call <code>tula_resolve_&lt;feature&gt;()</code>, and verify its normalized target.</span></p></div>
       </div>
       <div class="note" style="margin-top:16px"><p><strong>Single source of truth:</strong> Python never duplicates the logging or perflibs option tables outside <code>registry.yaml</code>.</p></div>
     </div>
-    <footer class="footer"><span class="source">Sources: registry.py · recipe.py · data/cmake/TulaProject.cmake</span><span class="slide-number"></span></footer>
+    <footer class="footer"><span class="source">Sources: registry.py · recipe.py · data/cmake/infrastructure/TulaProject.cmake</span><span class="slide-number"></span></footer>
   </section>
 
   <section class="slide" data-section="Conan mixin">
@@ -658,7 +696,8 @@ just cruft-update</pre>
             <li>Ruff lint and format checks.</li>
             <li><code>ty</code> static typing.</li>
             <li>Pytest plus branch coverage threshold.</li>
-            <li>Sphinx API and architecture build.</li>
+            <li>Sphinx API, architecture, and generated Pydantic model pages.</li>
+            <li>Documentation warnings promoted to errors.</li>
             <li>PEP 561 <code>py.typed</code> marker.</li>
           </ul>
         </div>
@@ -679,11 +718,9 @@ just cruft-update</pre>
     conan_requires:
       - fmt/11.2.0
       - spdlog/1.15.3
-    resolver: tula_resolve_logging
 
   perflibs:
     modes: [system]
-    resolver: tula_resolve_perflibs
     options:
       perflibs_openmp: ...
       perflibs_oneapi: ...
@@ -696,6 +733,7 @@ just cruft-update</pre>
             <li>Internal dependency splitting is deferred until the package matrix requires it.</li>
             <li><code>perflibs</code> is disabled or system-resolved; it does not pretend to be a downloadable package.</li>
             <li>Every enabled resolver still creates one normalized <code>tula::&lt;feature&gt;</code> target.</li>
+            <li>The feature name derives both <code>resolvers/&lt;feature&gt;.cmake</code> and <code>tula_resolve_&lt;feature&gt;()</code>.</li>
           </ul>
         </div>
       </div>
@@ -711,14 +749,14 @@ just cruft-update</pre>
       <table class="tight">
         <thead><tr><th style="width:22%">Resolver</th><th style="width:27%">Feature</th><th>Responsibilities</th></tr></thead>
         <tbody>
-          <tr><td><code>TulaLogging.cmake</code></td><td><code>logging</code></td><td>Resolve both fmt and spdlog from system, Conan, or checksummed CPM; validate log level; create <code>tula::logging</code>.</td></tr>
-          <tr><td><code>TulaPerfLibs.cmake</code></td><td><code>perflibs</code></td><td>Validate runtime combinations; resolve Threads, OpenMP, and optional oneMKL; expose capability definitions through <code>tula::perflibs</code>.</td></tr>
-          <tr><td><code>TulaCPM.cmake</code></td><td>shared helper</td><td>Load pinned CPM 0.42.0 once, verify its hash, and honor the external source cache.</td></tr>
-          <tr><td><code>TulaProject.cmake</code></td><td>all features</td><td>Execute manifest order, call the declared resolver, verify logical targets, and record selected providers.</td></tr>
+          <tr><td><code>resolvers/logging.cmake</code></td><td><code>logging</code></td><td>Resolve both fmt and spdlog from system, Conan, or checksummed CPM; validate log level; create <code>tula::logging</code>.</td></tr>
+          <tr><td><code>resolvers/perflibs.cmake</code></td><td><code>perflibs</code></td><td>Validate runtime combinations; resolve Threads, OpenMP, and optional oneMKL; expose capability definitions through <code>tula::perflibs</code>.</td></tr>
+          <tr><td><code>infrastructure/TulaCPM.cmake</code></td><td>shared helper</td><td>Load pinned CPM 0.42.0 once, verify its hash, and honor the external source cache.</td></tr>
+          <tr><td><code>infrastructure/TulaProject.cmake</code></td><td>all features</td><td>Execute manifest order, call the convention-derived resolver, verify logical targets, and record selected providers.</td></tr>
         </tbody>
       </table>
     </div>
-    <footer class="footer"><span class="source">Sources: src/tula_cmake/data/cmake/*.cmake</span><span class="slide-number"></span></footer>
+    <footer class="footer"><span class="source">Sources: src/tula_cmake/data/cmake/{infrastructure,resolvers}</span><span class="slide-number"></span></footer>
   </section>
 
   <section class="slide" data-section="Logging resolver">
@@ -755,7 +793,7 @@ just cruft-update</pre>
         </div>
       </div>
     </div>
-    <footer class="footer"><span class="source">Source: data/cmake/TulaLogging.cmake</span><span class="slide-number"></span></footer>
+    <footer class="footer"><span class="source">Source: data/cmake/resolvers/logging.cmake</span><span class="slide-number"></span></footer>
   </section>
 
   <section class="slide" data-section="Perflibs model">
@@ -814,7 +852,7 @@ TULA_PERFLIBS_MKL_THREADING="..."</pre>
         </div>
       </div>
     </div>
-    <footer class="footer"><span class="source">Source: data/cmake/TulaPerfLibs.cmake</span><span class="slide-number"></span></footer>
+    <footer class="footer"><span class="source">Source: data/cmake/resolvers/perflibs.cmake</span><span class="slide-number"></span></footer>
   </section>
 
   <section class="slide" data-section="Generated contract">
@@ -848,7 +886,7 @@ TULA_PERFLIBS_MKL_THREADING="..."</pre>
         </div>
       </div>
     </div>
-    <footer class="footer"><span class="source">Sources: data/cmake/TulaConfigHeader.cmake · data/templates/TulaConfig.h.in</span><span class="slide-number"></span></footer>
+    <footer class="footer"><span class="source">Sources: data/cmake/infrastructure/TulaConfigHeader.cmake · data/templates/TulaConfig.h.in</span><span class="slide-number"></span></footer>
   </section>
 
   <section class="slide" data-section="Tula compile">
@@ -926,8 +964,8 @@ packaged logging provider: disabled</pre>
       <table class="tight">
         <thead><tr><th style="width:22%">Gate</th><th style="width:28%">Coverage</th><th>Verified assertion</th></tr></thead>
         <tbody>
-          <tr><td><code>unit</code></td><td>14 tests + 86% coverage</td><td>Pydantic models, registry, CLI, generated-preset workflow, Ruff, and <code>ty</code>.</td></tr>
-          <tr><td><code>docs</code></td><td>Sphinx HTML</td><td>Architecture, workflow, Pydantic models, Python API, and CLI render without warnings.</td></tr>
+          <tr><td><code>unit</code></td><td>16 tests + ≥85% coverage</td><td>Pydantic models, derived resolver and resource-layout conventions, CLI, generated-preset workflow, Ruff, and <code>ty</code>.</td></tr>
+          <tr><td><code>docs</code></td><td>Sphinx HTML with <code>-W</code></td><td>Architecture, workflow, generated Pydantic schemas, Python API, and CLI render without warnings.</td></tr>
           <tr><td><code>boilerplate</code></td><td>disabled, system, Conan, CPM</td><td>Logging meta-feature supplies both fmt and spdlog in every enabled mode.</td></tr>
           <tr><td><code>tula</code></td><td>logging modes + perflibs system</td><td>Header smoke compiles; required GNU OpenMP resolves; CTest passes.</td></tr>
           <tr><td><code>wheel</code></td><td>fresh venv + Conan home</td><td>Installed wheel carries CLI and complete integration data.</td></tr>
