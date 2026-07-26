@@ -86,8 +86,8 @@ Measured in the Ubuntu 24.04 ARM64 dev container on 26 July 2026:
 
 | Gate | Compiler | Applicable matrix | Runtime case | Installed chain |
 |---|---|---:|---|---|
-| `just gcc14` | GNU 14.2.0 | 56 passed, 6 capability-skipped | GNU OpenMP passed | Tula → kidscpp → Citlali and all `test_package` consumers passed |
-| `just clang20` | Clang 20.1.2 | 56 passed, 6 capability-skipped | LLVM OpenMP passed | Tula → kidscpp → Citlali and all `test_package` consumers passed |
+| `just gcc14` | GNU 14.2.0 | 56 passed, 6 capability-skipped | GNU OpenMP passed | Tula 13 + kidscpp 3 + Citlali 2 CTests and all `test_package` consumers passed |
+| `just clang20` | Clang 20.1.2 | 56 passed, 6 capability-skipped | LLVM OpenMP passed | Tula 13 + kidscpp 3 + Citlali 2 CTests and all `test_package` consumers passed |
 
 The six skips are deliberate alternate-image cases: four oneMKL/threading
 cases, the Intel OpenMP profile, and the other compiler family's OpenMP
@@ -107,6 +107,10 @@ The CLI case covers builder parsing and typed configuration projection; the
 GrPPI case exercises the normalized dynamic sequential execution policy.
 These tests validate package behavior without
 duplicating the feature matrix.
+
+The Tula Conan recipe runs the same thirteen CTests unless
+`tools.build:skip_test` is true, so compiler-specific package creation cannot
+silently stop at compiling the test executables.
 
 This is meaningful compile/runtime coverage, not yet full production behavior
 parity.

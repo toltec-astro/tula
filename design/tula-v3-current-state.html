@@ -2011,8 +2011,8 @@ grppi:
         <thead><tr><th style="width:18%">Gate</th><th style="width:24%">Compiler/runtime</th><th style="width:25%">Feature result</th><th>Package result</th></tr></thead>
         <tbody>
           <tr><td>Baseline</td><td>GCC 13 + GNU OpenMP</td><td>Default and complete gates</td><td>Established Ubuntu 24.04 reference</td></tr>
-          <tr><td><code>just gcc14</code></td><td>GNU 14.2.0 + GNU OpenMP</td><td>56 passed, 6 capability-skipped</td><td>Tula, KidsCpp, Citlali + consumers passed</td></tr>
-          <tr><td><code>just clang20</code></td><td>Clang 20.1.2 + LLVM OpenMP</td><td>56 passed, 6 capability-skipped</td><td>Tula, KidsCpp, Citlali + consumers passed</td></tr>
+          <tr><td><code>just gcc14</code></td><td>GNU 14.2.0 + GNU OpenMP</td><td>56 passed, 6 capability-skipped</td><td>13 + 3 + 2 package CTests and all consumers passed</td></tr>
+          <tr><td><code>just clang20</code></td><td>Clang 20.1.2 + LLVM OpenMP</td><td>56 passed, 6 capability-skipped</td><td>13 + 3 + 2 package CTests and all consumers passed</td></tr>
         </tbody>
       </table>
       <div class="note" style="margin-top:18px"><p><strong>Clang environment detail:</strong> <code>libstdc++11</code> matches Ubuntu system libraries; <code>libomp-20-dev</code> supplies the runtime and <code>clang-tools-20</code> supplies CMake’s <code>clang-scan-deps</code>.</p></div>

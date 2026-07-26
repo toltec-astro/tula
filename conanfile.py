@@ -35,6 +35,8 @@ class TulaRecipe(ConanFile):
         cmake = CMake(self)
         cmake.configure()
         cmake.build()
+        if not self.conf.get("tools.build:skip_test", default=False, check_type=bool):
+            cmake.ctest()
 
     def package(self) -> None:
         CMake(self).install()
