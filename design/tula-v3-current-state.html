@@ -424,7 +424,7 @@
       <div class="section">Technical implementation review</div>
       <h1>Tula v3.1 package workflow</h1>
       <p class="lede">A one-command downstream experience built on the standard Conan 2 install and generated CMake preset flow.</p>
-      <p class="meta">Verified in Ubuntu 24.04 / GCC 13 · 25 July 2026<br>Release branches: tula_cmake v3.x_conan2 · Tula/kidscpp v3.x · Citlali v4.x_conan2</p>
+      <p class="meta">Verified in Ubuntu 24.04 / GCC 13 + GCC 14 + Clang 20 · 26 July 2026<br>Release branches: tula_cmake v3.x_conan2 · Tula/kidscpp v3.x · Citlali v4.x_conan2</p>
     </div>
     <footer class="footer"><span>Superbuild and package-chain vertical slice</span><span class="slide-number"></span></footer>
   </section>
@@ -1203,7 +1203,7 @@ just cruft-update</pre>
             <li>ECSV fmt formatters are <code>const</code> for fmt 11 compatibility; output is unchanged.</li>
             <li>CTest now reports two package tests: header smoke and ECSV.</li>
           </ul>
-          <div class="note good"><p><strong>Verified:</strong> disabled, Conan, CPM, and system matrix cases pass on GCC 13; the Conan-backed Tula ECSV test passes.</p></div>
+          <div class="note good"><p><strong>Verified:</strong> disabled, Conan, CPM, and system matrix cases pass across GCC 13, GCC 14, and Clang 20; the Conan-backed Tula ECSV test passes.</p></div>
         </div>
       </div>
     </div>
@@ -1271,7 +1271,7 @@ tula_resolve_csv_parser_cpm()
             <div><p><strong><code>CsvParser(stream).delimiter(...)</code></strong><span>Streams rows, including quoted custom delimiters.</span></p></div>
             <div><p><strong><code>ECSVTable::load_rows(parser)</code></strong><span>Converts string fields into typed Eigen/vector-backed columns.</span></p></div>
           </div>
-          <div class="note good"><p><strong>Verified on GCC 13:</strong> disabled + CPM matrix cases pass; the CSV-backed behaviors remain covered by the current thirteen-case Tula gate.</p></div>
+          <div class="note good"><p><strong>Verified across all three compilers:</strong> disabled + CPM matrix cases pass; the CSV-backed behaviors remain covered by the current thirteen-case Tula gate.</p></div>
         </div>
       </div>
     </div>
@@ -1301,7 +1301,7 @@ tula_resolve_csv_parser_cpm()
             <li>Filename/filesystem: stem-based patterns, directory creation, and regex discovery.</li>
             <li>Active and reference headers are behavior-identical; the existing qualified <code>fmt::format_to</code> delta supports modern fmt.</li>
           </ul>
-          <div class="note good"><p><strong>Verified on GCC 13:</strong> configuration and filename behaviors are included in the current thirteen-case Tula gate.</p></div>
+          <div class="note good"><p><strong>Verified across all three compilers:</strong> configuration and filename behaviors are included in the current thirteen-case Tula gate.</p></div>
         </div>
       </div>
     </div>
@@ -1338,7 +1338,7 @@ netcdf_cxx4:
             <li>System C uses <code>netCDF::netcdf</code>; system C++ uses imported pkg-config target <code>PkgConfig::NETCDF_CXX4</code>.</li>
             <li>Tula tests type mapping, typed dispatch, scalar file I/O, and pretty-printing.</li>
           </ul>
-          <div class="note good"><p><strong>Verified on GCC 13:</strong> all six NetCDF matrix cases pass, and NetCDF behavior is included in the current thirteen-case Tula gate.</p></div>
+          <div class="note good"><p><strong>Verified across all three compilers:</strong> all six NetCDF matrix cases pass, and NetCDF behavior is included in the current thirteen-case Tula gate.</p></div>
         </div>
       </div>
     </div>
@@ -1376,7 +1376,7 @@ netcdf_cxx4:
             <li>Tula verifies metadata lookup, nested registration, compound flags, bitmask formatting, and enum formatting.</li>
             <li>The test exposed <code>BitFlag</code> treating constexpr <code>mask_value</code> as a type; the corrected expression constraint restores the intended concept.</li>
           </ul>
-          <div class="note good"><p><strong>Verified on GCC 13:</strong> disabled + CPM cases pass for both enum dependencies, and enum behavior is included in the current thirteen-case Tula gate.</p></div>
+          <div class="note good"><p><strong>Verified across all three compilers:</strong> disabled + CPM cases pass for both enum dependencies, and enum behavior is included in the current thirteen-case Tula gate.</p></div>
         </div>
       </div>
     </div>
@@ -1522,7 +1522,7 @@ TULA_PERFLIBS_HAS_OPENMP=0|1
 TULA_PERFLIBS_HAS_MKL=0|1
 TULA_PERFLIBS_OPENMP_RUNTIME="..."
 TULA_PERFLIBS_MKL_THREADING="..."</pre>
-          <div class="note good" style="margin-top:18px"><p>The GCC 13 matrix cases find <code>Threads::Threads</code> and <code>OpenMP::OpenMP_CXX</code>, compile the perflibs probe, and pass CTest.</p></div>
+          <div class="note good" style="margin-top:18px"><p>GCC 13/14 validate GNU OpenMP; Clang 20 validates LLVM OpenMP. Each finds <code>Threads::Threads</code> and <code>OpenMP::OpenMP_CXX</code>, compiles the perflibs probe, and passes CTest.</p></div>
         </div>
       </div>
     </div>
@@ -1991,6 +1991,35 @@ grppi:
     <footer class="footer"><span class="source">Sources: citlali/src · citlali/include/citlali/core/utils · citlali/tests</span><span class="slide-number"></span></footer>
   </section>
 
+  <section class="slide" data-section="Compiler validation">
+    <header class="slide-header">
+      <div><div class="section">Reproducible compiler gate</div><h2>One harness verifies compiler identity, feature resolution, packaging, and transitive consumption</h2></div>
+    </header>
+    <div class="body">
+      <div class="diagram-chain">
+        <div class="diagram-node user"><span class="diagram-owner">Input</span><strong>Bundled Conan profile</strong><p>Compiler family/version, C++23, ABI, generator, and versioned executables.</p><div class="artifact-list"><span class="artifact">linux-gcc14-debug</span><span class="artifact">linux-clang20-debug</span></div></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node conan"><span class="diagram-owner">Graph</span><strong>Conan package IDs</strong><p>Resolve or build every enabled provider for that compiler identity.</p></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node generated"><span class="diagram-owner">Generated handoff</span><strong>CMake preset + toolchain</strong><p>CMake detects the same explicit compiler and normalized feature options.</p></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node cmake"><span class="diagram-owner">Feature proof</span><strong>62 matrix items</strong><p>Compile a focused probe and execute CTest for every applicable provider/option.</p></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node package"><span class="diagram-owner">Distribution proof</span><strong>Tula → KidsCpp → Citlali</strong><p>Create installed packages and compile each independent consumer.</p></div>
+      </div>
+      <table class="tight" style="margin-top:24px">
+        <thead><tr><th style="width:18%">Gate</th><th style="width:24%">Compiler/runtime</th><th style="width:25%">Feature result</th><th>Package result</th></tr></thead>
+        <tbody>
+          <tr><td>Baseline</td><td>GCC 13 + GNU OpenMP</td><td>Default and complete gates</td><td>Established Ubuntu 24.04 reference</td></tr>
+          <tr><td><code>just gcc14</code></td><td>GNU 14.2.0 + GNU OpenMP</td><td>56 passed, 6 capability-skipped</td><td>Tula, KidsCpp, Citlali + consumers passed</td></tr>
+          <tr><td><code>just clang20</code></td><td>Clang 20.1.2 + LLVM OpenMP</td><td>56 passed, 6 capability-skipped</td><td>Tula, KidsCpp, Citlali + consumers passed</td></tr>
+        </tbody>
+      </table>
+      <div class="note" style="margin-top:18px"><p><strong>Clang environment detail:</strong> <code>libstdc++11</code> matches Ubuntu system libraries; <code>libomp-20-dev</code> supplies the runtime and <code>clang-tools-20</code> supplies CMake’s <code>clang-scan-deps</code>.</p></div>
+    </div>
+    <footer class="footer"><span class="source">Sources: profiles/linux-{gcc14,clang20}-debug · root justfile · .devcontainer/postCreate.sh</span><span class="slide-number"></span></footer>
+  </section>
+
   <section class="slide" data-section="Acceptance">
     <header class="slide-header">
       <div><div class="section">Definitive gate</div><h2><code>just all</code> covers typed infrastructure, complex CMake, and downstream UX</h2></div>
@@ -1999,9 +2028,10 @@ grppi:
       <table class="tight">
         <thead><tr><th style="width:22%">Gate</th><th style="width:28%">Coverage</th><th>Verified assertion</th></tr></thead>
         <tbody>
-          <tr><td><code>unit</code></td><td>25 tests + ≥85% coverage</td><td>Models, public-feature traits, recipe defaults, registry conventions, workflow, and matrix-catalog completeness.</td></tr>
+          <tr><td><code>unit</code></td><td>27 tests + ≥85% coverage</td><td>Models, public-feature traits, recipe defaults, registry conventions, workflow, profile resources, and matrix-catalog completeness.</td></tr>
           <tr><td><code>docs</code></td><td>Sphinx HTML with <code>-W</code></td><td>Architecture, workflow, provider/options matrix, Pydantic schemas, Python API, and CLI render without warnings.</td></tr>
           <tr><td><code>matrix-all</code></td><td>62 derived cases</td><td>Every provider and option value is collected; 56 run in the default image and 6 declare capabilities.</td></tr>
+          <tr><td><code>compilers</code></td><td>GCC 14 + Clang 20</td><td>Each runs its applicable complete matrix and the installed three-package chain with the matching OpenMP runtime.</td></tr>
           <tr><td><code>boilerplate</code></td><td>one minimal build</td><td>Example UX remains valid without carrying infrastructure test profiles.</td></tr>
           <tr><td><code>tula</code></td><td>thirteen CTest cases</td><td>Core, ECSV, CSV streaming, Eigen, nddata, config, filesystem, NetCDF, enum, CLI, and GrPPI behavior pass.</td></tr>
           <tr><td><code>wheel</code></td><td>fresh venv + Conan home</td><td>Installed wheel carries CLI and complete integration data.</td></tr>
@@ -2011,7 +2041,7 @@ grppi:
         </tbody>
       </table>
       <div class="note good" style="margin-top:22px">
-        <p><strong>Result:</strong> the complete gate passed in the rebuilt dev container on 25 July 2026.</p>
+        <p><strong>Result:</strong> the complete baseline gate and both added compiler gates passed in the rebuilt dev container by 26 July 2026.</p>
       </div>
     </div>
     <footer class="footer"><span class="source">Sources: root justfile · .devcontainer/logs/*.log</span><span class="slide-number"></span></footer>

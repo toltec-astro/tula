@@ -7,7 +7,7 @@
 | `tula_cmake` | Typed superbuild infrastructure: Conan recipe mixin, validated registry, CMake feature resolvers, profiles, templates, documentation, and bootstrap CLI. |
 | `tula_boilerplate` | Minimal package built with `tula_cmake`; both an example and a real Conan package. |
 | `tula_downstream` | Independent consumer requiring only `tula-boilerplate/3.1.0`. |
-| `tula` | Actual packaged C++ library built with `tula_cmake`; its GCC 13 gate verifies the restored header modules through thirteen behavior tests. |
+| `tula` | Actual packaged C++ library built with `tula_cmake`; its compiler gates verify the restored header modules through thirteen behavior tests. |
 | `kidscpp` | Actual downstream of packaged Tula; the active v3 surface is the intentionally trimmed timestream solver and PSD library. |
 | `citlali` | Final v4 application library; consumes packaged kidscpp and adds the astronomy/numerics dependency slice needed by its current five compiled modules. |
 
@@ -271,8 +271,12 @@ TULA_PERFLIBS_OPENMP_RUNTIME
 TULA_PERFLIBS_MKL_THREADING
 ```
 
-The GCC 13 dev-container gate verifies Threads plus required GNU OpenMP. oneMKL
-branches require a dedicated oneAPI image before they can be marked verified.
+The dev container carries GCC 13, GCC 14, Clang 20, GNU OpenMP, and LLVM
+OpenMP. Compiler-specific gates verify Threads plus the matching required
+OpenMP runtime, then recreate the installed Tula → kidscpp → Citlali graph
+under that compiler identity. The Clang profile uses Ubuntu's `libstdc++11`
+ABI and the container provides `clang-tools-20` for CMake's dependency
+scanner. oneMKL branches still require a dedicated oneAPI image.
 
 ### yaml-cpp and the first Tula behavior slice
 

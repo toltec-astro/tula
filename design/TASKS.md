@@ -81,6 +81,10 @@
 - [x] Add installed-target Conan `test_package` consumers to Tula, kidscpp,
   and Citlali.
 - [x] Define the GitHub-source plus TolTEC Conan-remote distribution boundary.
+- [x] Add explicit GCC 14 and Clang 20 Conan profiles and full feature-matrix
+  plus installed-package-chain gates.
+- [x] Provision both compiler families, matching OpenMP runtimes, and Clang's
+  CMake dependency-scanning tool in the reproducible dev container.
 
 ## Next: system and package matrix
 
@@ -92,7 +96,7 @@
 
 ## Then: continue real Tula modules
 
-1. Select the next GCC13-compatible dependency-backed Tula module.
+1. Select the next supported-compiler dependency-backed Tula module.
 2. Restore each module's production tests without behavior changes.
 3. Add only the dependency features demonstrated by that module.
 4. Expand behavior tests only with the dependency package being introduced.

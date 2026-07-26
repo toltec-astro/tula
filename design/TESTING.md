@@ -14,7 +14,7 @@ features, and verify both distribution boundaries:
 
 - Ruff lint and formatting checks;
 - `ty` static analysis;
-- 25 fast Pytest tests, with documentation sources included in collection;
+- 27 fast Pytest tests, with documentation sources included in collection;
 - branch coverage with an 85% threshold;
 - Sphinx HTML documentation build with warnings treated as errors.
 
@@ -60,15 +60,38 @@ Each runnable case uses an isolated temporary project, direct root-scoped Conan
 options, the production `BuildWorkflow`, generated-preset assertions, a
 feature-specific C++ probe, and CTest. No example profile defines matrix state.
 
-The default container currently reports 56 runnable cases and 6 capability
-skips. `TULA_TEST_CAPABILITIES=oneapi,llvm-openmp` activates those cases in an
-image providing the corresponding packages. Intel and LLVM runtime cases also
-require `TULA_TEST_INTEL_PROFILE` or `TULA_TEST_LLVM_PROFILE`, respectively.
+The dev container installs GCC 13, GCC 14, Clang 20, and LLVM 20 OpenMP.
+`TULA_TEST_PROFILE` selects the ordinary matrix compiler. GNU and LLVM runtime
+cases additionally use `TULA_TEST_GNU_PROFILE` or `TULA_TEST_LLVM_PROFILE`
+with the matching capability. oneAPI, Intel OpenMP, and MKL threading remain
+capability-gated.
+
+`just gcc14` and `just clang20` are compiler acceptance gates, not reduced
+smoke tests. Each runs the applicable 62-case feature matrix and then creates
+Tula, kidscpp, and Citlali in dependency order with the selected compiler.
+The versioned profiles name their compiler executables explicitly, so the
+Conan package identity, generated preset, CMake compiler detection, and
+compiled consumer all agree. Clang uses Ubuntu's `libstdc++` ABI and requires
+both `libomp-20-dev` and `clang-tools-20`; the latter supplies
+`clang-scan-deps` for CMake's C++20 module-dependency scan.
 
 `just providers` selects only the network-marked Conan/CPM cases.
 
 CPM source archives may be reused from `.devcontainer/cache/cpm/`; build/output
 trees remain isolated.
+
+### Compiler acceptance results
+
+Measured in the Ubuntu 24.04 ARM64 dev container on 26 July 2026:
+
+| Gate | Compiler | Applicable matrix | Runtime case | Installed chain |
+|---|---|---:|---|---|
+| `just gcc14` | GNU 14.2.0 | 56 passed, 6 capability-skipped | GNU OpenMP passed | Tula → kidscpp → Citlali and all `test_package` consumers passed |
+| `just clang20` | Clang 20.1.2 | 56 passed, 6 capability-skipped | LLVM OpenMP passed | Tula → kidscpp → Citlali and all `test_package` consumers passed |
+
+The six skips are deliberate alternate-image cases: four oneMKL/threading
+cases, the Intel OpenMP profile, and the other compiler family's OpenMP
+runtime. The catalog still collects all 62 cases.
 
 ## Package smoke acceptance
 
@@ -132,6 +155,9 @@ the source-tree behavior suites.
 just unit
 just matrix
 just matrix-all
+just gcc14
+just clang20
+just compilers
 just fast
 just providers
 just boilerplate
