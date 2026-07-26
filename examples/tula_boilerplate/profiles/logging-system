@@ -1,4 +1,0 @@
-[options]
-&:logging=system
-&:perflibs=disabled
-&:logging_level=info

@@ -1,8 +1,0 @@
-[tool.uv.workspace]
-members = [
-    "tula_cmake",
-    "examples/tula_boilerplate",
-]
-
-[tool.uv.sources]
-tula-cmake = { workspace = true }

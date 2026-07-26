@@ -1,7 +1,7 @@
-# Tula v3.1 development
+# Tula 3.1
 
-This branch implements a Conan 2.31-centric superbuild with a one-command
-downstream user experience.
+Tula is the shared C++ utility package for TolTEC. The `v3.x` branch uses the
+Conan 2 package contract supplied by `tula-cmake/3.1.0`.
 
 The active infrastructure features are:
 
@@ -17,30 +17,40 @@ perflibs
 enabled mode produces `tula::logging`. `perflibs` is disabled or system-resolved
 and produces `tula::perflibs`.
 
-The workspace demonstrates:
-
-- `tula_cmake`: typed superbuild infrastructure distributed as a Python wheel
-  and Conan `python_requires`;
-- `examples/tula_boilerplate`: minimal real package using `tula_cmake`;
-- `examples/tula_downstream`: independent consumer of the packaged
-  boilerplate;
-- `tula`: actual C++ package with logging and perflibs compile acceptance.
-
-From the downstream project:
+Build from this repository with:
 
 ```sh
 ./build
 ```
 
-The command bootstraps `tula-cmake`, runs `conan install`, reads the generated
-CMake preset, configures, and builds. `TULA_CMAKE_DEV_PROJECT` selects the local
-uv project during workspace development.
+The launcher obtains the pinned `tula_cmake` CLI from its GitHub release tag.
+The CLI runs Conan install, reads the generated CMake preset, configures, and
+builds. In the multi-repository development workspace:
 
-Run the complete container acceptance with:
+```sh
+TULA_CMAKE_DEV_PROJECT=../tula_cmake ./build
+```
+
+The release package declares its normal provider choices in `conanfile.py`;
+users can override them with Conan profiles or `./build --option NAME=VALUE`.
+
+## Distribution boundary
+
+Tula no longer embeds `tula_cmake` as a Git submodule. Conan resolves the
+versioned `tula-cmake/3.1.0` Python-require from the configured TolTEC remote.
+The boilerplate and downstream examples are owned by the separate
+`tula_cmake` repository.
+
+The package publishes the CMake target `tula::headers`. Its `test_package`
+compiles an independent consumer of that installed target after every
+`conan create`. Header-only CPM dependencies without Conan packages are
+included in Tula's installed header closure; normal Conan dependencies remain
+explicit transitive package edges.
+
+Run the complete workspace acceptance from the workspace root:
 
 ```sh
 just all
 ```
 
-The Conan 1/CMake production sources under `../refs` remain read-only. See
-`design/ARCHITECTURE.md`, `design/TESTING.md`, and `design/TASKS.md`.
+The Conan 1/CMake production sources under `../refs` remain read-only.

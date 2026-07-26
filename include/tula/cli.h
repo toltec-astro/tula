@@ -278,7 +278,9 @@ struct ConfigMapper {
                 }
                 // append the doc with default value if defined
                 if constexpr (!std::is_same_v<V, undef>) {
-                    doc = fmt::format("{}. Default is {}", doc, defval);
+                    doc = fmt::format(
+                        "{}. Default is {}", doc,
+                        internal::normalize_value(defval));
                 }
                 return (param & valspec(this->config(), key)) % doc;
             });

@@ -183,6 +183,92 @@
     .flow p strong { display: block; margin-bottom: 2px; }
     .flow p span { color: var(--muted); font-size: .9em; }
 
+    .diagram-chain {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr) 28px minmax(0, 1fr) 28px minmax(0, 1fr) 28px minmax(0, 1fr);
+      align-items: stretch;
+      gap: 8px;
+    }
+    .diagram-node {
+      min-width: 0;
+      padding: 13px 14px;
+      border: 1px solid #c7d2da;
+      border-top: 4px solid var(--blue);
+      border-radius: 4px;
+      background: #fbfcfd;
+    }
+    .diagram-node.conan { border-top-color: #7858a6; background: #f7f3fb; }
+    .diagram-node.cmake { border-top-color: var(--green); background: #f1f8f4; }
+    .diagram-node.package { border-top-color: var(--amber); background: #fbf6ed; }
+    .diagram-node strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: clamp(15px, 1.2vw, 18px);
+      line-height: 1.2;
+    }
+    .diagram-node p {
+      margin: 0;
+      color: var(--muted);
+      font-size: clamp(12px, .98vw, 15px);
+      line-height: 1.32;
+    }
+    .diagram-owner {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--blue);
+      font: 700 10px/1 var(--mono);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .diagram-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #7a8a96;
+      font: 700 22px/1 var(--mono);
+    }
+    .artifact-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .artifact {
+      display: inline-block;
+      padding: 4px 7px;
+      border: 1px solid #cbd6de;
+      border-radius: 3px;
+      background: #fff;
+      color: #344b5c;
+      font: 600 clamp(9px, .76vw, 11px)/1.2 var(--mono);
+    }
+    .handoff {
+      display: grid;
+      grid-template-columns: minmax(0, .85fr) 34px minmax(0, 1.1fr) 34px minmax(0, 1.25fr);
+      align-items: stretch;
+      gap: 10px;
+    }
+    .handoff-column {
+      display: grid;
+      align-content: start;
+      gap: 10px;
+    }
+    .handoff-title {
+      padding-bottom: 7px;
+      border-bottom: 2px solid var(--ink);
+      color: var(--muted);
+      font: 700 11px/1 var(--mono);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .branch-grid {
+      display: grid;
+      grid-template-columns: 1fr 32px 1fr;
+      align-items: center;
+      gap: 10px;
+    }
+    .branch-stack { display: grid; gap: 10px; }
+
     .file-tree {
       color: #263947;
       font: 600 clamp(13px, 1.1vw, 16px)/1.55 var(--mono);
@@ -307,6 +393,9 @@
       .slide { padding: 54px 42px 28px; }
       .navbar { padding: 0 42px; }
       .columns, .columns.wide-left, .columns.wide-right, .columns.three { gap: 22px; }
+      .diagram-chain { gap: 5px; grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1fr) 18px minmax(0, 1fr) 18px minmax(0, 1fr) 18px minmax(0, 1fr); }
+      .diagram-node { padding: 10px; }
+      .handoff { grid-template-columns: minmax(0, .85fr) 24px minmax(0, 1.1fr) 24px minmax(0, 1.25fr); gap: 6px; }
       .nav-progress { display: none; }
       p, li, td { font-size: 14px; }
       pre { font-size: 11px; }
@@ -335,7 +424,7 @@
       <div class="section">Technical implementation review</div>
       <h1>Tula v3.1 package workflow</h1>
       <p class="lede">A one-command downstream experience built on the standard Conan 2 install and generated CMake preset flow.</p>
-      <p class="meta">Verified in Ubuntu 24.04 / GCC 13 · 24 July 2026<br>Branch: v3.x-feature-providers</p>
+      <p class="meta">Verified in Ubuntu 24.04 / GCC 13 · 25 July 2026<br>Release branches: tula_cmake v3.x_conan2 · Tula/kidscpp v3.x · Citlali v4.x_conan2</p>
     </div>
     <footer class="footer"><span>Superbuild and package-chain vertical slice</span><span class="slide-number"></span></footer>
   </section>
@@ -351,8 +440,9 @@
           <tr><td><code>tula_cmake</code></td><td>Superbuild infrastructure</td><td>Used by package recipes through Conan <code>python_requires</code>.</td><td class="status done">Implemented</td></tr>
           <tr><td><code>tula_boilerplate</code></td><td>Minimal example package</td><td>Built with <code>tula_cmake</code>; exported as <code>tula-boilerplate/3.1.0</code>.</td><td class="status done">Packaged</td></tr>
           <tr><td><code>tula_downstream</code></td><td>Minimal package consumer</td><td>Requires only <code>tula-boilerplate/3.1.0</code>.</td><td class="status done">Verified</td></tr>
-          <tr><td><code>tula</code></td><td>Actual C++ package</td><td>Built with <code>tula_cmake</code>.</td><td class="status partial">Compile slice</td></tr>
-          <tr><td><code>kidscpp</code></td><td>Actual Tula consumer</td><td>Will require packaged <code>tula/3.1.0</code>.</td><td class="status open">Deferred</td></tr>
+          <tr><td><code>tula</code></td><td>Actual C++ package</td><td>Built with <code>tula_cmake</code>; exports <code>tula::headers</code>.</td><td class="status done">Packaged</td></tr>
+          <tr><td><code>kidscpp</code></td><td>Actual Tula consumer</td><td>Requires packaged <code>tula/3.1.0</code>.</td><td class="status done">Solver slice</td></tr>
+          <tr><td><code>citlali</code></td><td>Final application library</td><td>Requires packaged <code>kidscpp/3.1.0</code> and the astronomy/numerics slice.</td><td class="status done">v4 library slice</td></tr>
         </tbody>
       </table>
     </div>
@@ -370,12 +460,13 @@
           <pre><span class="cm"># from tula_downstream/</span>
 ./build</pre>
           <p style="margin-top:18px">The script pins the tool:</p>
-          <pre>uvx --from <span class="str">"tula-cmake==3.1.0"</span> \
+          <pre>uvx --from <span class="str">"git+https://github.com/toltec-astro/
+tula_cmake.git@v3.1.0"</span> \
   tula-cmake build .</pre>
         </div>
         <div>
           <h3>Development workspace</h3>
-          <pre>TULA_CMAKE_DEV_PROJECT=../.. ./build</pre>
+          <pre>TULA_CMAKE_DEV_PROJECT=../tula_cmake ./build</pre>
           <dl class="contract" style="margin-top:18px">
             <dt>bootstrap</dt><dd><code>uvx</code> or the local uv project supplies <code>tula-cmake</code> and Conan.</dd>
             <dt>configuration</dt><dd>Optional <code>--config-source</code> maps to <code>conan config install</code>.</dd>
@@ -403,6 +494,52 @@
       </div>
     </div>
     <footer class="footer"><span class="source">Sources: tula_cmake/workflow.py · Conan 2.31 CMake integration documentation</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Lifecycle map">
+    <header class="slide-header">
+      <div><div class="section">End-to-end artifact flow</div><h2>Each phase consumes an explicit contract and leaves inspectable output</h2></div>
+    </header>
+    <div class="body">
+      <div class="diagram-chain">
+        <div class="diagram-node">
+          <span class="diagram-owner">User / source tree</span>
+          <strong>Declare intent</strong>
+          <p>Recipe, source, profiles, feature options, and output location.</p>
+          <div class="artifact-list"><span class="artifact">conanfile.py</span><span class="artifact">profiles/*</span><span class="artifact">registry.yaml</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node">
+          <span class="diagram-owner">uv / Python</span>
+          <strong>Bootstrap tool</strong>
+          <p>Run the pinned CLI and validate the typed build request.</p>
+          <div class="artifact-list"><span class="artifact">tula-cmake wheel</span><span class="artifact">BuildRequest</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node conan">
+          <span class="diagram-owner">Conan</span>
+          <strong>Resolve + generate</strong>
+          <p>Evaluate the graph, select packages, and generate native inputs.</p>
+          <div class="artifact-list"><span class="artifact">package graph</span><span class="artifact">generators/</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node cmake">
+          <span class="diagram-owner">CMake / Ninja</span>
+          <strong>Configure + build</strong>
+          <p>Consume only generated presets, toolchain state, and package configs.</p>
+          <div class="artifact-list"><span class="artifact">CMakeCache.txt</span><span class="artifact">targets</span><span class="artifact">binary</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node package">
+          <span class="diagram-owner">Package boundary</span>
+          <strong>Create + consume</strong>
+          <p>Install public files and publish immutable package metadata.</p>
+          <div class="artifact-list"><span class="artifact">headers</span><span class="artifact">config.h</span><span class="artifact">package revision</span></div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:24px"><p><strong>Ownership rule:</strong> source intent flows forward; generated files are never edited and no later phase reconstructs an earlier phase’s decisions.</p></div>
+    </div>
+    <footer class="footer"><span class="source">Sources: workflow.py · recipe.py · root justfile</span><span class="slide-number"></span></footer>
   </section>
 
   <section class="slide" data-section="Package graph">
@@ -444,8 +581,11 @@
         <thead><tr><th style="width:26%">Artifact</th><th style="width:29%">Contains</th><th>Used by</th></tr></thead>
         <tbody>
           <tr><td><code>tula_cmake-3.1.0.whl</code></td><td>Typed CLI/workflow, Pydantic models, registry, CMake modules, templates, profiles.</td><td><code>uvx</code> user bootstrap and local development commands.</td></tr>
-          <tr><td><code>tula-cmake/3.1.0</code><br>Conan python-require</td><td>Recipe mixin plus the same registry and package data exported from source.</td><td><code>tula_boilerplate</code> and <code>tula</code> recipe evaluation.</td></tr>
+          <tr><td><code>tula-cmake/3.1.0</code><br>Conan python-require</td><td>Recipe mixin plus the same registry and package data exported from source.</td><td>Boilerplate, Tula, kidscpp, and Citlali recipe evaluation.</td></tr>
           <tr><td><code>tula-boilerplate/3.1.0</code></td><td>Installed public header and generated configuration header.</td><td><code>tula_downstream</code> through standard Conan/CMake metadata.</td></tr>
+          <tr><td><code>tula/3.1.0</code></td><td>Installed utility headers and generated feature contract.</td><td><code>kidscpp/3.1.0</code> through <code>tula::headers</code>.</td></tr>
+          <tr><td><code>kidscpp/3.1.0</code></td><td>Installed timestream library and public headers.</td><td><code>citlali/4.0.0</code> through <code>kids::kids</code>.</td></tr>
+          <tr><td><code>citlali/4.0.0</code></td><td>Installed data-reduction library and headers.</td><td>Applications through <code>citlali::citlali</code>.</td></tr>
         </tbody>
       </table>
       <div class="note warning" style="margin-top:24px">
@@ -453,6 +593,97 @@
       </div>
     </div>
     <footer class="footer"><span class="source">Sources: tula_cmake/{pyproject.toml,conanfile.py} · boilerplate/conanfile.py</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Distribution flow">
+    <header class="slide-header">
+      <div><div class="section">Release and bootstrap topology</div><h2>One source package crosses two distribution boundaries for two different jobs</h2></div>
+    </header>
+    <div class="body">
+      <div class="handoff">
+        <div class="handoff-column">
+          <div class="handoff-title">Versioned source</div>
+          <div class="diagram-node">
+            <span class="diagram-owner">tula_cmake repository</span>
+            <strong>Python + recipe + data</strong>
+            <p>The same tagged source owns CLI code, the Conan mixin, registry, profiles, CMake modules, and templates.</p>
+            <div class="artifact-list"><span class="artifact">src/tula_cmake/</span><span class="artifact">conanfile.py</span></div>
+          </div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="handoff-column">
+          <div class="handoff-title">Published artifacts</div>
+          <div class="diagram-node">
+            <span class="diagram-owner">GitHub release tag</span>
+            <strong><code>tula_cmake-3.1.0.whl</code></strong>
+            <p><code>uvx</code> builds the wheel and installs the user-facing executable plus resources.</p>
+          </div>
+          <div class="diagram-node conan">
+            <span class="diagram-owner">Conan remote</span>
+            <strong><code>tula-cmake/3.1.0</code></strong>
+            <p>Exports reusable recipe behavior through <code>python_requires</code>.</p>
+          </div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="handoff-column">
+          <div class="handoff-title">Runtime consumers</div>
+          <div class="diagram-node">
+            <span class="diagram-owner">Command bootstrap</span>
+            <strong><code>uvx … tula-cmake build</code></strong>
+            <p>The wheel supplies orchestration before the dependency graph exists.</p>
+          </div>
+          <div class="diagram-node conan">
+            <span class="diagram-owner">Recipe evaluation</span>
+            <strong><code>python_requires_extend</code></strong>
+            <p>Conan loads the mixin while evaluating Tula or boilerplate recipes.</p>
+          </div>
+        </div>
+      </div>
+      <div class="note warning" style="margin-top:18px"><p>Both artifacts must carry the same version and resource content; neither becomes a transitive C++ link dependency.</p></div>
+    </div>
+    <footer class="footer"><span class="source">Sources: pyproject.toml · conanfile.py · src/tula_cmake/data</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Release topology">
+    <header class="slide-header">
+      <div><div class="section">GitHub source + Conan artifacts</div><h2>The one-command UX keeps every first-party library in the Conan graph</h2></div>
+    </header>
+    <div class="body">
+      <div class="diagram-chain">
+        <div class="diagram-node">
+          <span class="diagram-owner">GitHub tags</span>
+          <strong>Immutable source</strong>
+          <p>Separate tagged repositories for infrastructure, Tula, kidscpp, and Citlali.</p>
+          <div class="artifact-list"><span class="artifact">v3.1.0</span><span class="artifact">v4.0.0</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node conan">
+          <span class="diagram-owner">CI package pipeline</span>
+          <strong>Create + test</strong>
+          <p>Build in dependency order, run behavior suites and installed-target <code>test_package</code> consumers.</p>
+          <div class="artifact-list"><span class="artifact">lockfile</span><span class="artifact">recipe revisions</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node package">
+          <span class="diagram-owner">Artifactory virtual remote</span>
+          <strong>Resolve one graph</strong>
+          <p>Development, release, and cached ConanCenter repositories appear behind one read endpoint.</p>
+          <div class="artifact-list"><span class="artifact">tula-cmake</span><span class="artifact">tula</span><span class="artifact">kidscpp</span><span class="artifact">citlali</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node cmake">
+          <span class="diagram-owner">User checkout</span>
+          <strong><code>./build</code></strong>
+          <p>The wrapper installs shared Conan configuration and then consumes generated presets.</p>
+          <div class="artifact-list"><span class="artifact">one command</span><span class="artifact">no submodules</span></div>
+        </div>
+      </div>
+      <div class="columns" style="margin-top:22px">
+        <div class="note good"><p><strong>Keep:</strong> Tula and kidscpp as versioned Conan requirements with package IDs, options, binary reuse, and lockfile visibility.</p></div>
+        <div class="note danger"><p><strong>Avoid:</strong> adding first-party libraries to the CPM registry; that would hide them as CMake subprojects and permit duplicate graphs.</p></div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: design/ARCHITECTURE.md · tula_cmake/docs/distribution.rst</span><span class="slide-number"></span></footer>
   </section>
 
   <section class="slide" data-section="Source layout">
@@ -467,6 +698,9 @@
 ├── pyproject.toml
 ├── justfile
 ├── docs/
+├── examples/
+│   ├── tula_boilerplate/
+│   └── tula_downstream/
 ├── tests/
 └── src/tula_cmake/
     ├── <span class="focus">models.py</span>
@@ -540,7 +774,7 @@
 
   <section class="slide" data-section="Generated model docs">
     <header class="slide-header">
-      <div><div class="section">Sphinx documentation</div><h2>Runtime Pydantic metadata is also the model reference</h2></div>
+      <div><div class="section">Sphinx documentation</div><h2>Runtime models and the packaged registry generate the reference pages</h2></div>
     </header>
     <div class="body">
       <div class="columns">
@@ -552,6 +786,9 @@
    :model-show-field-summary: true
    :model-show-validator-summary: true
 
+<span class="cm"># docs/features.rst</span>
+.. tula-feature-matrix::
+
 <span class="cm"># quality gate</span>
 sphinx-build -M html \
   docs docs/_build -T -W</pre>
@@ -560,6 +797,7 @@ sphinx-build -M html \
           <ul>
             <li>Every public model has a generated field contract.</li>
             <li>Validator summaries and JSON schemas come from runtime code.</li>
+            <li>The provider matrix and package-option tables render directly from <code>registry.yaml</code>.</li>
             <li>Code blocks include copy controls.</li>
             <li>Package version metadata drives the Sphinx release value.</li>
             <li>Documentation sources participate in Pytest collection.</li>
@@ -569,7 +807,7 @@ sphinx-build -M html \
         </div>
       </div>
     </div>
-    <footer class="footer"><span class="source">Sources: read-only workspace tollan docs conventions · tula_cmake/docs/{conf.py,models.rst}</span><span class="slide-number"></span></footer>
+    <footer class="footer"><span class="source">Sources: read-only workspace tollan docs conventions · docs/{conf.py,models.rst,features.rst,_ext/feature_matrix.py}</span><span class="slide-number"></span></footer>
   </section>
 
   <section class="slide" data-section="Registry pipeline">
@@ -581,12 +819,66 @@ sphinx-build -M html \
         <div><p><strong><code>load_registry()</code></strong><span>Parse YAML, inject keyed feature names, validate the model, and verify <code>resolvers/&lt;feature&gt;.cmake</code> exists.</span></p></div>
         <div><p><strong><code>TulaConan.init()</code></strong><span>Derive Conan option domains and defaults from <code>FeatureSpec</code> and <code>OptionSpec</code>.</span></p></div>
         <div><p><strong><code>TulaConan.requirements()</code></strong><span>Declare only the requirements belonging to features whose selected provider is Conan.</span></p></div>
-        <div><p><strong><code>render_manifest()</code></strong><span>Validate the complete selection and emit stable, dependency-ordered CMake variables.</span></p></div>
-        <div><p><strong><code>TulaProject.cmake</code></strong><span>Include each derived module, call <code>tula_resolve_&lt;feature&gt;()</code>, and verify its normalized target.</span></p></div>
+        <div><p><strong><code>render_manifest()</code></strong><span>Emit provider modes, resolver paths, and immutable feature data in dependency order.</span></p></div>
+        <div><p><strong><code>cmake_cache_variables()</code></strong><span>Project enabled-feature Conan options into the generated CMake preset.</span></p></div>
+        <div><p><strong><code>TulaProject.cmake</code></strong><span>Derive and call <code>tula_resolve_&lt;feature&gt;_&lt;mode&gt;()</code>, then verify its normalized target.</span></p></div>
       </div>
       <div class="note" style="margin-top:16px"><p><strong>Single source of truth:</strong> Python never duplicates the logging or perflibs option tables outside <code>registry.yaml</code>.</p></div>
     </div>
     <footer class="footer"><span class="source">Sources: registry.py · recipe.py · data/cmake/infrastructure/TulaProject.cmake</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Generation handoff">
+    <header class="slide-header">
+      <div><div class="section">Conan generate lifecycle</div><h2><code>TulaConan.generate()</code> translates graph state into four native artifacts</h2></div>
+    </header>
+    <div class="body">
+      <div class="handoff">
+        <div class="handoff-column">
+          <div class="handoff-title">Validated inputs</div>
+          <div class="diagram-node">
+            <strong>Recipe state</strong>
+            <p>Host settings and fully resolved Conan option values.</p>
+            <div class="artifact-list"><span class="artifact">self.settings</span><span class="artifact">self.options</span></div>
+          </div>
+          <div class="diagram-node">
+            <strong>Feature registry</strong>
+            <p>Provider domains, requirements, option-to-cache mapping, and resolver paths.</p>
+            <div class="artifact-list"><span class="artifact">FeatureRegistry</span></div>
+          </div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="handoff-column">
+          <div class="handoff-title">Generation adapter</div>
+          <div class="diagram-node conan">
+            <span class="diagram-owner">TulaConan.generate()</span>
+            <strong>Project graph state</strong>
+            <p>Calls standard Conan generators and writes the small Tula-specific manifest.</p>
+            <div class="artifact-list"><span class="artifact">CMakeDeps</span><span class="artifact">CMakeToolchain</span><span class="artifact">render_manifest()</span></div>
+          </div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="handoff-column">
+          <div class="handoff-title"><code>generators/</code> output</div>
+          <div class="branch-grid">
+            <div class="diagram-node cmake"><strong>Dependency configs</strong><p><code>*Config.cmake</code> and imported upstream targets.</p></div>
+            <div class="diagram-arrow">→</div>
+            <div class="diagram-node"><strong>Consumed by</strong><p><code>find_package()</code></p></div>
+          </div>
+          <div class="branch-grid">
+            <div class="diagram-node cmake"><strong>Toolchain + presets</strong><p>Compiler state and enabled-feature cache variables.</p></div>
+            <div class="diagram-arrow">→</div>
+            <div class="diagram-node"><strong>Consumed by</strong><p>CLI and CMake configure</p></div>
+          </div>
+          <div class="branch-grid">
+            <div class="diagram-node cmake"><strong><code>tula_features.cmake</code></strong><p>Modes, modules, and immutable resolver data.</p></div>
+            <div class="diagram-arrow">→</div>
+            <div class="diagram-node"><strong>Consumed by</strong><p><code>TulaProject.cmake</code></p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: recipe.py · registry.py · Conan CMakeDeps/CMakeToolchain</span><span class="slide-number"></span></footer>
   </section>
 
   <section class="slide" data-section="Conan mixin">
@@ -608,6 +900,8 @@ sphinx-build -M html \
 
     <span class="kw">def</span> generate(self):
         render_manifest(...)
+        toolchain.cache_variables.update(
+            cmake_cache_variables(...))
         CMakeDeps(self).generate()
         CMakeToolchain(self).generate()</pre>
         <div>
@@ -639,6 +933,7 @@ sphinx-build -M html \
     source: Path
     output: Path
     profiles: tuple[str, ...] = ()
+    options: tuple[OptionAssignment, ...] = ()
     config_source: str | <span class="kw">None</span> = <span class="kw">None</span>
     preset: str | <span class="kw">None</span> = <span class="kw">None</span>
     build_policy: str = <span class="str">"missing"</span>
@@ -657,6 +952,7 @@ sphinx-build -M html \
             <li>The command runner is injected as a typed callable.</li>
             <li>Preset JSON crosses <code>UserPresets</code> and <code>GeneratedPresets</code> models.</li>
             <li>The workflow consumes Conan’s preset instead of rebuilding its arguments.</li>
+            <li>Each <code>--option NAME=VALUE</code> becomes a root-scoped host option, <code>&amp;:NAME=VALUE</code>.</li>
             <li>CLI error translation is isolated from workflow logic.</li>
             <li>Unit tests assert exact command order without spawning processes.</li>
           </ul>
@@ -708,7 +1004,7 @@ just cruft-update</pre>
 
   <section class="slide" data-section="Feature graph">
     <header class="slide-header">
-      <div><div class="section">Feature model</div><h2><code>logging</code> remains one meta-feature; <code>perflibs</code> carries system complexity</h2></div>
+      <div><div class="section">Feature model</div><h2>Semantic meta-features and individual packages share one provider model</h2></div>
     </header>
     <div class="body">
       <div class="columns">
@@ -719,21 +1015,50 @@ just cruft-update</pre>
       - fmt/11.2.0
       - spdlog/1.15.3
 
+  yaml_cpp:
+    modes: [conan, cpm, system]
+    conan_requires: [yaml-cpp/0.9.0]
+
+  csv_parser:
+    modes: [cpm]
+    cmake_vars:
+      URL: .../bc3bebc.tar.gz
+      SHA256: 55362b...
+
+  netcdf_c:
+    modes: [conan, system]
+
+  netcdf_cxx4:
+    modes: [cpm, system]
+    dependencies: [netcdf_c]
+
   perflibs:
     modes: [system]
     options:
       perflibs_openmp: ...
       perflibs_oneapi: ...
-      perflibs_mkl_threading: ...</pre>
+      perflibs_mkl_threading: ...
+
+  eigen:
+    modes: [conan, cpm, system]
+    dependencies: [perflibs]
+    options:
+      eigen_multithreading: ...</pre>
         <div>
           <h3>Current boundary</h3>
           <ul>
             <li><code>logging</code> owns the compatible fmt + spdlog pair.</li>
             <li>Consumers link only <code>tula::logging</code>.</li>
+            <li><code>yaml_cpp</code> is one external package normalized as <code>tula::yaml_cpp</code>.</li>
+            <li><code>csv_parser</code> declares only its evidenced CPM provider and exposes a pinned header tree.</li>
+            <li><code>netcdf_cxx4</code> depends on a separately selectable <code>netcdf_c</code> provider.</li>
+            <li><code>bitmask</code> and <code>meta_enum</code> are separate pinned header-only package features.</li>
+            <li><code>clipp</code> uses the same 1.2.3 source through Conan or CPM.</li>
+            <li><code>eigen</code> depends on <code>perflibs</code> and normalizes <code>Eigen3::Eigen</code>.</li>
             <li>Internal dependency splitting is deferred until the package matrix requires it.</li>
             <li><code>perflibs</code> is disabled or system-resolved; it does not pretend to be a downloadable package.</li>
             <li>Every enabled resolver still creates one normalized <code>tula::&lt;feature&gt;</code> target.</li>
-            <li>The feature name derives both <code>resolvers/&lt;feature&gt;.cmake</code> and <code>tula_resolve_&lt;feature&gt;()</code>.</li>
+            <li>Feature and provider derive both the module and <code>tula_resolve_&lt;feature&gt;_&lt;mode&gt;()</code> entrypoint.</li>
           </ul>
         </div>
       </div>
@@ -749,14 +1074,67 @@ just cruft-update</pre>
       <table class="tight">
         <thead><tr><th style="width:22%">Resolver</th><th style="width:27%">Feature</th><th>Responsibilities</th></tr></thead>
         <tbody>
-          <tr><td><code>resolvers/logging.cmake</code></td><td><code>logging</code></td><td>Resolve both fmt and spdlog from system, Conan, or checksummed CPM; validate log level; create <code>tula::logging</code>.</td></tr>
+          <tr><td><code>resolvers/logging.cmake</code></td><td><code>logging</code></td><td>Export one entrypoint per provider; share installed-package and target-finalization helpers; create <code>tula::logging</code>.</td></tr>
+          <tr><td><code>resolvers/yaml_cpp.cmake</code></td><td><code>yaml_cpp</code></td><td>Resolve yaml-cpp through Conan, CPM, or system config packages and normalize its upstream target as <code>tula::yaml_cpp</code>.</td></tr>
+          <tr><td><code>resolvers/csv_parser.cmake</code></td><td><code>csv_parser</code></td><td>Download one checksummed, header-only source revision and expose its include tree as <code>tula::csv_parser</code>.</td></tr>
+          <tr><td><code>resolvers/netcdf_c.cmake</code></td><td><code>netcdf_c</code></td><td>Normalize Conan or system <code>netCDF::netcdf</code> as <code>tula::netcdf_c</code>.</td></tr>
+          <tr><td><code>resolvers/netcdf_cxx4.cmake</code></td><td><code>netcdf_cxx4</code></td><td>Resolve the C++ API through system pkg-config or a download-only CPM source adapter.</td></tr>
+          <tr><td><code>resolvers/{bitmask,meta_enum}.cmake</code></td><td>enum dependencies</td><td>Download immutable, checksummed header trees and expose one normalized target per upstream package.</td></tr>
+          <tr><td><code>resolvers/clipp.cmake</code></td><td><code>clipp</code></td><td>Normalize Conan Center or checksummed CPM release 1.2.3 as <code>tula::clipp</code>.</td></tr>
+          <tr><td><code>resolvers/eigen.cmake</code></td><td><code>eigen</code></td><td>Resolve Eigen 3.4, require <code>tula::perflibs</code>, project multithreading state, and create <code>tula::eigen</code>.</td></tr>
           <tr><td><code>resolvers/perflibs.cmake</code></td><td><code>perflibs</code></td><td>Validate runtime combinations; resolve Threads, OpenMP, and optional oneMKL; expose capability definitions through <code>tula::perflibs</code>.</td></tr>
           <tr><td><code>infrastructure/TulaCPM.cmake</code></td><td>shared helper</td><td>Load pinned CPM 0.42.0 once, verify its hash, and honor the external source cache.</td></tr>
-          <tr><td><code>infrastructure/TulaProject.cmake</code></td><td>all features</td><td>Execute manifest order, call the convention-derived resolver, verify logical targets, and record selected providers.</td></tr>
+          <tr><td><code>infrastructure/TulaProject.cmake</code></td><td>all features</td><td>Own generic provider dispatch, verify logical targets, record selected providers, and register/install bundled CPM header trees.</td></tr>
         </tbody>
       </table>
     </div>
     <footer class="footer"><span class="source">Sources: src/tula_cmake/data/cmake/{infrastructure,resolvers}</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Resolver execution">
+    <header class="slide-header">
+      <div><div class="section">CMake configure lifecycle</div><h2>Generated graph state becomes normalized targets and a C++ configuration contract</h2></div>
+    </header>
+    <div class="body">
+      <div class="diagram-chain">
+        <div class="diagram-node cmake">
+          <span class="diagram-owner">Generated inputs</span>
+          <strong>Preset + manifest</strong>
+          <p>Cache variables carry semantic options; the manifest carries provider and module state.</p>
+          <div class="artifact-list"><span class="artifact">CMakePresets.json</span><span class="artifact">tula_features.cmake</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node">
+          <span class="diagram-owner">Generic driver</span>
+          <strong><code>tula_resolve_features()</code></strong>
+          <p>Iterates dependency order and derives one provider entrypoint per enabled feature.</p>
+          <div class="artifact-list"><span class="artifact">feature</span><span class="artifact">mode</span><span class="artifact">module</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node">
+          <span class="diagram-owner">Feature module</span>
+          <strong><code>tula_resolve_*_*()</code></strong>
+          <p>Calls <code>find_package</code>, CPM, or system discovery and validates feature semantics.</p>
+          <div class="artifact-list"><span class="artifact">fmt::fmt</span><span class="artifact">yaml-cpp::yaml-cpp</span><span class="artifact">OpenMP::OpenMP_CXX</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node cmake">
+          <span class="diagram-owner">Stable build contract</span>
+          <strong>Normalized targets</strong>
+          <p>Package CMake links provider-independent logical targets only.</p>
+          <div class="artifact-list"><span class="artifact">tula::logging</span><span class="artifact">tula::yaml_cpp</span><span class="artifact">tula::csv_parser</span><span class="artifact">tula::netcdf_c</span><span class="artifact">tula::netcdf_cxx4</span><span class="artifact">tula::bitmask</span><span class="artifact">tula::meta_enum</span><span class="artifact">tula::clipp</span><span class="artifact">tula::perflibs</span><span class="artifact">tula::eigen</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node package">
+          <span class="diagram-owner">C++ boundary</span>
+          <strong>Generated header</strong>
+          <p>Availability and selected provider become compile-time public state.</p>
+          <div class="artifact-list"><span class="artifact">config.h</span><span class="artifact">HAS_*</span><span class="artifact">*_PROVIDER</span></div>
+        </div>
+      </div>
+      <div class="note good" style="margin-top:22px"><p>Provider choice stops at the normalized target boundary; package sources do not branch on Conan, CPM, or system acquisition.</p></div>
+    </div>
+    <footer class="footer"><span class="source">Sources: TulaProject.cmake · resolvers/*.cmake · TulaConfigHeader.cmake</span><span class="slide-number"></span></footer>
   </section>
 
   <section class="slide" data-section="Logging resolver">
@@ -765,25 +1143,25 @@ just cruft-update</pre>
     </header>
     <div class="body">
       <div class="columns">
-        <pre><span class="kw">function</span>(tula_resolve_logging FEATURE MODE)
-  <span class="kw">if</span>(MODE STREQUAL <span class="str">"conan"</span>
-     OR MODE STREQUAL <span class="str">"system"</span>)
-    find_package(fmt CONFIG REQUIRED)
-    find_package(spdlog CONFIG REQUIRED)
-  <span class="kw">elseif</span>(MODE STREQUAL <span class="str">"cpm"</span>)
-    _tula_logging_cpm() <span class="cm"># fetches both</span>
-  <span class="kw">endif</span>()
+        <pre><span class="kw">function</span>(tula_resolve_logging_conan)
+  _tula_logging_installed()
+  _tula_logging_finalize()
+<span class="kw">endfunction</span>()
 
-  add_library(tula_logging INTERFACE)
-  target_link_libraries(tula_logging
-    INTERFACE <span class="str">"${_spdlog_target}"</span>
-              <span class="str">"${_fmt_target}"</span>)
-  add_library(tula::logging ALIAS tula_logging)
+<span class="kw">function</span>(tula_resolve_logging_system)
+  _tula_logging_installed()
+  _tula_logging_finalize()
+<span class="kw">endfunction</span>()
+
+<span class="kw">function</span>(tula_resolve_logging_cpm)
+  _tula_logging_cpm()
+  _tula_logging_finalize()
 <span class="kw">endfunction</span>()</pre>
         <div>
           <h3>Contract decisions</h3>
           <ul>
             <li>No independently selectable fmt feature or Conan option.</li>
+            <li>No resolver-level <code>MODE</code> switch; the driver dispatches by entrypoint name.</li>
             <li>fmt and spdlog versions are selected together for the Conan provider.</li>
             <li>CPM downloads both pinned archives with hashes.</li>
             <li>System mode requires both config packages.</li>
@@ -794,6 +1172,302 @@ just cruft-update</pre>
       </div>
     </div>
     <footer class="footer"><span class="source">Source: data/cmake/resolvers/logging.cmake</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="yaml-cpp and ECSV">
+    <header class="slide-header">
+      <div><div class="section">First package-by-package port</div><h2><code>yaml_cpp</code> closes a full path from provider matrix to Tula behavior</h2></div>
+    </header>
+    <div class="body">
+      <div class="columns">
+        <div>
+          <h3>Infrastructure feature</h3>
+          <pre>yaml_cpp:
+  modes: [conan, cpm, system]
+  conan_requires:
+    - yaml-cpp/0.9.0
+  cmake_vars:
+    URL: ...yaml-cpp-0.9.0.tar.gz
+    SHA256: 25cb0432...</pre>
+          <ul class="compact">
+            <li>Conan and CPM use yaml-cpp 0.9.0.</li>
+            <li>Ubuntu system coverage uses yaml-cpp 0.8.</li>
+            <li>All providers compile the same parse/emit probe.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Tula behavior slice</h3>
+          <ul>
+            <li><code>tula::headers</code> links <code>tula::yaml_cpp</code> when enabled.</li>
+            <li><code>tests/test_ecsv.cpp</code> verifies version/header parsing, schema, columns, formatting, and typed metadata extraction.</li>
+            <li>ECSV fmt formatters are <code>const</code> for fmt 11 compatibility; output is unchanged.</li>
+            <li>CTest now reports two package tests: header smoke and ECSV.</li>
+          </ul>
+          <div class="note good"><p><strong>Verified:</strong> disabled, Conan, CPM, and system matrix cases pass on GCC 13; the Conan-backed Tula ECSV test passes.</p></div>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: registry.yaml · resolvers/yaml_cpp.cmake · tests/{feature_matrix,test_ecsv.cpp}</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Eigen and typed data">
+    <header class="slide-header">
+      <div><div class="section">Second package-by-package port</div><h2>Eigen unlocks numerical headers, nddata, and typed ECSV tables</h2></div>
+    </header>
+    <div class="body">
+      <div class="columns">
+        <div>
+          <h3>Provider and option boundary</h3>
+          <pre>eigen:
+  modes: [conan, cpm, system]
+  dependencies: [perflibs]
+  conan_requires: [eigen/3.4.1]
+  options:
+    eigen_multithreading:
+      values: [enabled, disabled]
+      default: enabled</pre>
+          <div class="note"><p>Eigen 3.4.1 is the maintained production-major release. Eigen 5.0.1 is deferred because it introduces documented breaking changes.</p></div>
+        </div>
+        <div>
+          <h3>Behavior now executable</h3>
+          <ul>
+            <li>Eigen traits, contiguity, storage-order conversion, maps, and pair conversion.</li>
+            <li>Owned and referenced Eigen nddata.</li>
+            <li>ECSV header views, typed arrays, row loading, and typed column access.</li>
+            <li><code>ECSVTable::col()</code> now returns <code>ColDataRef</code> for numeric and string storage.</li>
+            <li>The redundant direct include of Eigen’s internal <code>XprHelper.h</code> is removed.</li>
+          </ul>
+          <div class="note good"><p><strong>Verified:</strong> all six Eigen matrix cases pass, and the Eigen-backed behaviors remain covered by the current thirteen-case Tula gate.</p></div>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: resolvers/eigen.cmake · tests/{test_eigen,test_nddata_eigen,test_ecsv_table}.cpp · Eigen 3.4.1/5.0.1 release notes</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="CSV streaming">
+    <header class="slide-header">
+      <div><div class="section">Third package-by-package port</div><h2>The production CSV parser now drives typed ECSV loading end to end</h2></div>
+    </header>
+    <div class="body">
+      <div class="columns">
+        <div>
+          <h3>Small, truthful resolver</h3>
+          <pre>csv_parser:
+  modes: [cpm]
+  cmake_vars:
+    URL: .../bc3bebc.tar.gz
+    SHA256: 55362b...
+
+tula_resolve_csv_parser_cpm()
+  CPMAddPackage(DOWNLOAD_ONLY)
+  include = ${csv_parser_SOURCE_DIR}/include
+  target  = tula::csv_parser</pre>
+          <div class="note"><p>The Jerry-Ma production fork has no tags, Conan recipe, installed CMake config, or CMake project. V3 does not claim providers that cannot be tested.</p></div>
+        </div>
+        <div>
+          <h3>Artifacts through the behavior path</h3>
+          <div class="flow">
+            <div><p><strong><code>ECSVHeader::read(stream)</code></strong><span>Parses YAML metadata and leaves the stream at the first data row.</span></p></div>
+            <div><p><strong><code>CsvParser(stream).delimiter(...)</code></strong><span>Streams rows, including quoted custom delimiters.</span></p></div>
+            <div><p><strong><code>ECSVTable::load_rows(parser)</code></strong><span>Converts string fields into typed Eigen/vector-backed columns.</span></p></div>
+          </div>
+          <div class="note good"><p><strong>Verified on GCC 13:</strong> disabled + CPM matrix cases pass; the CSV-backed behaviors remain covered by the current thirteen-case Tula gate.</p></div>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: resolvers/csv_parser.cmake · tests/feature_matrix/probes/csv_parser.cpp · tests/test_ecsv_csv.cpp</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Configuration modules">
+    <header class="slide-header">
+      <div><div class="section">Fourth module checkpoint</div><h2>Configuration and filesystem behavior reuse existing package features</h2></div>
+    </header>
+    <div class="body">
+      <div class="columns">
+        <div>
+          <h3>Dependency boundary</h3>
+          <div class="flow">
+            <div><p><strong><code>FlatConfig</code> + filename</strong><span><code>tula::logging</code> + C++23 standard library</span></p></div>
+            <div><p><strong><code>YamlConfig</code></strong><span><code>tula::logging</code> + <code>tula::yaml_cpp</code></span></p></div>
+            <div><p><strong>No new resolver</strong><span>The registry models external acquisition, not header namespaces.</span></p></div>
+          </div>
+          <div class="note"><p>A synthetic <code>filesystem</code> or <code>config</code> feature would duplicate existing requirements and offer no package to resolve.</p></div>
+        </div>
+        <div>
+          <h3>Production behavior now tested</h3>
+          <ul>
+            <li><code>FlatConfig</code>: typed and optional values, mutation, lexical conversion, callbacks, and formatting.</li>
+            <li><code>YamlConfig</code>: nested tuple lookup, sub-configs, recursive merge, validation failure, and formatting.</li>
+            <li>Filename/filesystem: stem-based patterns, directory creation, and regex discovery.</li>
+            <li>Active and reference headers are behavior-identical; the existing qualified <code>fmt::format_to</code> delta supports modern fmt.</li>
+          </ul>
+          <div class="note good"><p><strong>Verified on GCC 13:</strong> configuration and filename behaviors are included in the current thirteen-case Tula gate.</p></div>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: include/tula/{config,filesystem,filename}.h · tests/{test_flatconfig,test_yamlconfig,test_filename}.cpp</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="NetCDF">
+    <header class="slide-header">
+      <div><div class="section">Fifth package checkpoint</div><h2>NetCDF keeps its C and C++ acquisition boundaries explicit</h2></div>
+    </header>
+    <div class="body">
+      <div class="columns">
+        <div>
+          <h3>Two upstream packages</h3>
+          <pre>netcdf_c:
+  modes: [conan, system]
+  conan_requires: [netcdf/4.8.1]
+
+netcdf_cxx4:
+  modes: [cpm, system]
+  dependencies: [netcdf_c]
+  source: netcdf-cxx4/v4.3.1</pre>
+          <div class="diagram-chain">
+            <div class="diagram-node conan"><strong><code>tula::netcdf_c</code></strong><p>C ABI and storage implementation</p></div>
+            <div class="diagram-arrow">→</div>
+            <div class="diagram-node cmake"><strong><code>tula::netcdf_cxx4</code></strong><p>Production <code>&lt;netcdf&gt;</code> API</p></div>
+          </div>
+        </div>
+        <div>
+          <h3>Why CPM needs an adapter</h3>
+          <ul>
+            <li>Upstream v4.3.1 CMake assumes it is the root project through <code>CMAKE_SOURCE_DIR</code>.</li>
+            <li>CPM therefore downloads only; the resolver compiles the unchanged <code>cxx4/nc*.cpp</code> source set.</li>
+            <li>System C uses <code>netCDF::netcdf</code>; system C++ uses imported pkg-config target <code>PkgConfig::NETCDF_CXX4</code>.</li>
+            <li>Tula tests type mapping, typed dispatch, scalar file I/O, and pretty-printing.</li>
+          </ul>
+          <div class="note good"><p><strong>Verified on GCC 13:</strong> all six NetCDF matrix cases pass, and NetCDF behavior is included in the current thirteen-case Tula gate.</p></div>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: registry.yaml · resolvers/netcdf_{c,cxx4}.cmake · tests/{feature_matrix,test_nc.cpp}</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Enums">
+    <header class="slide-header">
+      <div><div class="section">Sixth package checkpoint</div><h2>Enum behavior composes two small upstream packages without hiding their boundaries</h2></div>
+    </header>
+    <div class="body">
+      <div class="columns">
+        <div>
+          <h3>Acquisition and target flow</h3>
+          <div class="diagram-chain">
+            <div class="diagram-node conan"><strong><code>bitmask</code></strong><p>commit <code>0454f32</code><br>CPM + checksum</p></div>
+            <div class="diagram-arrow">→</div>
+            <div class="diagram-node cmake"><strong><code>tula::bitmask</code></strong><p>flag composition</p></div>
+          </div>
+          <div class="diagram-chain" style="margin-top:14px">
+            <div class="diagram-node conan"><strong><code>meta_enum</code></strong><p>commit <code>f940f15</code><br>CPM + checksum</p></div>
+            <div class="diagram-arrow">→</div>
+            <div class="diagram-node cmake"><strong><code>tula::meta_enum</code></strong><p>compile-time metadata</p></div>
+          </div>
+          <pre style="margin-top:18px">target_link_libraries(tula_headers INTERFACE
+  tula::bitmask
+  tula::meta_enum
+  tula::logging)</pre>
+        </div>
+        <div>
+          <h3>Behavior and defect evidence</h3>
+          <ul>
+            <li>Four matrix cases cover disabled and CPM state independently for both packages.</li>
+            <li>The meta-enum probe exercises the parser primitives used by <code>TULA_ENUM</code>, not its unused defective upstream macro.</li>
+            <li>Tula verifies metadata lookup, nested registration, compound flags, bitmask formatting, and enum formatting.</li>
+            <li>The test exposed <code>BitFlag</code> treating constexpr <code>mask_value</code> as a type; the corrected expression constraint restores the intended concept.</li>
+          </ul>
+          <div class="note good"><p><strong>Verified on GCC 13:</strong> disabled + CPM cases pass for both enum dependencies, and enum behavior is included in the current thirteen-case Tula gate.</p></div>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: resolvers/{bitmask,meta_enum}.cmake · include/tula/enum.h · tests/test_enum.cpp</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Tula CLI">
+    <header class="slide-header">
+      <div><div class="section">Seventh package checkpoint</div><h2>Clipp acquisition is isolated; Tula owns the typed configuration projection</h2></div>
+    </header>
+    <div class="body">
+      <div class="diagram-chain">
+        <div class="diagram-node conan">
+          <span class="diagram-owner">Conan or CPM</span>
+          <strong>clipp 1.2.3</strong>
+          <p>Conan Center target or checksummed upstream archive.</p>
+          <div class="artifact-list"><span class="artifact">clipp::clipp</span><span class="artifact">clipp.h</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node cmake">
+          <span class="diagram-owner">Resolver boundary</span>
+          <strong><code>tula::clipp</code></strong>
+          <p>One provider-independent header target.</p>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node">
+          <span class="diagram-owner">Tula C++ API</span>
+          <strong><code>ConfigMapper</code></strong>
+          <p>Builder values and callbacks project parser results into a typed config.</p>
+          <div class="artifact-list"><span class="artifact">p()</span><span class="artifact">int_()</span><span class="artifact">list()</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node package">
+          <span class="diagram-owner">Runtime state</span>
+          <strong><code>FlatConfig</code></strong>
+          <p>Flags, integers, enum names, defaults, and positional inputs.</p>
+        </div>
+      </div>
+      <div class="columns" style="margin-top:22px">
+        <div>
+          <h3>Executable evidence</h3>
+          <ul>
+            <li>Three matrix cases: disabled, Conan, CPM.</li>
+            <li>One provider probe parses a flag, integer, and positional path.</li>
+            <li>One Tula test covers the higher-level builder and config mapping.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Consistency fix</h3>
+          <pre>doc = fmt::format(
+  "{}. Default is {}", doc,
+  normalize_value(defval));</pre>
+          <div class="note good"><p>Enum defaults now use the same normalized name in storage and help text. CLI behavior is included in the current thirteen-case Tula gate.</p></div>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: resolvers/clipp.cmake · include/tula/cli.h · tests/{feature_matrix,test_cli.cpp}</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="User options">
+    <header class="slide-header">
+      <div><div class="section">Configuration contract</div><h2>Conan owns user intent; the generated preset carries it into CMake</h2></div>
+    </header>
+    <div class="body">
+      <div class="columns">
+        <div>
+          <h3>Reproducible profile</h3>
+          <pre>[options]
+&amp;:perflibs=system
+&amp;:perflibs_openmp=required
+&amp;:perflibs_openmp_runtime=gnu
+&amp;:perflibs_oneapi=disabled
+&amp;:perflibs_mkl_threading=sequential</pre>
+          <h3 style="margin-top:18px">One-off override</h3>
+          <pre>tula-cmake build . \
+  --profile linux-gcc13-debug \
+  --option perflibs=system \
+  --option perflibs_openmp=required</pre>
+        </div>
+        <div>
+          <div class="flow">
+            <div><p><strong>Conan graph input</strong><span>Profiles and CLI options select package behavior and package identity.</span></p></div>
+            <div><p><strong>Validated registry</strong><span><code>OptionSpec</code> maps each semantic option to one CMake cache variable.</span></p></div>
+            <div><p><strong><code>CMakeToolchain</code></strong><span><code>cache_variables</code> writes enabled-feature values into Conan’s generated preset.</span></p></div>
+            <div><p><strong>Feature resolver</strong><span>Perflibs consumes normal CMake cache variables without parsing Conan state.</span></p></div>
+          </div>
+          <div class="note warning" style="margin-top:16px"><p>The generated preset is output, not a second editable input surface. Disabled-feature options are deliberately omitted.</p></div>
+        </div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: Conan profiles/options · CMakeToolchain.cache_variables · registry.py</span><span class="slide-number"></span></footer>
   </section>
 
   <section class="slide" data-section="Perflibs model">
@@ -811,7 +1485,7 @@ just cruft-update</pre>
           <tr><td><code>perflibs_mkl_threading</code></td><td>sequential, openmp, tbb</td><td>Selects the oneMKL threading layer before package discovery.</td></tr>
         </tbody>
       </table>
-      <div class="note warning" style="margin-top:20px"><p>The current dev-container gate exercises Threads + required GNU OpenMP. oneMKL branches are implemented against Intel’s <code>MKLConfig.cmake</code>/<code>MKL::MKL</code> contract but require a oneAPI test image.</p></div>
+      <div class="note warning" style="margin-top:20px"><p>The feature matrix exercises disabled/system modes, all OpenMP policies, and GNU runtime selection. oneMKL, Intel runtime, LLVM runtime, and MKL threading cases are collected with explicit environment capabilities.</p></div>
     </div>
     <footer class="footer"><span class="source">Sources: data/registry.yaml · Intel oneMKL CMake Config documentation</span><span class="slide-number"></span></footer>
   </section>
@@ -848,7 +1522,7 @@ TULA_PERFLIBS_HAS_OPENMP=0|1
 TULA_PERFLIBS_HAS_MKL=0|1
 TULA_PERFLIBS_OPENMP_RUNTIME="..."
 TULA_PERFLIBS_MKL_THREADING="..."</pre>
-          <div class="note good" style="margin-top:18px"><p>The tested GCC 13 profile finds <code>Threads::Threads</code> and <code>OpenMP::OpenMP_CXX</code>, builds Tula, and passes CTest.</p></div>
+          <div class="note good" style="margin-top:18px"><p>The GCC 13 matrix cases find <code>Threads::Threads</code> and <code>OpenMP::OpenMP_CXX</code>, compile the perflibs probe, and pass CTest.</p></div>
         </div>
       </div>
     </div>
@@ -861,7 +1535,7 @@ TULA_PERFLIBS_MKL_THREADING="..."</pre>
     </header>
     <div class="body">
       <div class="columns">
-        <pre><span class="cm"># generated for perflibs-system</span>
+        <pre><span class="cm"># generated for the perflibs=system matrix case</span>
 #define TULA_BOILERPLATE_VERSION "3.1.0"
 
 #define TULA_BOILERPLATE_HAS_LOGGING 0
@@ -891,7 +1565,7 @@ TULA_PERFLIBS_MKL_THREADING="..."</pre>
 
   <section class="slide" data-section="Tula compile">
     <header class="slide-header">
-      <div><div class="section">Actual package coverage</div><h2>Tula now compiles and runs the supported header slice in every provider mode</h2></div>
+      <div><div class="section">Actual package coverage</div><h2>Tula’s package smoke test is separate from infrastructure matrix coverage</h2></div>
     </header>
     <div class="body">
       <div class="columns">
@@ -907,19 +1581,195 @@ TULA_PERFLIBS_MKL_THREADING="..."</pre>
           </ul>
         </div>
         <div>
-          <h3>Conditionally compiled</h3>
+          <h3>Separation of concerns</h3>
           <ul>
-            <li>Formatter and logging headers when <code>TULA_HAS_LOGGING=1</code>.</li>
-            <li>Threads/OpenMP target definitions when <code>TULA_HAS_PERFLIBS=1</code>.</li>
-            <li>The executable prints provider state and runs under CTest.</li>
+            <li><code>just tula</code> verifies core, ECSV, CSV streaming, Eigen, nddata, NetCDF, config, filesystem, and enum behavior with explicit feature choices.</li>
+            <li>Feature-matrix probes compile every external package feature independently, including bitmask and meta-enum.</li>
+            <li>Provider and option expansion no longer multiplies Tula builds.</li>
           </ul>
           <div class="note warning">
-            <p>This is real compile/runtime coverage, including required GNU OpenMP, but not yet the full production header and 18-test surface.</p>
+            <p>The current Tula smoke is real compile/runtime coverage, but not yet the full production header and 18-test surface.</p>
           </div>
         </div>
       </div>
     </div>
     <footer class="footer"><span class="source">Sources: CMakeLists.txt · tests/header_smoke.cpp · tula-*.log</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Test ownership">
+    <header class="slide-header">
+      <div><div class="section">Feature test architecture</div><h2>The product registry defines the matrix; small metadata supplies only test semantics</h2></div>
+    </header>
+    <div class="body">
+      <div class="diagram-chain">
+        <div class="diagram-node">
+          <span class="diagram-owner">Product contract</span>
+          <strong><code>registry.yaml</code></strong>
+          <p>Features, providers, option domains, defaults, requirements, and CMake mappings.</p>
+          <div class="artifact-list"><span class="artifact">source of truth</span></div>
+        </div>
+        <div class="diagram-arrow">+</div>
+        <div class="diagram-node">
+          <span class="diagram-owner">Test-only semantics</span>
+          <strong><code>feature_matrix/matrix.yaml</code></strong>
+          <p>Probe, option-axis provider, meaningful companion values, and capabilities.</p>
+          <div class="artifact-list"><span class="artifact">no provider lists</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node conan">
+          <span class="diagram-owner">Collection</span>
+          <strong>Derived Pytest cases</strong>
+          <p>One node ID per provider and per declared feature-option value.</p>
+          <div class="artifact-list"><span class="artifact">50 cases</span><span class="artifact">-k selection</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node cmake">
+          <span class="diagram-owner">Execution fixture</span>
+          <strong>One matrix project</strong>
+          <p>Temporary Conan/CMake consumer plus a feature-specific C++ probe.</p>
+          <div class="artifact-list"><span class="artifact">tmp_path</span><span class="artifact">CTest</span></div>
+        </div>
+        <div class="diagram-arrow">≠</div>
+        <div class="diagram-node package">
+          <span class="diagram-owner">Example package</span>
+          <strong><code>tula_boilerplate</code></strong>
+          <p>Demonstrates minimal package UX once; contains no matrix profiles.</p>
+          <div class="artifact-list"><span class="artifact">example only</span></div>
+        </div>
+      </div>
+      <div class="note good" style="margin-top:22px"><p>Adding a registry option without a corresponding matrix axis fails the fast unit gate before any external build starts.</p></div>
+    </div>
+    <footer class="footer"><span class="source">Sources: tests/feature_matrix · test_feature_matrix_catalog.py · data/registry.yaml</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Case derivation">
+    <header class="slide-header">
+      <div><div class="section">Closed matrix coverage</div><h2>Cases are generated by dimension, avoiding a speculative Cartesian product</h2></div>
+    </header>
+    <div class="body">
+      <table class="tight">
+        <thead><tr><th style="width:20%">Feature</th><th style="width:25%">Provider cases</th><th style="width:30%">Option-axis cases</th><th>Default container</th></tr></thead>
+        <tbody>
+          <tr><td><code>logging</code></td><td>disabled, Conan, CPM, system</td><td>7 values of <code>logging_level</code></td><td>11 runnable cases</td></tr>
+          <tr><td><code>yaml_cpp</code></td><td>disabled, Conan, CPM, system</td><td>none</td><td>4 runnable cases</td></tr>
+          <tr><td><code>csv_parser</code></td><td>disabled, CPM</td><td>none</td><td>2 runnable cases</td></tr>
+          <tr><td><code>netcdf_c</code></td><td>disabled, Conan, system</td><td>none</td><td>3 runnable cases</td></tr>
+          <tr><td><code>netcdf_cxx4</code></td><td>disabled, CPM, system</td><td>none</td><td>3 runnable cases</td></tr>
+          <tr><td><code>bitmask</code></td><td>disabled, CPM</td><td>none</td><td>2 runnable cases</td></tr>
+          <tr><td><code>meta_enum</code></td><td>disabled, CPM</td><td>none</td><td>2 runnable cases</td></tr>
+          <tr><td><code>clipp</code></td><td>disabled, Conan, CPM</td><td>none</td><td>3 runnable cases</td></tr>
+          <tr><td><code>perflibs</code></td><td>disabled, system</td><td>2 oneAPI + 3 OpenMP policy + 4 runtime + 3 MKL threading</td><td>8 runnable, 6 capability-gated</td></tr>
+          <tr><td><code>eigen</code></td><td>disabled, Conan, CPM, system</td><td>2 values of <code>eigen_multithreading</code></td><td>6 runnable cases</td></tr>
+          <tr><td><code>grppi</code></td><td>disabled, CPM</td><td>none</td><td>2 runnable cases</td></tr>
+          <tr><td><strong>Total</strong></td><td>41 provider cases</td><td>21 option-value cases</td><td><strong>62 collected: 56 runnable + 6 visible skips</strong></td></tr>
+        </tbody>
+      </table>
+      <div class="columns" style="margin-top:22px">
+        <div class="note">
+          <p><strong>Automatic:</strong> disabled plus every declared provider; every value in each option domain.</p>
+        </div>
+        <div class="note warning">
+          <p><strong>Explicit:</strong> oneAPI/LLVM capabilities, matching compiler profiles, and companion values for meaningful MKL/runtime tests.</p>
+        </div>
+      </div>
+      <pre style="margin-top:20px">uv run pytest -m feature_matrix -k logging
+uv run pytest -m "feature_matrix and network"
+TULA_TEST_CAPABILITIES=oneapi \
+TULA_TEST_INTEL_PROFILE=/profiles/intel just matrix-all</pre>
+    </div>
+    <footer class="footer"><span class="source">Source: tests/feature_matrix/matrix.yaml</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Matrix lifecycle">
+    <header class="slide-header">
+      <div><div class="section">One Pytest item</div><h2>Every matrix item follows the production workflow and checks each handoff</h2></div>
+    </header>
+    <div class="body">
+      <div class="diagram-chain">
+        <div class="diagram-node">
+          <span class="diagram-owner">Arrange</span>
+          <strong>Isolated project</strong>
+          <p>Copy one static fixture; select the feature probe and expected target state.</p>
+          <div class="artifact-list"><span class="artifact">matrix_case.cmake</span><span class="artifact">probe.cpp</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node conan">
+          <span class="diagram-owner">Input</span>
+          <strong>Root-scoped options</strong>
+          <p>Disable unrelated features and pass the selected mode/value directly.</p>
+          <div class="artifact-list"><span class="artifact">&amp;:feature=mode</span><span class="artifact">no profile</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node">
+          <span class="diagram-owner">Exercise</span>
+          <strong><code>BuildWorkflow</code></strong>
+          <p>Run the same Conan install and generated-preset CMake path used downstream.</p>
+          <div class="artifact-list"><span class="artifact">Conan</span><span class="artifact">CMake</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node cmake">
+          <span class="diagram-owner">Assert build contract</span>
+          <strong>Preset + target</strong>
+          <p>Check cache projection and normalized-target presence or absence.</p>
+          <div class="artifact-list"><span class="artifact">CMakePresets.json</span><span class="artifact">tula::*</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node package">
+          <span class="diagram-owner">Assert usage</span>
+          <strong>Compile + CTest</strong>
+          <p>Link only the normalized target, compile the feature API, and execute.</p>
+          <div class="artifact-list"><span class="artifact">binary</span><span class="artifact">exit 0</span></div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:22px"><p>Pytest supplies node IDs, filtering, captured logs, timing, skips, and JUnit output—replacing the archived custom runner and result tree.</p></div>
+    </div>
+    <footer class="footer"><span class="source">Source: tests/test_feature_matrix.py</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Package handoff">
+    <header class="slide-header">
+      <div><div class="section">Producer-to-consumer lifecycle</div><h2>The package boundary removes build infrastructure from the downstream contract</h2></div>
+    </header>
+    <div class="body">
+      <div class="diagram-chain">
+        <div class="diagram-node">
+          <span class="diagram-owner">Producer source</span>
+          <strong><code>tula_boilerplate</code></strong>
+          <p>Recipe extends the Tula mixin; CMake installs only its public surface.</p>
+          <div class="artifact-list"><span class="artifact">conanfile.py</span><span class="artifact">include/</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node conan">
+          <span class="diagram-owner">conan create</span>
+          <strong>Build + package</strong>
+          <p>Provider decisions are resolved while building the package binary.</p>
+          <div class="artifact-list"><span class="artifact">package ID</span><span class="artifact">revision</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node package">
+          <span class="diagram-owner">Conan cache / remote</span>
+          <strong>Immutable package</strong>
+          <p>Installed header, generated config header, and package metadata.</p>
+          <div class="artifact-list"><span class="artifact">boilerplate.h</span><span class="artifact">config.h</span><span class="artifact">cpp_info</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node conan">
+          <span class="diagram-owner">Downstream install</span>
+          <strong>Resolve requirement</strong>
+          <p>The consumer declares only <code>tula-boilerplate/3.1.0</code>.</p>
+          <div class="artifact-list"><span class="artifact">CMakeDeps</span><span class="artifact">CMakeToolchain</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node cmake">
+          <span class="diagram-owner">Consumer build</span>
+          <strong>Link exported target</strong>
+          <p>CMake sees a standard package config and target—no resolver or Python API.</p>
+          <div class="artifact-list"><span class="artifact">tula_boilerplate::headers</span><span class="artifact">executable</span></div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:22px"><p><code>tula_cmake</code> participates in producer recipe evaluation, but it is absent from the installed C++ usage requirement.</p></div>
+    </div>
+    <footer class="footer"><span class="source">Sources: examples/tula_boilerplate/conanfile.py · examples/tula_downstream</span><span class="slide-number"></span></footer>
   </section>
 
   <section class="slide" data-section="Downstream proof">
@@ -956,6 +1806,191 @@ packaged logging provider: disabled</pre>
     <footer class="footer"><span class="source">Sources: root justfile: downstream · .devcontainer/logs/downstream.log</span><span class="slide-number"></span></footer>
   </section>
 
+  <section class="slide" data-section="GrPPI">
+    <header class="slide-header">
+      <div><div class="section">Eighth package checkpoint</div><h2>GrPPI adds the execution-policy dependency required by the timestream solver</h2></div>
+    </header>
+    <div class="body">
+      <div class="columns">
+        <pre><span class="cm"># data/registry.yaml</span>
+grppi:
+  modes: [cpm]
+  dependencies:
+    - logging
+    - bitmask
+    - meta_enum
+    - perflibs
+  cmake_vars:
+    URL: .../<span class="str">12f5c11b</span>.tar.gz
+    SHA256: <span class="str">cdfd6075...</span></pre>
+        <pre><span class="cm"># resolver result</span>
+<span class="kw">add_library</span>(tula_grppi INTERFACE)
+<span class="kw">target_link_libraries</span>(
+  tula_grppi INTERFACE
+  tula::logging tula::bitmask
+  tula::meta_enum tula::perflibs)
+
+<span class="kw">add_library</span>(
+  tula::grppi ALIAS tula_grppi)</pre>
+      </div>
+      <div class="diagram-chain" style="margin-top:22px">
+        <div class="diagram-node"><span class="diagram-owner">Registry</span><strong>disabled / CPM</strong><p>Only supported evidence-backed modes.</p></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node cmake"><span class="diagram-owner">Resolver</span><strong><code>tula::grppi</code></strong><p>Header path plus Threads/OpenMP policy.</p></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node package"><span class="diagram-owner">Evidence</span><strong>Matrix + Tula CTest</strong><p>Sequential map and dynamic execution.</p></div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: registry.yaml · resolvers/grppi.cmake · tests/test_grppi.cpp</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Tula package">
+    <header class="slide-header">
+      <div><div class="section">Production package boundary</div><h2>Tula is now an installed Conan package, not a workspace include path</h2></div>
+    </header>
+    <div class="body">
+      <div class="diagram-chain">
+        <div class="diagram-node"><span class="diagram-owner">tula recipe</span><strong>Extend TulaConan</strong><p>Registry options and requirements enter the Conan graph.</p><div class="artifact-list"><span class="artifact">conanfile.py</span></div></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node cmake"><span class="diagram-owner">CMake build</span><strong>Resolve + test</strong><p>Normalized targets compile the selected Tula header surface.</p><div class="artifact-list"><span class="artifact">13 CTests</span><span class="artifact">config.h</span></div></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node package"><span class="diagram-owner">cmake --install</span><strong><code>tula/3.1.0</code></strong><p>Public headers and generated provider state enter the package.</p><div class="artifact-list"><span class="artifact">include/tula</span><span class="artifact">revision</span></div></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node conan"><span class="diagram-owner">CMakeDeps</span><strong><code>tula::headers</code></strong><p>A consumer sees a standard imported target.</p><div class="artifact-list"><span class="artifact">tula-config.cmake</span></div></div>
+      </div>
+      <div class="columns" style="margin-top:24px">
+        <pre><span class="kw">def</span> package_info(self):
+    self.cpp_info.set_property(
+      <span class="str">"cmake_target_name"</span>,
+      <span class="str">"tula::headers"</span>)</pre>
+        <div class="note good"><p><strong>Verified:</strong> kidscpp compiles from the installed package in Conan's cache. No <code>add_subdirectory(tula)</code> or sibling include directory is used.</p></div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: tula/{conanfile.py,CMakeLists.txt} · root justfile: kidscpp</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="kidscpp scope">
+    <header class="slide-header">
+      <div><div class="section">Archived v3 intent restored</div><h2>The active kidscpp package is timestream-only by design</h2></div>
+    </header>
+    <div class="body">
+      <table>
+        <thead><tr><th style="width:26%">Surface</th><th style="width:18%">v3 status</th><th>Reason</th></tr></thead>
+        <tbody>
+          <tr><td>Raw/solved timestream data</td><td class="status done">Included</td><td>Required public data contract for the solver.</td></tr>
+          <tr><td>Welch/PSD utilities</td><td class="status done">Included</td><td>Archived implementation retained with behavior tests.</td></tr>
+          <tr><td>I/Q timestream solver</td><td class="status done">Included</td><td>Core C++ processing ownership recorded by the v3 rewrite.</td></tr>
+          <tr><td>NetCDF result writer</td><td class="status done">Included</td><td>Existing solver-result persistence remains compiled.</td></tr>
+          <tr><td>Sweep finder/fitter + Ceres</td><td class="status open">Excluded</td><td>Sweep processing moved to Python; parameter metadata no longer drags in a fitter.</td></tr>
+          <tr><td>GUI and multipurpose CLI</td><td class="status open">Excluded</td><td>Outside the trimmed v3 product boundary.</td></tr>
+          <tr><td>Runtime sweep/time variant</td><td class="status open">Excluded</td><td>Removes unused API and private GCC <code>std::variant</code> specializations.</td></tr>
+        </tbody>
+      </table>
+      <div class="note" style="margin-top:20px"><p><strong>Reference policy:</strong> <code>refs/kidscpp</code> and the large archived snapshot remain read-only behavior evidence; they are not copied wholesale into the active tree.</p></div>
+    </div>
+    <footer class="footer"><span class="source">Sources: kidscpp/README.md · design/ARCHITECTURE.md · archived kidscpp main recipe</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Solver flow">
+    <header class="slide-header">
+      <div><div class="section">Timestream implementation</div><h2>The solver keeps the numerical path while simplifying its dependency boundary</h2></div>
+    </header>
+    <div class="body">
+      <div class="diagram-chain">
+        <div class="diagram-node"><span class="diagram-owner">Input</span><strong>Raw timestream</strong><p>Row-major I/Q matrices, tone-axis calibration, and FlatConfig metadata.</p><div class="artifact-list"><span class="artifact">KidsData&lt;RawTimeStream&gt;</span></div></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node"><span class="diagram-owner">Calibration</span><strong>Fit report or built-in</strong><p>Load ECSV when requested; otherwise use the tone-axis model.</p><div class="artifact-list"><span class="artifact">11 parameters</span></div></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node cmake"><span class="diagram-owner">Execution</span><strong>GrPPI chunks</strong><p>Normalize and derotate I/Q, then evaluate x and r.</p><div class="artifact-list"><span class="artifact">seq / OpenMP</span></div></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node"><span class="diagram-owner">Optional analysis</span><strong>Welch PSD</strong><p>Window, FFT, one-sided normalization, and segment averaging.</p><div class="artifact-list"><span class="artifact">frequency bins</span></div></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node package"><span class="diagram-owner">Output</span><strong>Solved timestream</strong><p>Detuning/dissipation arrays, model metadata, and NetCDF writer.</p><div class="artifact-list"><span class="artifact">KidsData&lt;SolvedTimeStream&gt;</span></div></div>
+      </div>
+      <div class="columns" style="margin-top:24px">
+        <pre><span class="kw">constexpr auto</span> model =
+  CalibrationModel::
+    S21WithGainLinTrend;
+<span class="kw">using</span> Traits =
+  CalibrationModelTraits&lt;model&gt;;
+<span class="kw">auto</span> mdl = tone_data.array()
+  .bottomRows(Traits::parameter_count);</pre>
+        <div><h3>Executable assertions</h3><ul><li>Odd FFT input is rounded down to an even sample count.</li><li>Welch output is finite, non-negative, and one-sided.</li><li>Known I/Q input produces x = 0.25 and r = 0.125.</li><li>Output records the calibration model and solved kind.</li></ul></div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: kidscpp/src/kids/timestream/solver.cpp · kidscpp/tests</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Citlali dependencies">
+    <header class="slide-header">
+      <div><div class="section">Ninth through thirteenth package checkpoints</div><h2>Citlali adds five independently tested Conan features</h2></div>
+    </header>
+    <div class="body">
+      <table class="tight">
+        <thead><tr><th>Feature</th><th>Conan reference</th><th>Normalized target</th><th>Executable probe</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td><code>spectra</code></td><td><code>spectra/1.0.1</code></td><td><code>tula::spectra</code></td><td>Symmetric eigensolver</td><td class="status done">2 cases pass</td></tr>
+          <tr><td><code>boost</code></td><td><code>boost/1.91.0</code></td><td><code>tula::boost</code></td><td>Header/version use</td><td class="status done">2 cases pass</td></tr>
+          <tr><td><code>fftw</code></td><td><code>fftw/3.3.10</code></td><td><code>tula::fftw</code></td><td>Plan + execute</td><td class="status done">2 cases pass</td></tr>
+          <tr><td><code>ccfits</code></td><td><code>ccfits/2.6</code></td><td><code>tula::ccfits</code></td><td>FITS object construction</td><td class="status done">2 cases pass</td></tr>
+          <tr><td><code>ceres</code></td><td><code>ceres-solver/2.2.0</code></td><td><code>tula::ceres</code></td><td>Bounded scalar solve</td><td class="status done">2 cases pass</td></tr>
+        </tbody>
+      </table>
+      <div class="columns" style="margin-top:22px">
+        <div class="note"><p><strong>Version graph:</strong> Eigen is held at 3.4.0 because both Spectra 1.0.1 and Ceres 2.2.0 require that release.</p></div>
+        <div class="note"><p><strong>Compile policy:</strong> Ceres Schur specializations are disabled. Citlali selects dense QR, and the smaller build avoids unused template expansion.</p></div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: registry.yaml · resolvers/{spectra,boost,fftw,ccfits,ceres}.cmake · feature_matrix/probes</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Citlali package flow">
+    <header class="slide-header">
+      <div><div class="section">Installed artifact lifecycle</div><h2>Citlali closes a three-level Conan package chain without workspace includes</h2></div>
+    </header>
+    <div class="body">
+      <div class="diagram-chain">
+        <div class="diagram-node package"><span class="diagram-owner">Package 1</span><strong><code>tula/3.1.0</code></strong><p>Headers, generated feature state, and bundled CPM-only header closure.</p><div class="artifact-list"><span class="artifact">tula::headers</span><span class="artifact">config.h</span><span class="artifact">bitmask/meta-enum/CSV/GrPPI</span></div></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node conan"><span class="diagram-owner">Public Conan edge</span><strong>transitive headers + libs</strong><p>The recipe states interface visibility explicitly.</p></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node package"><span class="diagram-owner">Package 2</span><strong><code>kidscpp/3.1.0</code></strong><p>Trimmed timestream solver and its installed target.</p><div class="artifact-list"><span class="artifact">kids::kids</span><span class="artifact">libkids.a</span></div></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node conan"><span class="diagram-owner">Public Conan edge</span><strong>transitive headers + libs</strong><p>Tula remains visible through the third level.</p></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node package"><span class="diagram-owner">Package 3</span><strong><code>citlali/4.0.0</code></strong><p>Five production sources plus normalized external targets.</p><div class="artifact-list"><span class="artifact">citlali::citlali</span><span class="artifact">libcitlali.a</span></div></div>
+      </div>
+      <pre style="margin-top:24px">tula_public_features = (<span class="str">"ceres"</span>, <span class="str">"eigen"</span>, ...)
+<span class="kw">self.requires</span>(<span class="str">"kidscpp/3.1.0"</span>,
+    transitive_headers=<span class="kw">True</span>,
+    transitive_libs=<span class="kw">True</span>)</pre>
+      <div class="note good" style="margin-top:18px"><p><strong>Verified:</strong> the compiler sees Tula from Conan’s package cache; no sibling <code>tula/include</code> or <code>kidscpp/include</code> path enters the build.</p></div>
+    </div>
+    <footer class="footer"><span class="source">Sources: kidscpp/conanfile.py · citlali/{conanfile.py,CMakeLists.txt} · root justfile: citlali</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Citlali implementation">
+    <header class="slide-header">
+      <div><div class="section">Behavior-preserving v4 port</div><h2>Current APIs required three local adaptations; the compiled software boundary did not expand</h2></div>
+    </header>
+    <div class="body">
+      <table>
+        <thead><tr><th style="width:25%">Compile boundary</th><th style="width:32%">Current implementation</th><th>Behavior invariant</th></tr></thead>
+        <tbody>
+          <tr><td>ECSV typed columns</td><td>Read the public <code>ColDataRef.data</code> Eigen view before casting.</td><td>Integer, boolean, float, and double columns still become double vectors.</td></tr>
+          <tr><td>Ceres fixed angle</td><td><code>SubsetManifold</code> + <code>SetManifold</code> replace the removed parameterization API.</td><td>The final angle remains fixed when <code>fit_angle</code> is false.</td></tr>
+          <tr><td>Eigen logging</td><td>Include <code>tula/formatter/matrix.h</code> at the matrix log call.</td><td>The same scan-index matrix is logged.</td></tr>
+        </tbody>
+      </table>
+      <div class="columns" style="margin-top:22px">
+        <div><h3>Five v4 sources compiled</h3><ul><li>calibration</li><li>telescope</li><li>mapmaking</li><li>PTC sensitivity</li><li>Gaussian models</li></ul></div>
+        <div><h3>Executable evidence</h3><ul><li>Gaussian 1-D reference values</li><li>Existing flattened 2-D mesh layout and values</li><li>Both CTests pass against the installed dependency graph</li></ul></div>
+      </div>
+      <div class="note warning" style="margin-top:18px"><p><strong>Explicit boundary:</strong> the old CLI still owns removed kidscpp sweep APIs and generated version headers, so it is not silently included in this library milestone.</p></div>
+    </div>
+    <footer class="footer"><span class="source">Sources: citlali/src · citlali/include/citlali/core/utils · citlali/tests</span><span class="slide-number"></span></footer>
+  </section>
+
   <section class="slide" data-section="Acceptance">
     <header class="slide-header">
       <div><div class="section">Definitive gate</div><h2><code>just all</code> covers typed infrastructure, complex CMake, and downstream UX</h2></div>
@@ -964,16 +1999,19 @@ packaged logging provider: disabled</pre>
       <table class="tight">
         <thead><tr><th style="width:22%">Gate</th><th style="width:28%">Coverage</th><th>Verified assertion</th></tr></thead>
         <tbody>
-          <tr><td><code>unit</code></td><td>16 tests + ≥85% coverage</td><td>Pydantic models, derived resolver and resource-layout conventions, CLI, generated-preset workflow, Ruff, and <code>ty</code>.</td></tr>
-          <tr><td><code>docs</code></td><td>Sphinx HTML with <code>-W</code></td><td>Architecture, workflow, generated Pydantic schemas, Python API, and CLI render without warnings.</td></tr>
-          <tr><td><code>boilerplate</code></td><td>disabled, system, Conan, CPM</td><td>Logging meta-feature supplies both fmt and spdlog in every enabled mode.</td></tr>
-          <tr><td><code>tula</code></td><td>logging modes + perflibs system</td><td>Header smoke compiles; required GNU OpenMP resolves; CTest passes.</td></tr>
+          <tr><td><code>unit</code></td><td>25 tests + ≥85% coverage</td><td>Models, public-feature traits, recipe defaults, registry conventions, workflow, and matrix-catalog completeness.</td></tr>
+          <tr><td><code>docs</code></td><td>Sphinx HTML with <code>-W</code></td><td>Architecture, workflow, provider/options matrix, Pydantic schemas, Python API, and CLI render without warnings.</td></tr>
+          <tr><td><code>matrix-all</code></td><td>62 derived cases</td><td>Every provider and option value is collected; 56 run in the default image and 6 declare capabilities.</td></tr>
+          <tr><td><code>boilerplate</code></td><td>one minimal build</td><td>Example UX remains valid without carrying infrastructure test profiles.</td></tr>
+          <tr><td><code>tula</code></td><td>thirteen CTest cases</td><td>Core, ECSV, CSV streaming, Eigen, nddata, config, filesystem, NetCDF, enum, CLI, and GrPPI behavior pass.</td></tr>
           <tr><td><code>wheel</code></td><td>fresh venv + Conan home</td><td>Installed wheel carries CLI and complete integration data.</td></tr>
           <tr><td><code>downstream</code></td><td>fresh Conan home</td><td>Packaged boilerplate is consumed through the one-command workflow.</td></tr>
+          <tr><td><code>kidscpp</code></td><td>Tula package + 3 CTests + package consumer</td><td>The trimmed solver compiles against installed <code>tula::headers</code>, passes regressions, and exports a usable target.</td></tr>
+          <tr><td><code>citlali</code></td><td>Three packages + 2 CTests + package consumer</td><td>The v4 library compiles through kidscpp and its installed <code>citlali::citlali</code> target is independently consumed.</td></tr>
         </tbody>
       </table>
       <div class="note good" style="margin-top:22px">
-        <p><strong>Result:</strong> the complete gate passed in the rebuilt dev container on 24 July 2026.</p>
+        <p><strong>Result:</strong> the complete gate passed in the rebuilt dev container on 25 July 2026.</p>
       </div>
     </div>
     <footer class="footer"><span class="source">Sources: root justfile · .devcontainer/logs/*.log</span><span class="slide-number"></span></footer>
@@ -1001,16 +2039,23 @@ packaged logging provider: disabled</pre>
 
   <section class="slide" data-section="Next boundary">
     <header class="slide-header">
-      <div><div class="section">Next software milestone</div><h2>Use perflibs to establish the complex-system test matrix, then expand packages</h2></div>
+      <div><div class="section">Next delivery milestone</div><h2>Publish the verified package graph without changing the user command</h2></div>
     </header>
     <div class="body">
       <div class="flow">
-        <div><p><strong>Add a oneAPI-capable validation image</strong><span>Exercise <code>MKL::MKL</code>, sequential/OpenMP/TBB threading choices, and Intel runtime validation.</span></p></div>
-        <div><p><strong>Record the package support matrix</strong><span>Add packages one row at a time with version, provider availability, targets, and tested platforms.</span></p></div>
-        <div><p><strong>Split dependencies only when evidence requires it</strong><span>Keep semantic meta-features such as logging intact until an actual package subset needs a separate contract.</span></p></div>
-        <div><p><strong>Restore the next coherent Tula module</strong><span>Port its production tests unchanged against the read-only Conan 1 reference.</span></p></div>
-        <div><p><strong>Package <code>tula/3.1.0</code></strong><span>Complete install/export metadata and verify an independent package consumer.</span></p></div>
-        <div><p><strong>Move kidscpp after that boundary is green</strong><span>Consume packaged Tula while preserving its production behavior.</span></p></div>
+        <div><p><strong>GrPPI complete</strong><span>The pinned fork has disabled/CPM matrix cases and a Tula dynamic-execution behavior test.</span></p></div>
+        <div><p><strong>Tula package boundary complete</strong><span><code>tula/3.1.0</code> installs headers plus generated provider state and exports <code>tula::headers</code>.</span></p></div>
+        <div><p><strong>Trimmed kidscpp solver complete</strong><span>The static library consumes packaged Tula and passes PSD plus raw-I/Q numerical tests.</span></p></div>
+        <div><p><strong>Citlali library slice complete</strong><span><code>citlali/4.0.0</code> consumes installed kidscpp and passes two Gaussian regressions.</span></p></div>
+        <div><p><strong>Installed-target consumers complete</strong><span>Tula, kidscpp, and Citlali each compile an independent Conan <code>test_package</code>.</span></p></div>
+        <div><p><strong>Deploy the TolTEC Conan remote</strong><span>Create development, release, cached ConanCenter, and virtual repositories in Artifactory CE.</span></p></div>
+        <div><p><strong>Publish shared configuration</strong><span>Set the final virtual URL, profiles, and allowed package patterns consumed by <code>TULA_CONAN_CONFIG_SOURCE</code>.</span></p></div>
+        <div><p><strong>Add CI promotion</strong><span>Create and upload in dependency order, capture a lockfile, then promote verified revisions to release.</span></p></div>
+        <div><p><strong>Decide the v4 CLI boundary</strong><span>Reintroduce only entry points compatible with the trimmed kidscpp ownership model.</span></p></div>
+        <div><p><strong>Add NetCDF result fixtures</strong><span>Exercise the compiled kidscpp result writer against small deterministic files.</span></p></div>
+        <div><p><strong>Audit timestream entry points</strong><span>Restore only production behavior still owned by the trimmed C++ package.</span></p></div>
+        <div><p><strong>Keep kidscpp scope explicit</strong><span>Ceres belongs to Citlali; sweep finding/fitting and GUI stay outside trimmed kidscpp.</span></p></div>
+        <div><p><strong>Defer oneAPI</strong><span>Keep its capability cases visible until a dedicated validation image is available.</span></p></div>
       </div>
     </div>
     <footer class="footer"><span class="source">Source: design/TASKS.md</span><span class="slide-number"></span></footer>

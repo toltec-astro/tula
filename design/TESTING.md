@@ -14,14 +14,19 @@ features, and verify both distribution boundaries:
 
 - Ruff lint and formatting checks;
 - `ty` static analysis;
-- 16 Pytest tests, with documentation sources included in collection;
+- 25 fast Pytest tests, with documentation sources included in collection;
 - branch coverage with an 85% threshold;
 - Sphinx HTML documentation build with warnings treated as errors.
 
 Tests cover Pydantic invariants, registry loading, missing resources, selection
-rendering, convention-derived resolver paths and commands, CLI behavior,
-installed resources, typed generated-preset parsing, and exact
-external-command ordering.
+rendering, convention-derived provider entry points, selection-aware preset
+cache variables, CLI option validation/scoping, installed resources, typed
+generated-preset parsing, and exact external-command ordering.
+
+The unit gate also validates that every registry feature has matrix metadata,
+every provider is collected automatically, and every feature-owned option has
+an axis covering its complete value domain. Executable matrix cases are
+marked and deselected from this fast gate.
 
 The generated Sphinx site has a dedicated model page using
 `autodoc-pydantic`; it renders field metadata, validator summaries, and JSON
@@ -30,29 +35,55 @@ schemas from the runtime classes rather than maintaining parallel tables.
 `recipe.py` is excluded from unit coverage because it is executed by every real
 Conan integration gate.
 
-## Fast integration
+## Feature matrix
 
-`just fast` verifies:
+`just matrix` runs the download-free feature cases as ordinary Pytest
+items. `just matrix-all` also runs Conan and CPM providers. The current
+catalog derives 62 cases:
 
-- boilerplate with logging disabled;
-- boilerplate using system fmt + spdlog through `tula::logging`;
-- Tula using system perflibs with Threads and required GNU OpenMP.
+- disabled and every enabled provider for each feature;
+- every logging-level value;
+- disabled, Conan, CPM, and system yaml-cpp providers;
+- disabled and CPM csv-parser providers;
+- disabled, Conan, and system NetCDF C providers;
+- disabled, CPM, and system NetCDF C++ providers;
+- disabled and CPM bitmask providers;
+- disabled and CPM meta-enum providers;
+- disabled, Conan, and CPM clipp providers;
+- disabled, Conan, CPM, and system Eigen providers plus both multithreading
+  values;
+- disabled and Conan Spectra, Boost, FFTW, CCfits, and Ceres providers;
+- every perflibs option value;
+- explicit capability gates for oneAPI and LLVM OpenMP cases.
 
-## Provider acceptance
+Each runnable case uses an isolated temporary project, direct root-scoped Conan
+options, the production `BuildWorkflow`, generated-preset assertions, a
+feature-specific C++ probe, and CTest. No example profile defines matrix state.
 
-`just providers` builds the same boilerplate source with:
+The default container currently reports 56 runnable cases and 6 capability
+skips. `TULA_TEST_CAPABILITIES=oneapi,llvm-openmp` activates those cases in an
+image providing the corresponding packages. Intel and LLVM runtime cases also
+require `TULA_TEST_INTEL_PROFILE` or `TULA_TEST_LLVM_PROFILE`, respectively.
 
-- Conan-provided fmt + spdlog;
-- CPM-provided fmt + spdlog.
+`just providers` selects only the network-marked Conan/CPM cases.
 
 CPM source archives may be reused from `.devcontainer/cache/cpm/`; build/output
 trees remain isolated.
 
-## Tula compile acceptance
+## Package smoke acceptance
 
-`just tula <mode>` compiles `tula_header_smoke` and runs CTest. Logging modes
-compile both formatter and logging headers. `perflibs-system` verifies imported
-Threads/OpenMP targets and exported capability definitions.
+`just boilerplate` builds the minimal example with its Conan-backed logging
+default. `just tula` uses the feature defaults owned by the Tula recipe:
+Conan-backed logging, yaml-cpp, clipp, and Eigen; CPM-backed csv-parser,
+bitmask, meta-enum, and GrPPI; and system perflibs and NetCDF C/C++. It runs
+thirteen CTest cases: core header smoke,
+ECSV core/header, Eigen utilities, Eigen-backed nddata, ECSV typed tables,
+streaming CSV-to-ECSV loading, FlatConfig, YamlConfig, and filename/filesystem
+helpers, NetCDF type/I/O behavior, and enum/bitmask metadata and formatting.
+The CLI case covers builder parsing and typed configuration projection; the
+GrPPI case exercises the normalized dynamic sequential execution policy.
+These tests validate package behavior without
+duplicating the feature matrix.
 
 This is meaningful compile/runtime coverage, not yet full production behavior
 parity.
@@ -78,16 +109,37 @@ parity.
 4. invokes `tula_downstream/build` once;
 5. verifies the executable consumed packaged boilerplate.
 
+`just kidscpp` creates `tula/3.1.0`, then creates `kidscpp/3.1.0` against the
+installed `tula::headers` target in the same isolated Conan home. Its CTest
+gate verifies FFT shape, Welch PSD output, and deterministic timestream
+solving. Conan then compiles the independent `test_package` target.
+
+`just citlali` creates the complete installed-package chain in one Conan home:
+Tula, kidscpp, then `citlali/4.0.0`. It builds the five-source v4 library
+against Spectra, Boost, FFTW, CCfits, and Ceres, then runs two Gaussian model
+regressions. With no environment override it uses and removes a fresh Conan
+home. Developers may set `CITLALI_CONAN_HOME` to a cache under
+`.devcontainer/cache/` for fast compile-fix iterations.
+
+Tula, kidscpp, and Citlali each have a minimal `test_package` that consumes
+their installed CMake target. Package creation therefore verifies installed
+headers, target metadata, and transitive public requirements in addition to
+the source-tree behavior suites.
+
 ## Commands
 
 ```sh
 just unit
+just matrix
+just matrix-all
 just fast
 just providers
-just boilerplate system
-just tula perflibs-system
+just boilerplate
+just tula
 just wheel
 just downstream
+just kidscpp
+just citlali
 just all
 ```
 
@@ -98,9 +150,9 @@ Logs are retained under `.devcontainer/logs/`.
 Do not recreate a Cartesian matrix speculatively. For each package or semantic
 feature:
 
-1. record its versions, targets, modes, and platform requirements;
-2. add schema/model tests;
-3. add one minimal behavior assertion;
-4. exercise every claimed provider;
+1. record versions, targets, modes, option domains, and platform requirements;
+2. add one feature probe and one option axis per feature-owned option;
+3. declare only meaningful companion options and capability requirements;
+4. let the catalog-completeness test prove every provider and value is covered;
 5. add mixed cases only for meaningful dependency edges;
 6. extend package-chain tests when public package metadata changes.

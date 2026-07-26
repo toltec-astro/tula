@@ -94,7 +94,7 @@ concept EnumWithMeta = tula::meta::EnumClass<T> && requires {
 
 template <typename T>
 concept BitFlag = tula::meta::EnumClass<T> && requires {
-    typename bitmask::bitmask<T>::mask_value;
+    bitmask::bitmask<T>::mask_value;
 } &&(bitmask::bitmask<T>::mask_value > 0);
 
 template <typename T>

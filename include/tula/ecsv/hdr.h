@@ -176,7 +176,7 @@ struct formatter<tula::ecsv::ECSVColumn>
     // s: short form as <name>(<datatype>)
     // l: long form with full info
     template <typename FormatContext>
-    auto format(const tula::ecsv::ECSVColumn &col, FormatContext &ctx) {
+    auto format(const tula::ecsv::ECSVColumn &col, FormatContext &ctx) const {
         auto it = ctx.out();
         auto spec = spec_handler();
         switch (spec) {
@@ -196,7 +196,7 @@ template <>
 struct formatter<tula::ecsv::ECSVHeader>
     : tula::fmt_utils::nullspec_formatter_base {
     template <typename FormatContext>
-    auto format(const tula::ecsv::ECSVHeader &hdr, FormatContext &ctx) {
+    auto format(const tula::ecsv::ECSVHeader &hdr, FormatContext &ctx) const {
         auto it = ctx.out();
         return format_to(it, "ECSVHeader(ncols={})", hdr.cols().size());
     }

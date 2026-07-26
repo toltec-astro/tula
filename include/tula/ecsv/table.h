@@ -473,19 +473,17 @@ struct ECSVTable {
     auto loader() const -> decltype(auto) { return m_loader; }
 
     template <internal::ECSVDataType T>
+    auto array_data() -> decltype(auto) {
+        return std::get<ArrayData<T>>(m_data);
+    }
+    template <internal::ECSVDataType T>
     auto array_data() const -> decltype(auto) {
         return std::get<ArrayData<T>>(m_data);
     }
     template <internal::ECSVDataType T>
     auto col(index_t idx) {
-        auto [i, j] = m_loader.get_ref_index()[idx].front();
-        return this->array_data<T>().array().col(j);
-        // auto colref = m_loader.colrefs(idx).front();
-        // because there is no duplicate in the loader, we can just get the
-        // first col
-        // unwrap the variant
-        // return std::get<decltype(std::declval<ArrayData<T> &>()(index_t()))>(
-        // colref);
+        const auto data_index = m_loader.get_ref_index()[idx].front().second;
+        return this->array_data<T>()(data_index);
     }
     template <internal::ECSVDataType T>
     auto col(const label_t &name) -> decltype(auto) {

@@ -4,6 +4,8 @@
 CMakeCache.*
 CMakeFiles/*
 CMakeUserPresets.json
+**/CMakeUserPresets.json
+**/build/
 [Tt]esting/*
 
 ### VisualStudioCode ###

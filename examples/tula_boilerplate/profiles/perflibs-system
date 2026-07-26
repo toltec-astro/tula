@@ -1,7 +1,0 @@
-[options]
-&:logging=disabled
-&:perflibs=system
-&:perflibs_oneapi=disabled
-&:perflibs_openmp=required
-&:perflibs_openmp_runtime=gnu
-&:perflibs_mkl_threading=sequential

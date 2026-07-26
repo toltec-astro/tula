@@ -3,7 +3,6 @@
 #include "../eigen.h"
 #include "core.h"
 #include <Eigen/Core>
-#include <Eigen/src/Core/util/XprHelper.h>
 #include <optional>
 #include <string>
 #include <type_traits>

@@ -1,4 +1,0 @@
-[options]
-&:logging=cpm
-&:perflibs=disabled
-&:logging_level=info
