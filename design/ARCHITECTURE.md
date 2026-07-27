@@ -546,21 +546,45 @@ branch: C++ owns timestream solving; sweep finding and fitting remain outside
 this package. The much larger preserved archive and `refs/kidscpp` are audit
 inputs, not source trees to restore wholesale.
 
-The package contains raw and solved timestream data models, calibration-model
-metadata, Welch/PSD utilities, the raw-I/Q solver, and NetCDF result
-serialization. Sweep finders, sweep fitters, the GUI, the legacy multipurpose
-CLI, and the runtime `std::variant` over sweep/timestream types are absent.
+The package contains raw and solved timestream data models, a narrow TolTEC
+NetCDF raw reader, calibration-model metadata, Welch/PSD utilities, the
+raw-I/Q solver, and NetCDF result serialization. Sweep finders, sweep fitters,
+the GUI, the legacy multipurpose CLI, and the runtime `std::variant` over
+sweep/timestream types are absent.
 The GCC 9–13 specialization of private `std::variant` internals was not
 carried forward. The solver keeps the archived numerical equations and output
 metadata but no longer pulls Ceres through a sweep fitter merely to obtain an
 eleven-parameter count.
 
-Three CTests provide the initial behavior boundary: odd-length FFT shape,
-finite one-sided Welch output, and deterministic raw I/Q conversion to
-detuning/dissipation. The latter verifies calibration-model and output-kind
-metadata. Fit-report fallback now checks whether a fit-report source was
-requested before reading TolTEC filename metadata, so built-in calibration
-works with a minimal in-memory timestream.
+The reader exposes explicit `get_raw_timestream_meta()` and
+`read_raw_timestream_slice()` functions under `<kids/toltec/timestream.h>`.
+It accepts only raw TolTEC timestream files (`ObsType=1`), maps file/header
+metadata, reads strided `Ts`/`Is`/`Qs` slices, and builds the absolute
+tone-frequency plus model-parameter axis required by `TimeStreamSolver`.
+Citlali owns observation orchestration and slice selection, but does not own
+or duplicate NetCDF parsing.
+
+The replacement preserves the production raw-file details that affect
+reduction: filename/header precedence, the zero-padded calibration fit-report
+pattern, the first tone/model block used by raw timestreams, the early-file
+`Data.Toltec.Xs` time-axis fallback, positive strided slicing, and the
+calibration/model metadata consumed by `TimeStreamSolver`.
+
+Five CTests provide the current behavior boundary: odd-length FFT shape,
+finite one-sided Welch output, deterministic raw I/Q conversion to
+detuning/dissipation, real-file ingestion, and invalid slice-stride rejection.
+The real-file test uses the small 2024 `tolteca_test_data` fixture when
+`TOLTECA_TEST_DATA_ROOT` is present and checks exact metadata and sample
+values. Fit-report fallback checks whether a fit-report source was requested
+before reading TolTEC filename metadata, so built-in calibration works with a
+minimal in-memory timestream.
+
+The installed Kidscpp target is also executable evidence. Adding the NetCDF
+reader exposed that source-tree CMake correctly linked
+`PkgConfig::NETCDF_CXX4`, while Conan's installed static target omitted those
+platform libraries. Registry features can now declare `system_libs`;
+`TulaConan.package_info()` propagates them for public system providers.
+NetCDF C and C++ currently contribute `netcdf` and `netcdf_c++4`.
 
 ## Citlali dependency slice
 
@@ -581,9 +605,17 @@ QR, while the smaller binary avoids unnecessary compile-time memory pressure.
 
 The current v4 library intentionally preserves the five source files compiled
 by the `v4.x` CMake definition: calibration, telescope, mapmaking, PTC
-sensitivity, and Gaussian models. The old CLI is not part of this slice
-because it owns removed kidscpp sweep APIs and generated version headers.
-Two tests lock Gaussian 1-D values and the existing flattened 2-D mesh result.
+sensitivity, and Gaussian models. Citlali's own reduction CLI is restored as
+an installed executable. Its observation/configuration pipeline is unchanged;
+only its KIDs boundary now calls the explicit Kidscpp raw-reader and
+`TimeStreamSolver` APIs. The obsolete Citlali copy of the Kidscpp
+multipurpose CLI is removed.
+
+Six CTests lock Gaussian 1-D values, the existing flattened 2-D mesh result,
+CLI help/version/default-config behavior, and the Citlali adapter's equivalence
+to direct Kidscpp ingestion/solving on the real TolTEC fixture. The latter
+compares metadata, slice axes, I/Q, tone models, solved detuning/dissipation,
+and matching invalid samples.
 
 Three compatibility edits preserve behavior while accepting current APIs:
 
@@ -596,8 +628,7 @@ Three compatibility edits preserve behavior while accepting current APIs:
 
 1. Add a oneAPI-capable validation image for MKL/runtime combinations.
 2. Grow the package matrix one dependency row at a time.
-3. Add a minimal consumer of packaged `citlali::citlali`.
-4. Decide the v4 CLI boundary independently of the verified library slice.
-5. Add focused NetCDF result serialization fixtures to kidscpp.
-6. Audit remaining timestream-only entry points without restoring sweep, GUI,
-   or broad CLI ownership.
+3. Add focused NetCDF result serialization fixtures to kidscpp.
+4. Add a complete small-observation Citlali output fixture when the required
+   telescope/APT/calibration inputs are available.
+5. Keep sweep, GUI, and broad CLI ownership outside Kidscpp.

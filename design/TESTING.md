@@ -138,20 +138,28 @@ parity.
 
 `just kidscpp` creates `tula/3.1.0`, then creates `kidscpp/3.1.0` against the
 installed `tula::headers` target in the same isolated Conan home. Its CTest
-gate verifies FFT shape, Welch PSD output, and deterministic timestream
-solving. Conan then compiles the independent `test_package` target.
+gate contains five cases for FFT shape, Welch PSD output, deterministic
+timestream solving, real TolTEC NetCDF ingestion, and invalid-stride
+rejection. The root recipe exports `TOLTECA_TEST_DATA_ROOT` automatically when
+the sibling `tolteca_test_data` checkout exists. Conan then compiles the
+independent `test_package` target and links the installed reader through the
+registry's public NetCDF system-library contract.
 
 `just citlali` creates the complete installed-package chain in one Conan home:
-Tula, kidscpp, then `citlali/4.0.0`. It builds the five-source v4 library
-against Spectra, Boost, FFTW, CCfits, and Ceres, then runs two Gaussian model
-regressions. With no environment override it uses and removes a fresh Conan
-home. Developers may set `CITLALI_CONAN_HOME` to a cache under
+Tula, kidscpp, then `citlali/4.0.0`. It builds the five-source v4 library and
+the Citlali reduction CLI against Spectra, Boost, threaded FFTW, CCfits, and
+Ceres, then runs six CTests: two Gaussian regressions, three CLI smoke tests,
+and a real-file Citlali-adapter equivalence test. With no environment override
+it uses and removes a fresh Conan home. Developers may set
+`CITLALI_CONAN_HOME` to a cache under
 `.devcontainer/cache/` for fast compile-fix iterations.
 
 Tula, kidscpp, and Citlali each have a minimal `test_package` that consumes
 their installed CMake target. Package creation therefore verifies installed
 headers, target metadata, and transitive public requirements in addition to
-the source-tree behavior suites.
+the source-tree behavior suites. Citlali's package consumer additionally runs
+the installed `citlali --version` and `citlali --dump_config` commands through
+Conan's run environment.
 
 ## Commands
 

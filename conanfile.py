@@ -44,3 +44,4 @@ class TulaRecipe(ConanFile):
     def package_info(self) -> None:
         self.cpp_info.set_property("cmake_file_name", "tula")
         self.cpp_info.set_property("cmake_target_name", "tula::headers")
+        super().package_info()

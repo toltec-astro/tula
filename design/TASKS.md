@@ -107,7 +107,15 @@
    client configuration.
 2. Add CI package creation, lockfile capture, upload, and promotion in
    dependency order.
-3. Decide which current v4 CLI behaviors belong above the library boundary.
-4. Add NetCDF result serialization fixtures to kidscpp.
-5. Keep kidscpp sweep finding/fitting, GUI, and the former broad CLI out of
+3. [x] Restore narrow TolTEC raw NetCDF metadata/slice ingestion in Kidscpp
+   and validate it with the real `tolteca_test_data` fixture.
+4. [x] Propagate public system-provider libraries through installed Conan
+   package targets; verify the Kidscpp reader links outside its source build.
+5. [x] Restore the Citlali reduction CLI with the explicit Kidscpp reader →
+   solver call path; install and exercise the executable from its Conan
+   package.
+6. Add NetCDF result serialization fixtures to kidscpp.
+7. Keep kidscpp sweep finding/fitting, GUI, and the former broad CLI out of
    the v3 package.
+8. Add a complete small-observation Citlali output fixture when matching
+   telescope/APT/calibration inputs are available.

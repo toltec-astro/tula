@@ -424,7 +424,7 @@
       <div class="section">Technical implementation review</div>
       <h1>Tula v3.1 package workflow</h1>
       <p class="lede">A one-command downstream experience built on the standard Conan 2 install and generated CMake preset flow.</p>
-      <p class="meta">Verified in Ubuntu 24.04 / GCC 13 + GCC 14 + Clang 20 · 26 July 2026<br>Release branches: tula_cmake v3.x_conan2 · Tula/kidscpp v3.x · Citlali v4.x_conan2</p>
+      <p class="meta">Verified in Ubuntu 24.04 / GCC 13 + GCC 14 + Clang 20 · 27 July 2026<br>Release branches: tula_cmake v3.x_conan2 · Tula/kidscpp v3.x · Citlali v4.x_conan2</p>
     </div>
     <footer class="footer"><span>Superbuild and package-chain vertical slice</span><span class="slide-number"></span></footer>
   </section>
@@ -1878,6 +1878,7 @@ grppi:
         <thead><tr><th style="width:26%">Surface</th><th style="width:18%">v3 status</th><th>Reason</th></tr></thead>
         <tbody>
           <tr><td>Raw/solved timestream data</td><td class="status done">Included</td><td>Required public data contract for the solver.</td></tr>
+          <tr><td>TolTEC raw NetCDF reader</td><td class="status done">Included</td><td>Explicit metadata and sliced raw-timestream API; Citlali does not duplicate parsing.</td></tr>
           <tr><td>Welch/PSD utilities</td><td class="status done">Included</td><td>Archived implementation retained with behavior tests.</td></tr>
           <tr><td>I/Q timestream solver</td><td class="status done">Included</td><td>Core C++ processing ownership recorded by the v3 rewrite.</td></tr>
           <tr><td>NetCDF result writer</td><td class="status done">Included</td><td>Existing solver-result persistence remains compiled.</td></tr>
@@ -1889,6 +1890,36 @@ grppi:
       <div class="note" style="margin-top:20px"><p><strong>Reference policy:</strong> <code>refs/kidscpp</code> and the large archived snapshot remain read-only behavior evidence; they are not copied wholesale into the active tree.</p></div>
     </div>
     <footer class="footer"><span class="source">Sources: kidscpp/README.md · design/ARCHITECTURE.md · archived kidscpp main recipe</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Raw ingestion">
+    <header class="slide-header">
+      <div><div class="section">File-to-solver ownership</div><h2>Kidscpp turns TolTEC NetCDF slices into the solver’s typed input</h2></div>
+    </header>
+    <div class="body">
+      <div class="diagram-chain">
+        <div class="diagram-node package"><span class="diagram-owner">Test data / RTC</span><strong>TolTEC NetCDF</strong><p>Citlali selects the file and sample interval; it does not parse the schema.</p><div class="artifact-list"><span class="artifact">ObsType=1</span><span class="artifact">start/stop/step</span></div></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node"><span class="diagram-owner">Kidscpp API</span><strong><code>read_raw_timestream_slice</code></strong><p>Validate metadata and read strided <code>Ts</code>, <code>Is</code>, and <code>Qs</code>.</p><div class="artifact-list"><span class="artifact">timestream.h</span><span class="artifact">RawTimeStreamIOError</span></div></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node cmake"><span class="diagram-owner">Axis construction</span><strong>Tone + time WCS</strong><p>Add LO center to tone frequencies and attach all model-parameter rows.</p><div class="artifact-list"><span class="artifact">f_tone</span><span class="artifact">f_in</span><span class="artifact">14 model rows</span></div></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node package"><span class="diagram-owner">Solver input</span><strong><code>KidsData&lt;RawTimeStream&gt;</code></strong><p>Row-major I/Q, six-column time axis, tone calibration, and FlatConfig metadata.</p><div class="artifact-list"><span class="artifact">TimeStreamSolver</span></div></div>
+      </div>
+      <div class="columns" style="margin-top:24px">
+        <pre><span class="kw">auto</span> meta =
+  kids::toltec::
+    get_raw_timestream_meta(path);
+<span class="kw">auto</span> raw =
+  kids::toltec::
+    read_raw_timestream_slice(
+      path, {start, stop, step});
+<span class="kw">auto</span> solved = solver(raw);</pre>
+        <div><h3>Real-file evidence</h3><ul><li>2024 <code>toltec0_018230_111_0000</code> fixture, 610 × 649 samples.</li><li>Exact observation IDs, sample rate, first I/Q values, and packet time are asserted.</li><li>All fourteen model labels are loaded; <code>f_in</code> is available to the solver.</li><li>Non-positive strides fail before any NetCDF slice read.</li></ul></div>
+      </div>
+      <div class="note good" style="margin-top:18px"><p><strong>Boundary:</strong> the old generic kind dispatcher, sweep loader/fitter, and Kidscpp CLI remain excluded.</p></div>
+    </div>
+    <footer class="footer"><span class="source">Sources: kidscpp/include/kids/toltec/timestream.h · src/kids/toltec/timestream.cpp · tests/test_toltec_timestream.cpp</span><span class="slide-number"></span></footer>
   </section>
 
   <section class="slide" data-section="Solver flow">
@@ -1958,7 +1989,7 @@ grppi:
         <div class="diagram-arrow">→</div>
         <div class="diagram-node conan"><span class="diagram-owner">Public Conan edge</span><strong>transitive headers + libs</strong><p>Tula remains visible through the third level.</p></div>
         <div class="diagram-arrow">→</div>
-        <div class="diagram-node package"><span class="diagram-owner">Package 3</span><strong><code>citlali/4.0.0</code></strong><p>Five production sources plus normalized external targets.</p><div class="artifact-list"><span class="artifact">citlali::citlali</span><span class="artifact">libcitlali.a</span></div></div>
+        <div class="diagram-node package"><span class="diagram-owner">Package 3</span><strong><code>citlali/4.0.0</code></strong><p>Five production library sources, the reduction CLI, and normalized external targets.</p><div class="artifact-list"><span class="artifact">citlali::citlali</span><span class="artifact">libcitlali.a</span><span class="artifact">bin/citlali</span></div></div>
       </div>
       <pre style="margin-top:24px">tula_public_features = (<span class="str">"ceres"</span>, <span class="str">"eigen"</span>, ...)
 <span class="kw">self.requires</span>(<span class="str">"kidscpp/3.1.0"</span>,
@@ -1971,24 +2002,49 @@ grppi:
 
   <section class="slide" data-section="Citlali implementation">
     <header class="slide-header">
-      <div><div class="section">Behavior-preserving v4 port</div><h2>Current APIs required three local adaptations; the compiled software boundary did not expand</h2></div>
+      <div><div class="section">Behavior-preserving v4 port</div><h2>Citlali keeps the v4 reduction flow and replaces only its KIDs boundary</h2></div>
     </header>
     <div class="body">
       <table>
         <thead><tr><th style="width:25%">Compile boundary</th><th style="width:32%">Current implementation</th><th>Behavior invariant</th></tr></thead>
         <tbody>
+          <tr><td>Raw TolTEC input</td><td><code>KidsDataProc</code> calls Kidscpp's typed metadata and slice entry points.</td><td>Calibration naming, time/I/Q slicing, tone models, and solver inputs match production.</td></tr>
           <tr><td>ECSV typed columns</td><td>Read the public <code>ColDataRef.data</code> Eigen view before casting.</td><td>Integer, boolean, float, and double columns still become double vectors.</td></tr>
           <tr><td>Ceres fixed angle</td><td><code>SubsetManifold</code> + <code>SetManifold</code> replace the removed parameterization API.</td><td>The final angle remains fixed when <code>fit_angle</code> is false.</td></tr>
           <tr><td>Eigen logging</td><td>Include <code>tula/formatter/matrix.h</code> at the matrix log call.</td><td>The same scan-index matrix is logged.</td></tr>
         </tbody>
       </table>
       <div class="columns" style="margin-top:22px">
-        <div><h3>Five v4 sources compiled</h3><ul><li>calibration</li><li>telescope</li><li>mapmaking</li><li>PTC sensitivity</li><li>Gaussian models</li></ul></div>
-        <div><h3>Executable evidence</h3><ul><li>Gaussian 1-D reference values</li><li>Existing flattened 2-D mesh layout and values</li><li>Both CTests pass against the installed dependency graph</li></ul></div>
+        <div><h3>Citlali owns the application</h3><ul><li>configuration and observation orchestration</li><li>sample interval selection</li><li>RTC/PTC, calibration, mapping, and output</li><li>the installed <code>citlali</code> executable</li></ul></div>
+        <div><h3>Executable evidence</h3><ul><li>Gaussian reference values</li><li>CLI help, versions, and default configuration</li><li>real-file adapter equals direct reader + solver</li><li>packaged CLI runs through Conan's run environment</li></ul></div>
       </div>
-      <div class="note warning" style="margin-top:18px"><p><strong>Explicit boundary:</strong> the old CLI still owns removed kidscpp sweep APIs and generated version headers, so it is not silently included in this library milestone.</p></div>
+      <div class="note good" style="margin-top:18px"><p><strong>Explicit boundary:</strong> Citlali ships its reduction CLI; Kidscpp remains a library-only raw-reader/solver and does not ship sweep fitting or a multipurpose CLI.</p></div>
     </div>
     <footer class="footer"><span class="source">Sources: citlali/src · citlali/include/citlali/core/utils · citlali/tests</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Citlali runtime flow">
+    <header class="slide-header">
+      <div><div class="section">Reduction execution path</div><h2>The CLI passes the same scientific artifacts through a narrower, owned interface</h2></div>
+    </header>
+    <div class="body">
+      <div class="diagram-chain">
+        <div class="diagram-node user"><span class="diagram-owner">Citlali CLI</span><strong>YAML + observation inputs</strong><p>Merge configuration, select reduction type, and construct <code>RawObs</code>.</p><div class="artifact-list"><span class="artifact">config.yaml</span><span class="artifact">file paths</span><span class="artifact">calibration items</span></div></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node cmake"><span class="diagram-owner">Citlali orchestration</span><strong><code>KidsDataProc</code></strong><p>Select each sample slice and retain telescope/APT/calibration ownership.</p><div class="artifact-list"><span class="artifact">start / stop / step</span></div></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node package"><span class="diagram-owner">Kidscpp input boundary</span><strong><code>read_raw_timestream_slice</code></strong><p>Read metadata, time/I/Q, and the first raw tone/model block.</p><div class="artifact-list"><span class="artifact">RawTimeStream</span><span class="artifact">cal_file pattern</span></div></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node package"><span class="diagram-owner">Kidscpp model</span><strong><code>TimeStreamSolver</code></strong><p>Use the same fit-report fallback, model parameters, and I/Q equations.</p><div class="artifact-list"><span class="artifact">Xs</span><span class="artifact">Rs</span><span class="artifact">metadata</span></div></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node generated"><span class="diagram-owner">Citlali science path</span><strong>RTC → PTC → maps</strong><p>Populate aligned chunks, calibrate, clean, map, and write existing outputs.</p><div class="artifact-list"><span class="artifact">NetCDF</span><span class="artifact">FITS</span><span class="artifact">summaries</span></div></div>
+      </div>
+      <div class="columns" style="margin-top:28px">
+        <div><h3>Compatibility locked by the fixture</h3><ul><li>header/filename metadata and calibration regex</li><li>strided time, I, and Q samples</li><li>tone-model labels and values</li><li>solved values, including matching NaNs</li></ul></div>
+        <div><h3>Removed from the path</h3><ul><li>runtime dispatch across sweep/data kinds</li><li><code>SweepFitter</code> configuration and dependency</li><li>Citlali's copied Kidscpp CLI source</li><li>sibling-source include paths</li></ul></div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: citlali/include/citlali/core/engine/kidsproc.h · kidscpp/src/kids/toltec/timestream.cpp · citlali/tests/test_kidsproc.cpp</span><span class="slide-number"></span></footer>
   </section>
 
   <section class="slide" data-section="Compiler validation">
@@ -2036,8 +2092,8 @@ grppi:
           <tr><td><code>tula</code></td><td>thirteen CTest cases</td><td>Core, ECSV, CSV streaming, Eigen, nddata, config, filesystem, NetCDF, enum, CLI, and GrPPI behavior pass.</td></tr>
           <tr><td><code>wheel</code></td><td>fresh venv + Conan home</td><td>Installed wheel carries CLI and complete integration data.</td></tr>
           <tr><td><code>downstream</code></td><td>fresh Conan home</td><td>Packaged boilerplate is consumed through the one-command workflow.</td></tr>
-          <tr><td><code>kidscpp</code></td><td>Tula package + 3 CTests + package consumer</td><td>The trimmed solver compiles against installed <code>tula::headers</code>, passes regressions, and exports a usable target.</td></tr>
-          <tr><td><code>citlali</code></td><td>Three packages + 2 CTests + package consumer</td><td>The v4 library compiles through kidscpp and its installed <code>citlali::citlali</code> target is independently consumed.</td></tr>
+          <tr><td><code>kidscpp</code></td><td>Tula package + 5 CTests + package consumer</td><td>The raw reader and solver pass real-file/numerical regressions; the installed target propagates NetCDF system libraries.</td></tr>
+          <tr><td><code>citlali</code></td><td>Three packages + 6 CTests + package/CLI consumer</td><td>The v4 library and CLI compile through kidscpp; the real-data adapter and installed executable are exercised.</td></tr>
         </tbody>
       </table>
       <div class="note good" style="margin-top:22px">
@@ -2075,15 +2131,15 @@ grppi:
       <div class="flow">
         <div><p><strong>GrPPI complete</strong><span>The pinned fork has disabled/CPM matrix cases and a Tula dynamic-execution behavior test.</span></p></div>
         <div><p><strong>Tula package boundary complete</strong><span><code>tula/3.1.0</code> installs headers plus generated provider state and exports <code>tula::headers</code>.</span></p></div>
-        <div><p><strong>Trimmed kidscpp solver complete</strong><span>The static library consumes packaged Tula and passes PSD plus raw-I/Q numerical tests.</span></p></div>
-        <div><p><strong>Citlali library slice complete</strong><span><code>citlali/4.0.0</code> consumes installed kidscpp and passes two Gaussian regressions.</span></p></div>
-        <div><p><strong>Installed-target consumers complete</strong><span>Tula, kidscpp, and Citlali each compile an independent Conan <code>test_package</code>.</span></p></div>
+        <div><p><strong>Kidscpp raw reader + solver complete</strong><span>The static library consumes packaged Tula, ingests real TolTEC NetCDF slices, and passes PSD plus raw-I/Q numerical tests.</span></p></div>
+        <div><p><strong>Citlali application path complete</strong><span><code>citlali/4.0.0</code> ships the reduction CLI, consumes installed kidscpp, and passes six focused regressions.</span></p></div>
+        <div><p><strong>Installed-target consumers complete</strong><span>Tula, kidscpp, and Citlali compile independent Conan consumers; Citlali's consumer also runs the packaged CLI.</span></p></div>
         <div><p><strong>Deploy the TolTEC Conan remote</strong><span>Create development, release, cached ConanCenter, and virtual repositories in Artifactory CE.</span></p></div>
         <div><p><strong>Publish shared configuration</strong><span>Set the final virtual URL, profiles, and allowed package patterns consumed by <code>TULA_CONAN_CONFIG_SOURCE</code>.</span></p></div>
         <div><p><strong>Add CI promotion</strong><span>Create and upload in dependency order, capture a lockfile, then promote verified revisions to release.</span></p></div>
-        <div><p><strong>Decide the v4 CLI boundary</strong><span>Reintroduce only entry points compatible with the trimmed kidscpp ownership model.</span></p></div>
+        <div><p><strong>Add a small full-observation fixture</strong><span>Exercise RTC through output once matching telescope, APT, and calibration inputs are available.</span></p></div>
         <div><p><strong>Add NetCDF result fixtures</strong><span>Exercise the compiled kidscpp result writer against small deterministic files.</span></p></div>
-        <div><p><strong>Audit timestream entry points</strong><span>Restore only production behavior still owned by the trimmed C++ package.</span></p></div>
+        <div><p><strong>Raw ingestion boundary complete</strong><span>Kidscpp owns NetCDF parsing; Citlali owns file/slice orchestration.</span></p></div>
         <div><p><strong>Keep kidscpp scope explicit</strong><span>Ceres belongs to Citlali; sweep finding/fitting and GUI stay outside trimmed kidscpp.</span></p></div>
         <div><p><strong>Defer oneAPI</strong><span>Keep its capability cases visible until a dedicated validation image is available.</span></p></div>
       </div>
