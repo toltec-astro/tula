@@ -238,7 +238,7 @@ from the Conan graph.
 
 `logging` is one meta-feature:
 
-- Conan requires `fmt/11.2.0` and `spdlog/1.15.3`;
+- Conan requires `fmt/12.1.0` and `spdlog/1.17.0`;
 - CPM downloads both pinned, checksummed archives;
 - system mode requires config packages for both;
 - all enabled paths create `tula::logging`;
@@ -277,6 +277,9 @@ OpenMP runtime, then recreate the installed Tula → kidscpp → Citlali graph
 under that compiler identity. The Clang profile uses Ubuntu's `libstdc++11`
 ABI and the container provides `clang-tools-20` for CMake's dependency
 scanner. oneMKL branches still require a dedicated oneAPI image.
+On macOS the checked-in `macos-brew-llvm-debug` profile resolves Homebrew LLVM
+explicitly, uses libc++ and the Homebrew `libomp` runtime, and never falls back
+to native AppleClang.
 
 ### yaml-cpp and the first Tula behavior slice
 
@@ -581,10 +584,13 @@ minimal in-memory timestream.
 
 The installed Kidscpp target is also executable evidence. Adding the NetCDF
 reader exposed that source-tree CMake correctly linked
-`PkgConfig::NETCDF_CXX4`, while Conan's installed static target omitted those
-platform libraries. Registry features can now declare `system_libs`;
-`TulaConan.package_info()` propagates them for public system providers.
-NetCDF C and C++ currently contribute `netcdf` and `netcdf_c++4`.
+`PkgConfig::NETCDF_CXX4`, while Conan's installed static target initially
+omitted the platform metadata. Registry features can declare config-helper
+commands for both include and link discovery; `TulaConan.package_info()`
+propagates their include directories, library directories, and system
+libraries for public system providers. NetCDF uses `nc-config` and
+`ncxx4-config`, which keeps the installed Tula → Kidscpp → Citlali chain
+independent of workspace include paths.
 
 ## Citlali dependency slice
 

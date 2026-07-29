@@ -75,6 +75,15 @@ compiled consumer all agree. Clang uses Ubuntu's `libstdc++` ABI and requires
 both `libomp-20-dev` and `clang-tools-20`; the latter supplies
 `clang-scan-deps` for CMake's C++20 module-dependency scan.
 
+The macOS package-chain gate uses `macos-brew-llvm-debug`. The profile obtains
+the compiler from `brew --prefix llvm`, records Conan's `clang`/`libc++`
+identity, prepends the same toolchain to `PATH`, and pins dependency tool
+requirements to CMake 3.31.12. It also exports
+`CMAKE_POLICY_VERSION_MINIMUM=3.5` for third-party recipes that invoke a host
+CMake 4 executable. This is intentionally not an AppleClang test. System
+NetCDF include and link directories come from `nc-config` and
+`ncxx4-config`, and required OpenMP metadata comes from Homebrew `libomp`.
+
 `just providers` selects only the network-marked Conan/CPM cases.
 
 CPM source archives may be reused from `.devcontainer/cache/cpm/`; build/output
@@ -82,12 +91,15 @@ trees remain isolated.
 
 ### Compiler acceptance results
 
-Measured in the Ubuntu 24.04 ARM64 dev container on 26 July 2026:
+Measured in the Ubuntu 24.04 ARM64 dev container and on ARM64 macOS on
+28 July 2026:
 
 | Gate | Compiler | Applicable matrix | Runtime case | Installed chain |
 |---|---|---:|---|---|
-| `just gcc14` | GNU 14.2.0 | 56 passed, 6 capability-skipped | GNU OpenMP passed | Tula 13 + kidscpp 3 + Citlali 2 CTests and all `test_package` consumers passed |
-| `just clang20` | Clang 20.1.2 | 56 passed, 6 capability-skipped | LLVM OpenMP passed | Tula 13 + kidscpp 3 + Citlali 2 CTests and all `test_package` consumers passed |
+| `just citlali` | GNU 13.3.0 | Package-chain gate | GNU OpenMP passed | Tula 13 + kidscpp 5 + Citlali 6 CTests, CLI, and all `test_package` consumers passed from a clean Conan home |
+| `just gcc14` | GNU 14.2.0 | 55 passed, 6 capability-skipped | GNU OpenMP passed | Tula 13 + kidscpp 5 + Citlali 6 CTests and all `test_package` consumers passed |
+| `just clang20` | Clang 20.1.2 | 55 passed, 6 capability-skipped | LLVM OpenMP passed | Tula 13 + kidscpp 5 + Citlali 6 CTests and all `test_package` consumers passed |
+| macOS package chain | Homebrew Clang 21.1.4 | Package-chain gate | Homebrew libomp passed | Tula 13 + kidscpp 5 + Citlali 6 CTests, CLI, and all consumers passed; AppleClang was not invoked |
 
 The six skips are deliberate alternate-image cases: four oneMKL/threading
 cases, the Intel OpenMP profile, and the other compiler family's OpenMP

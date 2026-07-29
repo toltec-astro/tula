@@ -23,7 +23,7 @@ class TulaRecipe(ConanFile):
         "netcdf_cxx4": "system",
         "bitmask": "cpm",
         "meta_enum": "cpm",
-        "clipp": "conan",
+        "clipp": "cpm",
         "perflibs": "system",
         "eigen": "conan",
         "grppi": "cpm",

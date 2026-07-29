@@ -57,7 +57,11 @@ endif()
 add_library(tula::headers ALIAS tula_headers)
 
 install(TARGETS tula_headers EXPORT tula_targets)
-install(DIRECTORY include/ DESTINATION include)
+install(
+    DIRECTORY include/
+    DESTINATION include
+    PATTERN ".DS_Store" EXCLUDE
+)
 install(
     FILES "${CMAKE_CURRENT_BINARY_DIR}/generated/tula/config.h"
     DESTINATION include/tula

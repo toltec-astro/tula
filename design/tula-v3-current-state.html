@@ -424,7 +424,7 @@
       <div class="section">Technical implementation review</div>
       <h1>Tula v3.1 package workflow</h1>
       <p class="lede">A one-command downstream experience built on the standard Conan 2 install and generated CMake preset flow.</p>
-      <p class="meta">Verified in Ubuntu 24.04 / GCC 13 + GCC 14 + Clang 20 · 27 July 2026<br>Release branches: tula_cmake v3.x_conan2 · Tula/kidscpp v3.x · Citlali v4.x_conan2</p>
+      <p class="meta">Verified in Ubuntu 24.04 / GCC 13 + GCC 14 + Clang 20 and macOS / Homebrew LLVM 21 · 28 July 2026<br>Release branches: tula_cmake v3.x_conan2 · Tula/kidscpp v3.x · Citlali v4.x_conan2</p>
     </div>
     <footer class="footer"><span>Superbuild and package-chain vertical slice</span><span class="slide-number"></span></footer>
   </section>
@@ -1012,8 +1012,8 @@ just cruft-update</pre>
   logging:
     modes: [conan, cpm, system]
     conan_requires:
-      - fmt/11.2.0
-      - spdlog/1.15.3
+      - fmt/12.1.0
+      - spdlog/1.17.0
 
   yaml_cpp:
     modes: [conan, cpm, system]
@@ -1390,9 +1390,9 @@ netcdf_cxx4:
     <div class="body">
       <div class="diagram-chain">
         <div class="diagram-node conan">
-          <span class="diagram-owner">Conan or CPM</span>
-          <strong>clipp 1.2.3</strong>
-          <p>Conan Center target or checksummed upstream archive.</p>
+          <span class="diagram-owner">CPM</span>
+          <strong>maintained Clipp fork</strong>
+          <p>Pinned commit; ConanCenter 1.2.3 is excluded because it uses removed <code>std::result_of</code>.</p>
           <div class="artifact-list"><span class="artifact">clipp::clipp</span><span class="artifact">clipp.h</span></div>
         </div>
         <div class="diagram-arrow">→</div>
@@ -2053,7 +2053,7 @@ grppi:
     </header>
     <div class="body">
       <div class="diagram-chain">
-        <div class="diagram-node user"><span class="diagram-owner">Input</span><strong>Bundled Conan profile</strong><p>Compiler family/version, C++23, ABI, generator, and versioned executables.</p><div class="artifact-list"><span class="artifact">linux-gcc14-debug</span><span class="artifact">linux-clang20-debug</span></div></div>
+        <div class="diagram-node user"><span class="diagram-owner">Input</span><strong>Bundled Conan profile</strong><p>Compiler family/version, C++23, ABI, generator, and versioned executables.</p><div class="artifact-list"><span class="artifact">linux-gcc14-debug</span><span class="artifact">linux-clang20-debug</span><span class="artifact">macos-brew-llvm-debug</span></div></div>
         <div class="diagram-arrow">→</div>
         <div class="diagram-node conan"><span class="diagram-owner">Graph</span><strong>Conan package IDs</strong><p>Resolve or build every enabled provider for that compiler identity.</p></div>
         <div class="diagram-arrow">→</div>
@@ -2066,14 +2066,15 @@ grppi:
       <table class="tight" style="margin-top:24px">
         <thead><tr><th style="width:18%">Gate</th><th style="width:24%">Compiler/runtime</th><th style="width:25%">Feature result</th><th>Package result</th></tr></thead>
         <tbody>
-          <tr><td>Baseline</td><td>GCC 13 + GNU OpenMP</td><td>Default and complete gates</td><td>Established Ubuntu 24.04 reference</td></tr>
-          <tr><td><code>just gcc14</code></td><td>GNU 14.2.0 + GNU OpenMP</td><td>56 passed, 6 capability-skipped</td><td>13 + 3 + 2 package CTests and all consumers passed</td></tr>
-          <tr><td><code>just clang20</code></td><td>Clang 20.1.2 + LLVM OpenMP</td><td>56 passed, 6 capability-skipped</td><td>13 + 3 + 2 package CTests and all consumers passed</td></tr>
+          <tr><td>Baseline</td><td>GCC 13.3.0 + GNU OpenMP</td><td>Clean Conan-home package gate</td><td>13 + 5 + 6 CTests, CLI, and all consumers passed</td></tr>
+          <tr><td><code>just gcc14</code></td><td>GNU 14.2.0 + GNU OpenMP</td><td>55 passed, 6 capability-skipped</td><td>13 + 5 + 6 package CTests and all consumers passed</td></tr>
+          <tr><td><code>just clang20</code></td><td>Clang 20.1.2 + LLVM OpenMP</td><td>55 passed, 6 capability-skipped</td><td>13 + 5 + 6 package CTests and all consumers passed</td></tr>
+          <tr><td>macOS chain</td><td>Homebrew Clang 21.1.4 + libc++/libomp</td><td>Explicit compiler and system metadata</td><td>13 + 5 + 6 CTests, CLI, and all consumers passed; AppleClang never invoked</td></tr>
         </tbody>
       </table>
-      <div class="note" style="margin-top:18px"><p><strong>Clang environment detail:</strong> <code>libstdc++11</code> matches Ubuntu system libraries; <code>libomp-20-dev</code> supplies the runtime and <code>clang-tools-20</code> supplies CMake’s <code>clang-scan-deps</code>.</p></div>
+      <div class="note" style="margin-top:18px"><p><strong>Compiler detail:</strong> Linux Clang uses <code>libstdc++11</code>, <code>libomp-20-dev</code>, and <code>clang-tools-20</code>. macOS resolves <code>$(brew --prefix llvm)/bin/clang++</code>, libc++, and Homebrew <code>libomp</code>; AppleClang auto-detection is not part of the supported gate.</p></div>
     </div>
-    <footer class="footer"><span class="source">Sources: profiles/linux-{gcc14,clang20}-debug · root justfile · .devcontainer/postCreate.sh</span><span class="slide-number"></span></footer>
+    <footer class="footer"><span class="source">Sources: profiles/linux-{gcc14,clang20}-debug · profiles/macos-brew-llvm-debug · root justfile</span><span class="slide-number"></span></footer>
   </section>
 
   <section class="slide" data-section="Acceptance">
@@ -2084,7 +2085,7 @@ grppi:
       <table class="tight">
         <thead><tr><th style="width:22%">Gate</th><th style="width:28%">Coverage</th><th>Verified assertion</th></tr></thead>
         <tbody>
-          <tr><td><code>unit</code></td><td>27 tests + ≥85% coverage</td><td>Models, public-feature traits, recipe defaults, registry conventions, workflow, profile resources, and matrix-catalog completeness.</td></tr>
+          <tr><td><code>unit</code></td><td>33 tests + ≥85% coverage</td><td>Models, public-feature traits, recipe defaults, registry conventions, workflow, profile resources, and matrix-catalog completeness.</td></tr>
           <tr><td><code>docs</code></td><td>Sphinx HTML with <code>-W</code></td><td>Architecture, workflow, provider/options matrix, Pydantic schemas, Python API, and CLI render without warnings.</td></tr>
           <tr><td><code>matrix-all</code></td><td>62 derived cases</td><td>Every provider and option value is collected; 56 run in the default image and 6 declare capabilities.</td></tr>
           <tr><td><code>compilers</code></td><td>GCC 14 + Clang 20</td><td>Each runs its applicable complete matrix and the installed three-package chain with the matching OpenMP runtime.</td></tr>
@@ -2097,7 +2098,7 @@ grppi:
         </tbody>
       </table>
       <div class="note good" style="margin-top:22px">
-        <p><strong>Result:</strong> the complete baseline gate and both added compiler gates passed in the rebuilt dev container by 26 July 2026.</p>
+        <p><strong>Result:</strong> the clean GCC 13, GCC 14, and Clang 20 devcontainer chains and the Homebrew LLVM 21 macOS chain all pass through the installed Citlali CLI and consumer.</p>
       </div>
     </div>
     <footer class="footer"><span class="source">Sources: root justfile · .devcontainer/logs/*.log</span><span class="slide-number"></span></footer>
