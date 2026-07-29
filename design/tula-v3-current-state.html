@@ -422,11 +422,106 @@
     <div></div>
     <div class="body center">
       <div class="section">Technical implementation review</div>
-      <h1>Tula v3.1 package workflow</h1>
-      <p class="lede">A one-command downstream experience built on the standard Conan 2 install and generated CMake preset flow.</p>
+      <h1>Tula v3.1 source-superbuild workflow</h1>
+      <p class="lede">A one-command downstream experience: owned projects compose recursively as source, while Conan, CPM, and system remain selectable providers for external features.</p>
       <p class="meta">Verified in Ubuntu 24.04 / GCC 13 + GCC 14 + Clang 20 · macOS profile requires exact Homebrew LLVM 20 · 29 July 2026<br>Release branches: tula_cmake v3.x_conan2 · Tula/kidscpp v3.x · Citlali v4.x_conan2</p>
     </div>
-    <footer class="footer"><span>Superbuild and package-chain vertical slice</span><span class="slide-number"></span></footer>
+    <footer class="footer"><span>Source-superbuild vertical slice and migration review</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Architecture correction">
+    <header class="slide-header">
+      <div><div class="section">Current architectural decision</div><h2>Conan is a provider; it is not the first-party project graph</h2></div>
+    </header>
+    <div class="body">
+      <div class="diagram-chain">
+        <div class="diagram-node">
+          <span class="diagram-owner">Root repository</span>
+          <strong><code>tula-project.yaml</code></strong>
+          <p>Declares direct owned projects and default external features.</p>
+          <div class="artifact-list"><span class="artifact">project identity</span><span class="artifact">direct edges</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node cmake">
+          <span class="diagram-owner">tula_cmake</span>
+          <strong>Recursive source graph</strong>
+          <p>Loads transitive manifests, checks identity/cycles, and generates one ordered project manifest.</p>
+          <div class="artifact-list"><span class="artifact">Tula</span><span class="artifact">Kidscpp</span><span class="artifact">Citlali</span></div>
+        </div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node">
+          <span class="diagram-owner">Provider boundary</span>
+          <strong>External features only</strong>
+          <p>Each feature independently selects Conan, CPM, system, or disabled.</p>
+          <div class="artifact-list"><span class="artifact">fmt + spdlog</span><span class="artifact">NetCDF</span><span class="artifact">Ceres</span></div>
+        </div>
+      </div>
+      <div class="columns" style="margin-top:22px">
+        <div class="note good"><p><strong>Restored:</strong> a downstream source build can pull the complete owned chain without pre-publishing Tula or Kidscpp packages.</p></div>
+        <div class="note"><p><strong>Retained:</strong> Conan remains explicit and useful for selected externals, installed-package validation, and release artifacts.</p></div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Source: tula_cmake/design/{ARCHITECTURE,DECISIONS}.md</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Implemented vertical slice">
+    <header class="slide-header">
+      <div><div class="section">Measured implementation state</div><h2>The minimal recursive slice now builds through both external-provider paths</h2></div>
+    </header>
+    <div class="body">
+      <div class="columns">
+        <div>
+          <h3>Default build</h3>
+          <pre>cd examples/tula_downstream
+./build
+
+tula_downstream -&gt; tula_boilerplate 3.1.0
+source-superbuild logging provider: conan</pre>
+          <p>The catalog checks out an exact Git commit. The generated Conan recipe contains only <code>fmt/12.1.0</code> and <code>spdlog/1.17.0</code>.</p>
+        </div>
+        <div>
+          <h3>Root provider override</h3>
+          <pre>./build --provider logging=system \
+  --project-source \
+  tula_boilerplate=../tula_boilerplate
+
+tula_downstream -&gt; tula_boilerplate 3.1.0
+source-superbuild logging provider: system</pre>
+          <p>The Conan requirements are empty; the source lock records the explicit local checkout.</p>
+        </div>
+      </div>
+      <div class="note good" style="margin-top:22px"><p><strong>Automated gate:</strong> <code>just vertical-slice</code> performs both isolated builds, runs both binaries, and inspects the generated graph artifacts.</p></div>
+    </div>
+    <footer class="footer"><span class="source">Sources: examples/*/tula-project.yaml · just vertical-slice</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Owned-project catalog">
+    <header class="slide-header">
+      <div><div class="section">Implemented source acquisition</div><h2>Owned projects are catalog entries—not Conan exports</h2></div>
+    </header>
+    <div class="body">
+      <div class="columns wide-left">
+        <pre><span class="cm"># installed data/projects.yaml</span>
+tula_boilerplate:
+  name: tula_boilerplate
+  version: 3.1.0
+  source:
+    git_repository: https://github.com/
+      toltec-astro/tula_cmake.git
+    git_revision: <span class="str">6071444…</span>
+    source_subdir: examples/tula_boilerplate
+  cmake_target: tula_boilerplate::headers</pre>
+        <dl class="contract">
+          <dt>Repository manifest</dt><dd>Owns direct dependency intent; no root file repeats the transitive graph.</dd>
+          <dt>Central catalog</dt><dd>Supplies default Git coordinates, immutable revision, and expected target.</dd>
+          <dt>Root override</dt><dd>Maps an owned project to a local checkout for joint development.</dd>
+          <dt>Lock record</dt><dd>Captures resolved revisions for repeatable CI and release builds.</dd>
+          <dt>CPM cache</dt><dd>A shared source cache avoids repeated clones without changing graph semantics.</dd>
+        </dl>
+      </div>
+      <div class="note good" style="margin-top:18px"><p><strong>Verified:</strong> the gate clones the pinned commit through a local Git URL, validates its manifest, records its lock, and then proves a separate CPM-compatible local source override.</p></div>
+    </div>
+    <footer class="footer"><span class="source">Sources: tula_cmake/design/RESEARCH.md · CMake FetchContent · CPM.cmake</span><span class="slide-number"></span></footer>
   </section>
 
   <section class="slide" data-section="Package roles">
@@ -437,12 +532,12 @@
       <table>
         <thead><tr><th style="width:24%">Component</th><th style="width:24%">Role</th><th>Dependency direction</th><th style="width:18%">Current state</th></tr></thead>
         <tbody>
-          <tr><td><code>tula_cmake</code></td><td>Superbuild infrastructure</td><td>Used by package recipes through Conan <code>python_requires</code>.</td><td class="status done">Implemented</td></tr>
-          <tr><td><code>tula_boilerplate</code></td><td>Minimal example package</td><td>Built with <code>tula_cmake</code>; exported as <code>tula-boilerplate/3.1.0</code>.</td><td class="status done">Packaged</td></tr>
-          <tr><td><code>tula_downstream</code></td><td>Minimal package consumer</td><td>Requires only <code>tula-boilerplate/3.1.0</code>.</td><td class="status done">Verified</td></tr>
-          <tr><td><code>tula</code></td><td>Actual C++ package</td><td>Built with <code>tula_cmake</code>; exports <code>tula::headers</code>.</td><td class="status done">Packaged</td></tr>
-          <tr><td><code>kidscpp</code></td><td>Actual Tula consumer</td><td>Requires packaged <code>tula/3.1.0</code>.</td><td class="status done">Solver slice</td></tr>
-          <tr><td><code>citlali</code></td><td>Final application library</td><td>Requires packaged <code>kidscpp/3.1.0</code> and the astronomy/numerics slice.</td><td class="status done">v4 library slice</td></tr>
+          <tr><td><code>tula_cmake</code></td><td>Superbuild infrastructure</td><td>Bootstrapped as a Python tool; owns graph generation and CMake infrastructure.</td><td class="status done">Implemented</td></tr>
+          <tr><td><code>tula_boilerplate</code></td><td>Minimal example project</td><td>Declares logging; is composed as source by downstream.</td><td class="status done">Verified</td></tr>
+          <tr><td><code>tula_downstream</code></td><td>Minimal root project</td><td>Declares boilerplate once in <code>tula-project.yaml</code>.</td><td class="status done">Verified</td></tr>
+          <tr><td><code>tula</code></td><td>Actual C++ project</td><td>Will be a catalog-backed CPM project using feature providers.</td><td class="status warning">Migration next</td></tr>
+          <tr><td><code>kidscpp</code></td><td>Actual Tula consumer</td><td>Will declare Tula as its direct owned-project dependency.</td><td class="status warning">Migration next</td></tr>
+          <tr><td><code>citlali</code></td><td>Final application</td><td>Will declare Kidscpp directly; transitive Tula is resolved recursively.</td><td class="status warning">Migration next</td></tr>
         </tbody>
       </table>
     </div>
@@ -460,15 +555,17 @@
           <pre><span class="cm"># from tula_downstream/</span>
 ./build</pre>
           <p style="margin-top:18px">The script pins the tool:</p>
-          <pre>uvx --from <span class="str">"git+https://github.com/toltec-astro/
+          <pre>uv tool run --from <span class="str">"git+https://github.com/toltec-astro/
 tula_cmake.git@v3.1.0"</span> \
   tula-cmake build .</pre>
         </div>
         <div>
           <h3>Development workspace</h3>
-          <pre>TULA_CMAKE_DEV_PROJECT=../tula_cmake ./build</pre>
+          <pre>TULA_CMAKE_DEV_PROJECT=../tula_cmake ./build \
+  --project-source \
+  tula_boilerplate=../tula_boilerplate</pre>
           <dl class="contract" style="margin-top:18px">
-            <dt>bootstrap</dt><dd><code>uvx</code> or the local uv project supplies <code>tula-cmake</code> and Conan.</dd>
+            <dt>bootstrap</dt><dd><code>uv tool run</code> or the local uv project supplies <code>tula-cmake</code> and Conan.</dd>
             <dt>configuration</dt><dd>Optional <code>--config-source</code> maps to <code>conan config install</code>.</dd>
             <dt>profiles</dt><dd>Explicit profiles are accepted; otherwise the CLI ensures a default profile exists.</dd>
             <dt>output</dt><dd>Generated state lives under <code>.tula/</code> by default.</dd>
@@ -481,16 +578,17 @@ tula_cmake.git@v3.1.0"</span> \
 
   <section class="slide" data-section="Build phases">
     <header class="slide-header">
-      <div><div class="section">What the command does</div><h2>The wrapper exposes three standard build phases</h2></div>
+      <div><div class="section">What the command does</div><h2>The wrapper resolves two graphs and exposes every generated handoff</h2></div>
     </header>
     <div class="body">
       <div class="flow">
         <div><p><strong>Bootstrap the Python tool</strong><span><code>uvx</code> creates an isolated environment containing <code>tula-cmake</code> and Conan 2.31.1.</span></p></div>
         <div><p><strong>Install shared Conan configuration when requested</strong><span><code>conan config install</code> supplies organization remotes, profiles, settings, and hooks.</span></p></div>
-        <div><p><strong>Resolve the package graph</strong><span><code>conan install --build=missing</code> retrieves recipes, binaries, and <code>python_requires</code>.</span></p></div>
-        <div><p><strong>Generate native build inputs</strong><span><code>CMakeDeps</code> and <code>CMakeToolchain</code> write dependency configs, toolchain, and presets.</span></p></div>
-        <div><p><strong>Select the generated preset</strong><span>The CLI reads <code>CMakeUserPresets.json</code>; it does not reconstruct Conan's CMake arguments.</span></p></div>
-        <div><p><strong>Configure and build</strong><span><code>cmake --preset ... --fresh</code>, then <code>cmake --build --preset ...</code>.</span></p></div>
+        <div><p><strong>Resolve owned projects</strong><span>Validate recursive <code>tula-project.yaml</code> files, identities, overrides, duplicate sources, and cycles.</span></p></div>
+        <div><p><strong>Select external providers</strong><span>Merge feature defaults with root <code>--provider</code> assignments.</span></p></div>
+        <div><p><strong>Prepare Conan externals</strong><span>A virtual recipe contains only requirements assigned to Conan; <code>conan install</code> remains explicit.</span></p></div>
+        <div><p><strong>Generate native build inputs</strong><span>Write project/feature manifests and rebase Conan's toolchain into the root preset.</span></p></div>
+        <div><p><strong>Compose and build</strong><span>CMake/CPM adds owned sources, validates expected targets, and builds the root project.</span></p></div>
       </div>
     </div>
     <footer class="footer"><span class="source">Sources: tula_cmake/workflow.py · Conan 2.31 CMake integration documentation</span><span class="slide-number"></span></footer>
@@ -505,8 +603,8 @@ tula_cmake.git@v3.1.0"</span> \
         <div class="diagram-node">
           <span class="diagram-owner">User / source tree</span>
           <strong>Declare intent</strong>
-          <p>Recipe, source, profiles, feature options, and output location.</p>
-          <div class="artifact-list"><span class="artifact">conanfile.py</span><span class="artifact">profiles/*</span><span class="artifact">registry.yaml</span></div>
+          <p>Root manifest, source, provider overrides, profile, and output location.</p>
+          <div class="artifact-list"><span class="artifact">tula-project.yaml</span><span class="artifact">--provider</span><span class="artifact">registry.yaml</span></div>
         </div>
         <div class="diagram-arrow">→</div>
         <div class="diagram-node">
@@ -518,23 +616,23 @@ tula_cmake.git@v3.1.0"</span> \
         <div class="diagram-arrow">→</div>
         <div class="diagram-node conan">
           <span class="diagram-owner">Conan</span>
-          <strong>Resolve + generate</strong>
-          <p>Evaluate the graph, select packages, and generate native inputs.</p>
-          <div class="artifact-list"><span class="artifact">package graph</span><span class="artifact">generators/</span></div>
+          <strong>External subset only</strong>
+          <p>Install only feature requirements whose effective provider is Conan.</p>
+          <div class="artifact-list"><span class="artifact">virtual conanfile</span><span class="artifact">toolchain</span></div>
         </div>
         <div class="diagram-arrow">→</div>
         <div class="diagram-node cmake">
           <span class="diagram-owner">CMake / Ninja</span>
-          <strong>Configure + build</strong>
-          <p>Consume only generated presets, toolchain state, and package configs.</p>
-          <div class="artifact-list"><span class="artifact">CMakeCache.txt</span><span class="artifact">targets</span><span class="artifact">binary</span></div>
+          <strong>Compose + build</strong>
+          <p>Consume project and feature manifests; add owned projects with CPM.</p>
+          <div class="artifact-list"><span class="artifact">tula_projects.cmake</span><span class="artifact">targets</span><span class="artifact">binary</span></div>
         </div>
         <div class="diagram-arrow">→</div>
         <div class="diagram-node package">
-          <span class="diagram-owner">Package boundary</span>
-          <strong>Create + consume</strong>
-          <p>Install public files and publish immutable package metadata.</p>
-          <div class="artifact-list"><span class="artifact">headers</span><span class="artifact">config.h</span><span class="artifact">package revision</span></div>
+          <span class="diagram-owner">Verified result</span>
+          <strong>Run + inspect</strong>
+          <p>Execute behavior tests and assert that owned projects never leak into the Conan input.</p>
+          <div class="artifact-list"><span class="artifact">CTest</span><span class="artifact">graph assertions</span><span class="artifact">lock record next</span></div>
         </div>
       </div>
       <div class="note" style="margin-top:24px"><p><strong>Ownership rule:</strong> source intent flows forward; generated files are never edited and no later phase reconstructs an earlier phase’s decisions.</p></div>
@@ -542,9 +640,9 @@ tula_cmake.git@v3.1.0"</span> \
     <footer class="footer"><span class="source">Sources: workflow.py · recipe.py · root justfile</span><span class="slide-number"></span></footer>
   </section>
 
-  <section class="slide" data-section="Package graph">
+  <section class="slide" data-section="Optional package graph">
     <header class="slide-header">
-      <div><div class="section">Conan graph</div><h2>The downstream consumes a normal package, not superbuild internals</h2></div>
+      <div><div class="section">Retained release-validation path</div><h2>Installed Conan packages remain useful, but no longer define source-build composition</h2></div>
     </header>
     <div class="body">
       <div class="columns">
@@ -566,7 +664,7 @@ tula_cmake.git@v3.1.0"</span> \
   tula_boilerplate::headers)</pre>
       </div>
       <div class="note" style="margin-top:22px">
-        <p><strong>Boundary:</strong> <code>tula_cmake</code> is recipe/build infrastructure. It is resolved through Conan when recipe logic is needed; it is not a C++ link dependency propagated to consumers.</p>
+        <p><strong>Boundary:</strong> this recipe is retained for package production and <code>test_package</code> validation. The ordinary <code>./build</code> vertical slice now follows <code>tula-project.yaml</code> and CPM source composition.</p>
       </div>
     </div>
     <footer class="footer"><span class="source">Sources: examples/tula_downstream/{conanfile.py,CMakeLists.txt}</span><span class="slide-number"></span></footer>
@@ -574,7 +672,7 @@ tula_cmake.git@v3.1.0"</span> \
 
   <section class="slide" data-section="Distribution">
     <header class="slide-header">
-      <div><div class="section">Two bootstrap boundaries</div><h2>The wheel and Conan python-require distribute different parts of the same version</h2></div>
+      <div><div class="section">Distribution boundaries</div><h2>The wheel is the source-build bootstrap; Conan artifacts are an optional release path</h2></div>
     </header>
     <div class="body">
       <table>
@@ -597,7 +695,7 @@ tula_cmake.git@v3.1.0"</span> \
 
   <section class="slide" data-section="Distribution flow">
     <header class="slide-header">
-      <div><div class="section">Release and bootstrap topology</div><h2>One source package crosses two distribution boundaries for two different jobs</h2></div>
+      <div><div class="section">Release and bootstrap topology</div><h2>The Python bootstrap exists before either source or package dependency graphs</h2></div>
     </header>
     <div class="body">
       <div class="handoff">
@@ -646,7 +744,7 @@ tula_cmake.git@v3.1.0"</span> \
 
   <section class="slide" data-section="Release topology">
     <header class="slide-header">
-      <div><div class="section">GitHub source + Conan artifacts</div><h2>The one-command UX keeps every first-party library in the Conan graph</h2></div>
+      <div><div class="section">GitHub source + optional Conan artifacts</div><h2>The one-command UX composes first-party sources from immutable catalog entries</h2></div>
     </header>
     <div class="body">
       <div class="diagram-chain">
@@ -658,17 +756,17 @@ tula_cmake.git@v3.1.0"</span> \
         </div>
         <div class="diagram-arrow">→</div>
         <div class="diagram-node conan">
-          <span class="diagram-owner">CI package pipeline</span>
-          <strong>Create + test</strong>
-          <p>Build in dependency order, run behavior suites and installed-target <code>test_package</code> consumers.</p>
-          <div class="artifact-list"><span class="artifact">lockfile</span><span class="artifact">recipe revisions</span></div>
+          <span class="diagram-owner">Owned-project catalog</span>
+          <strong>Resolve + lock</strong>
+          <p>Map project names to immutable source revisions and expected CMake targets.</p>
+          <div class="artifact-list"><span class="artifact">Git commit</span><span class="artifact">source cache</span></div>
         </div>
         <div class="diagram-arrow">→</div>
         <div class="diagram-node package">
-          <span class="diagram-owner">Artifactory virtual remote</span>
-          <strong>Resolve one graph</strong>
-          <p>Development, release, and cached ConanCenter repositories appear behind one read endpoint.</p>
-          <div class="artifact-list"><span class="artifact">tula-cmake</span><span class="artifact">tula</span><span class="artifact">kidscpp</span><span class="artifact">citlali</span></div>
+          <span class="diagram-owner">Provider resolver</span>
+          <strong>Resolve external graph</strong>
+          <p>Conan, CPM, and system supply only the external features selected by the root.</p>
+          <div class="artifact-list"><span class="artifact">fmt/spdlog</span><span class="artifact">NetCDF</span><span class="artifact">Ceres</span></div>
         </div>
         <div class="diagram-arrow">→</div>
         <div class="diagram-node cmake">
@@ -679,8 +777,8 @@ tula_cmake.git@v3.1.0"</span> \
         </div>
       </div>
       <div class="columns" style="margin-top:22px">
-        <div class="note good"><p><strong>Keep:</strong> Tula and kidscpp as versioned Conan requirements with package IDs, options, binary reuse, and lockfile visibility.</p></div>
-        <div class="note danger"><p><strong>Avoid:</strong> adding first-party libraries to the CPM registry; that would hide them as CMake subprojects and permit duplicate graphs.</p></div>
+        <div class="note good"><p><strong>Source default:</strong> Tula and Kidscpp are catalog-backed CPM projects with root override and lock visibility.</p></div>
+        <div class="note"><p><strong>Optional packages:</strong> Conan recipes remain available where installed binaries and <code>test_package</code> coverage are valuable.</p></div>
       </div>
     </div>
     <footer class="footer"><span class="source">Sources: design/ARCHITECTURE.md · tula_cmake/docs/distribution.rst</span><span class="slide-number"></span></footer>
@@ -705,6 +803,7 @@ tula_cmake.git@v3.1.0"</span> \
 └── src/tula_cmake/
     ├── <span class="focus">models.py</span>
     ├── <span class="focus">registry.py</span>
+    ├── <span class="focus">superbuild.py</span>
     ├── <span class="focus">recipe.py</span>
     ├── <span class="focus">workflow.py</span>
     ├── cli.py
@@ -721,6 +820,7 @@ tula_cmake.git@v3.1.0"</span> \
           <dl class="contract">
             <dt>models.py</dt><dd>Validated immutable domain contracts; no Conan or filesystem behavior.</dd>
             <dt>registry.py</dt><dd>YAML boundary, graph checks, ordering, and deterministic manifest rendering.</dd>
+            <dt>superbuild.py</dt><dd>Recursive project-manifest resolution and virtual Conan/CMake input generation.</dd>
             <dt>recipe.py</dt><dd>Thin Conan lifecycle adapter distributed through <code>python_requires</code>.</dd>
             <dt>workflow.py</dt><dd>Bootstrap, install, generated-preset discovery, configure, and build.</dd>
             <dt>infrastructure/</dt><dd>Public framework modules added to <code>CMAKE_MODULE_PATH</code>.</dd>
@@ -1441,7 +1541,7 @@ netcdf_cxx4:
 
   <section class="slide" data-section="User options">
     <header class="slide-header">
-      <div><div class="section">Configuration contract</div><h2>Conan owns user intent; the generated preset carries it into CMake</h2></div>
+      <div><div class="section">Configuration contract</div><h2>The root manifest owns intent; providers project selected external state</h2></div>
     </header>
     <div class="body">
       <div class="columns">
@@ -1849,7 +1949,7 @@ grppi:
 
   <section class="slide" data-section="Tula package">
     <header class="slide-header">
-      <div><div class="section">Production package boundary</div><h2>Tula is now an installed Conan package, not a workspace include path</h2></div>
+      <div><div class="section">Previously validated package boundary</div><h2>Tula’s installed Conan package remains a regression path during source-graph migration</h2></div>
     </header>
     <div class="body">
       <div class="diagram-chain">
@@ -1980,7 +2080,7 @@ grppi:
 
   <section class="slide" data-section="Citlali package flow">
     <header class="slide-header">
-      <div><div class="section">Installed artifact lifecycle</div><h2>Citlali closes a three-level Conan package chain without workspace includes</h2></div>
+      <div><div class="section">Previously validated package lifecycle</div><h2>The three-level Conan chain remains evidence while the same projects migrate to source composition</h2></div>
     </header>
     <div class="body">
       <div class="diagram-chain">
@@ -2129,26 +2229,21 @@ grppi:
 
   <section class="slide" data-section="Next boundary">
     <header class="slide-header">
-      <div><div class="section">Next delivery milestone</div><h2>Publish the verified package graph without changing the user command</h2></div>
+      <div><div class="section">Next delivery milestone</div><h2>Move the validated production projects onto the source graph without changing behavior or <code>./build</code></h2></div>
     </header>
     <div class="body">
       <div class="flow">
-        <div><p><strong>GrPPI complete</strong><span>The pinned fork has disabled/CPM matrix cases and a Tula dynamic-execution behavior test.</span></p></div>
-        <div><p><strong>Tula package boundary complete</strong><span><code>tula/3.1.0</code> installs headers plus generated provider state and exports <code>tula::headers</code>.</span></p></div>
-        <div><p><strong>Kidscpp raw reader + solver complete</strong><span>The static library consumes packaged Tula, ingests real TolTEC NetCDF slices, and passes PSD plus raw-I/Q numerical tests.</span></p></div>
-        <div><p><strong>Citlali application path complete</strong><span><code>citlali/4.0.0</code> ships the reduction CLI, consumes installed kidscpp, and passes six focused regressions.</span></p></div>
-        <div><p><strong>Installed-target consumers complete</strong><span>Tula, kidscpp, and Citlali compile independent Conan consumers; Citlali's consumer also runs the packaged CLI.</span></p></div>
-        <div><p><strong>Deploy the TolTEC Conan remote</strong><span>Create development, release, cached ConanCenter, and virtual repositories in Artifactory CE.</span></p></div>
-        <div><p><strong>Publish shared configuration</strong><span>Set the final virtual URL, profiles, and allowed package patterns consumed by <code>TULA_CONAN_CONFIG_SOURCE</code>.</span></p></div>
-        <div><p><strong>Add CI promotion</strong><span>Create and upload in dependency order, capture a lockfile, then promote verified revisions to release.</span></p></div>
-        <div><p><strong>Add a small full-observation fixture</strong><span>Exercise RTC through output once matching telescope, APT, and calibration inputs are available.</span></p></div>
-        <div><p><strong>Add NetCDF result fixtures</strong><span>Exercise the compiled kidscpp result writer against small deterministic files.</span></p></div>
-        <div><p><strong>Raw ingestion boundary complete</strong><span>Kidscpp owns NetCDF parsing; Citlali owns file/slice orchestration.</span></p></div>
-        <div><p><strong>Keep kidscpp scope explicit</strong><span>Ceres belongs to Citlali; sweep finding/fitting and GUI stay outside trimmed kidscpp.</span></p></div>
-        <div><p><strong>Defer oneAPI</strong><span>Keep its capability cases visible until a dedicated validation image is available.</span></p></div>
+        <div><p><strong>Catalog schema + acquisition complete</strong><span>Typed Git URL, immutable revision, source subdirectory, version, and expected target are validated before Conan resolution.</span></p></div>
+        <div><p><strong>Local project overrides complete</strong><span><code>--project-source</code> and <code>CPM_&lt;name&gt;_SOURCE</code> select joint-development checkouts.</span></p></div>
+        <div><p><strong>Resolved source lock complete</strong><span>Every build records exact catalog provenance or its explicit local path in <code>tula-project-lock.yaml</code>.</span></p></div>
+        <div><p><strong>Port Tula first</strong><span>Give Tula a direct feature manifest, preserve all header behavior, and run its existing behavior suite through source composition.</span></p></div>
+        <div><p><strong>Port Kidscpp second</strong><span>Declare Tula as its direct project edge; retain raw NetCDF ingestion, metadata, slicing, model inputs, and solver tests.</span></p></div>
+        <div><p><strong>Port Citlali last</strong><span>Declare Kidscpp directly, preserve the v4 CLI/science behavior, and add Citlali-only external features one at a time.</span></p></div>
+        <div><p><strong>Keep package gates</strong><span>Use the existing Conan create/test-package chain as independent installed-artifact regression evidence during migration.</span></p></div>
+        <div><p><strong>Close release UX</strong><span>Verify a fresh Citlali checkout retrieves the complete source graph and selected externals with only <code>./build</code>.</span></p></div>
       </div>
     </div>
-    <footer class="footer"><span class="source">Source: design/TASKS.md</span><span class="slide-number"></span></footer>
+    <footer class="footer"><span class="source">Source: tula_cmake/design/{VERTICAL_SLICE,RESEARCH,DECISIONS}.md</span><span class="slide-number"></span></footer>
   </section>
 
 </main>
