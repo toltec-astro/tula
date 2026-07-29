@@ -277,9 +277,10 @@ OpenMP runtime, then recreate the installed Tula → kidscpp → Citlali graph
 under that compiler identity. The Clang profile uses Ubuntu's `libstdc++11`
 ABI and the container provides `clang-tools-20` for CMake's dependency
 scanner. oneMKL branches still require a dedicated oneAPI image.
-On macOS the checked-in `macos-brew-llvm-debug` profile resolves Homebrew LLVM
-explicitly, uses libc++ and the Homebrew `libomp` runtime, and never falls back
-to native AppleClang.
+On macOS the checked-in `macos-brew-llvm-debug` profile resolves
+`brew --prefix llvm@20` explicitly, validates that the detected compiler major
+is 20, uses libc++ and the Homebrew `libomp` runtime, and never falls back to
+native AppleClang.
 
 ### yaml-cpp and the first Tula behavior slice
 
@@ -351,8 +352,8 @@ two features instead of hiding a mixed acquisition graph:
 
 - `netcdf_c` supports Conan `netcdf/4.8.1` and the system
   `netCDF::netcdf` config target, normalized as `tula::netcdf_c`;
-- `netcdf_cxx4` depends on `netcdf_c`, supports CPM and system acquisition,
-  and normalizes both as `tula::netcdf_cxx4`.
+- `netcdf_cxx4` depends on `netcdf_c`, supports a project-owned Conan recipe
+  and system acquisition, and normalizes both as `tula::netcdf_cxx4`.
 
 Ubuntu 24.04 supplies NetCDF C 4.9.2 and C++ 4.3.1. The C++ API's latest
 release remains v4.3.1. Its installed Debian package exports pkg-config rather
@@ -360,9 +361,12 @@ than a CMake config, so system resolution uses CMake's imported
 `PkgConfig::NETCDF_CXX4` target.
 
 The v4.3.1 top-level CMake cannot be embedded: it uses `CMAKE_SOURCE_DIR` for
-its own inputs. The CPM resolver therefore uses download-only acquisition and
-defines one static target from the upstream `cxx4/nc*.cpp` sources, public
-headers, and `tula::netcdf_c`. No upstream sources are patched.
+its own inputs. The bundled `netcdf-cxx4/4.3.1` Conan recipe therefore builds
+the unchanged `cxx4/nc*.cpp` sources with a small packaging CMake project,
+installs the public headers and library, exposes `netCDF::netcdf-cxx4`, and
+propagates `netcdf/4.8.1`. `tula-cmake bootstrap` exports this recipe for
+pre-publication development; the TolTEC Conan remote will distribute it for
+released builds.
 
 Six matrix cases cover disabled and every provider across the two packages.
 Tula's tenth behavior test ports the reference type assertion and adds typed
@@ -582,15 +586,13 @@ values. Fit-report fallback checks whether a fit-report source was requested
 before reading TolTEC filename metadata, so built-in calibration works with a
 minimal in-memory timestream.
 
-The installed Kidscpp target is also executable evidence. Adding the NetCDF
-reader exposed that source-tree CMake correctly linked
-`PkgConfig::NETCDF_CXX4`, while Conan's installed static target initially
-omitted the platform metadata. Registry features can declare config-helper
-commands for both include and link discovery; `TulaConan.package_info()`
-propagates their include directories, library directories, and system
-libraries for public system providers. NetCDF uses `nc-config` and
-`ncxx4-config`, which keeps the installed Tula → Kidscpp → Citlali chain
-independent of workspace include paths.
+The installed Kidscpp target is also executable evidence. The source-tree
+system path links `PkgConfig::NETCDF_CXX4`; the release path uses the
+project-owned `netcdf-cxx4/4.3.1` package so Conan carries the public headers,
+library, and transitive NetCDF C edge. Both Tula's and Citlali's independent
+`test_package` programs include `<netcdf>`, preventing an in-tree-only build
+from hiding missing export metadata. Registry config-helper metadata remains
+available for the explicit system provider.
 
 ## Citlali dependency slice
 

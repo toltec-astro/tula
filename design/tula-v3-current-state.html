@@ -424,7 +424,7 @@
       <div class="section">Technical implementation review</div>
       <h1>Tula v3.1 package workflow</h1>
       <p class="lede">A one-command downstream experience built on the standard Conan 2 install and generated CMake preset flow.</p>
-      <p class="meta">Verified in Ubuntu 24.04 / GCC 13 + GCC 14 + Clang 20 and macOS / Homebrew LLVM 21 · 28 July 2026<br>Release branches: tula_cmake v3.x_conan2 · Tula/kidscpp v3.x · Citlali v4.x_conan2</p>
+      <p class="meta">Verified in Ubuntu 24.04 / GCC 13 + GCC 14 + Clang 20 · macOS profile requires exact Homebrew LLVM 20 · 29 July 2026<br>Release branches: tula_cmake v3.x_conan2 · Tula/kidscpp v3.x · Citlali v4.x_conan2</p>
     </div>
     <footer class="footer"><span>Superbuild and package-chain vertical slice</span><span class="slide-number"></span></footer>
   </section>
@@ -1029,7 +1029,8 @@ just cruft-update</pre>
     modes: [conan, system]
 
   netcdf_cxx4:
-    modes: [cpm, system]
+    modes: [conan, system]
+    conan_requires: [netcdf-cxx4/4.3.1]
     dependencies: [netcdf_c]
 
   perflibs:
@@ -1078,7 +1079,7 @@ just cruft-update</pre>
           <tr><td><code>resolvers/yaml_cpp.cmake</code></td><td><code>yaml_cpp</code></td><td>Resolve yaml-cpp through Conan, CPM, or system config packages and normalize its upstream target as <code>tula::yaml_cpp</code>.</td></tr>
           <tr><td><code>resolvers/csv_parser.cmake</code></td><td><code>csv_parser</code></td><td>Download one checksummed, header-only source revision and expose its include tree as <code>tula::csv_parser</code>.</td></tr>
           <tr><td><code>resolvers/netcdf_c.cmake</code></td><td><code>netcdf_c</code></td><td>Normalize Conan or system <code>netCDF::netcdf</code> as <code>tula::netcdf_c</code>.</td></tr>
-          <tr><td><code>resolvers/netcdf_cxx4.cmake</code></td><td><code>netcdf_cxx4</code></td><td>Resolve the C++ API through system pkg-config or a download-only CPM source adapter.</td></tr>
+          <tr><td><code>resolvers/netcdf_cxx4.cmake</code></td><td><code>netcdf_cxx4</code></td><td>Normalize the project-owned Conan package or system pkg-config target as <code>tula::netcdf_cxx4</code>.</td></tr>
           <tr><td><code>resolvers/{bitmask,meta_enum}.cmake</code></td><td>enum dependencies</td><td>Download immutable, checksummed header trees and expose one normalized target per upstream package.</td></tr>
           <tr><td><code>resolvers/clipp.cmake</code></td><td><code>clipp</code></td><td>Normalize Conan Center or checksummed CPM release 1.2.3 as <code>tula::clipp</code>.</td></tr>
           <tr><td><code>resolvers/eigen.cmake</code></td><td><code>eigen</code></td><td>Resolve Eigen 3.4, require <code>tula::perflibs</code>, project multithreading state, and create <code>tula::eigen</code>.</td></tr>
@@ -1321,9 +1322,10 @@ tula_resolve_csv_parser_cpm()
   conan_requires: [netcdf/4.8.1]
 
 netcdf_cxx4:
-  modes: [cpm, system]
+  modes: [conan, system]
+  conan_requires: [netcdf-cxx4/4.3.1]
   dependencies: [netcdf_c]
-  source: netcdf-cxx4/v4.3.1</pre>
+  target: netCDF::netcdf-cxx4</pre>
           <div class="diagram-chain">
             <div class="diagram-node conan"><strong><code>tula::netcdf_c</code></strong><p>C ABI and storage implementation</p></div>
             <div class="diagram-arrow">→</div>
@@ -1331,12 +1333,13 @@ netcdf_cxx4:
           </div>
         </div>
         <div>
-          <h3>Why CPM needs an adapter</h3>
+          <h3>Why this is a Conan package</h3>
           <ul>
             <li>Upstream v4.3.1 CMake assumes it is the root project through <code>CMAKE_SOURCE_DIR</code>.</li>
-            <li>CPM therefore downloads only; the resolver compiles the unchanged <code>cxx4/nc*.cpp</code> source set.</li>
+            <li>A bundled Conan recipe compiles the unchanged <code>cxx4/nc*.cpp</code> source set and packages its public headers/library.</li>
+            <li><code>tula-cmake bootstrap</code> exports that recipe locally; the TolTEC remote will distribute the identical recipe and binaries.</li>
             <li>System C uses <code>netCDF::netcdf</code>; system C++ uses imported pkg-config target <code>PkgConfig::NETCDF_CXX4</code>.</li>
-            <li>Tula tests type mapping, typed dispatch, scalar file I/O, and pretty-printing.</li>
+            <li>Tula and Citlali <code>test_package</code> consumers compile <code>&lt;netcdf&gt;</code>, proving exported metadata.</li>
           </ul>
           <div class="note good"><p><strong>Verified across all three compilers:</strong> all six NetCDF matrix cases pass, and NetCDF behavior is included in the current thirteen-case Tula gate.</p></div>
         </div>
@@ -1654,14 +1657,14 @@ TULA_PERFLIBS_MKL_THREADING="..."</pre>
           <tr><td><code>yaml_cpp</code></td><td>disabled, Conan, CPM, system</td><td>none</td><td>4 runnable cases</td></tr>
           <tr><td><code>csv_parser</code></td><td>disabled, CPM</td><td>none</td><td>2 runnable cases</td></tr>
           <tr><td><code>netcdf_c</code></td><td>disabled, Conan, system</td><td>none</td><td>3 runnable cases</td></tr>
-          <tr><td><code>netcdf_cxx4</code></td><td>disabled, CPM, system</td><td>none</td><td>3 runnable cases</td></tr>
+          <tr><td><code>netcdf_cxx4</code></td><td>disabled, Conan, system</td><td>none</td><td>3 runnable cases</td></tr>
           <tr><td><code>bitmask</code></td><td>disabled, CPM</td><td>none</td><td>2 runnable cases</td></tr>
           <tr><td><code>meta_enum</code></td><td>disabled, CPM</td><td>none</td><td>2 runnable cases</td></tr>
           <tr><td><code>clipp</code></td><td>disabled, Conan, CPM</td><td>none</td><td>3 runnable cases</td></tr>
           <tr><td><code>perflibs</code></td><td>disabled, system</td><td>2 oneAPI + 3 OpenMP policy + 4 runtime + 3 MKL threading</td><td>8 runnable, 6 capability-gated</td></tr>
           <tr><td><code>eigen</code></td><td>disabled, Conan, CPM, system</td><td>2 values of <code>eigen_multithreading</code></td><td>6 runnable cases</td></tr>
           <tr><td><code>grppi</code></td><td>disabled, CPM</td><td>none</td><td>2 runnable cases</td></tr>
-          <tr><td><strong>Total</strong></td><td>41 provider cases</td><td>21 option-value cases</td><td><strong>62 collected: 56 runnable + 6 visible skips</strong></td></tr>
+          <tr><td><strong>Total</strong></td><td>40 provider cases</td><td>21 option-value cases</td><td><strong>61 collected: 55 runnable + 6 visible skips</strong></td></tr>
         </tbody>
       </table>
       <div class="columns" style="margin-top:22px">
@@ -2059,7 +2062,7 @@ grppi:
         <div class="diagram-arrow">→</div>
         <div class="diagram-node generated"><span class="diagram-owner">Generated handoff</span><strong>CMake preset + toolchain</strong><p>CMake detects the same explicit compiler and normalized feature options.</p></div>
         <div class="diagram-arrow">→</div>
-        <div class="diagram-node cmake"><span class="diagram-owner">Feature proof</span><strong>62 matrix items</strong><p>Compile a focused probe and execute CTest for every applicable provider/option.</p></div>
+        <div class="diagram-node cmake"><span class="diagram-owner">Feature proof</span><strong>61 matrix items</strong><p>Compile a focused probe and execute CTest for every applicable provider/option.</p></div>
         <div class="diagram-arrow">→</div>
         <div class="diagram-node package"><span class="diagram-owner">Distribution proof</span><strong>Tula → KidsCpp → Citlali</strong><p>Create installed packages and compile each independent consumer.</p></div>
       </div>
@@ -2069,10 +2072,10 @@ grppi:
           <tr><td>Baseline</td><td>GCC 13.3.0 + GNU OpenMP</td><td>Clean Conan-home package gate</td><td>13 + 5 + 6 CTests, CLI, and all consumers passed</td></tr>
           <tr><td><code>just gcc14</code></td><td>GNU 14.2.0 + GNU OpenMP</td><td>55 passed, 6 capability-skipped</td><td>13 + 5 + 6 package CTests and all consumers passed</td></tr>
           <tr><td><code>just clang20</code></td><td>Clang 20.1.2 + LLVM OpenMP</td><td>55 passed, 6 capability-skipped</td><td>13 + 5 + 6 package CTests and all consumers passed</td></tr>
-          <tr><td>macOS chain</td><td>Homebrew Clang 21.1.4 + libc++/libomp</td><td>Explicit compiler and system metadata</td><td>13 + 5 + 6 CTests, CLI, and all consumers passed; AppleClang never invoked</td></tr>
+          <tr><td>macOS chain</td><td>Homebrew LLVM 20 + libc++/libomp required</td><td>Exact-major validation</td><td>Pending: current stale <code>llvm@20</code> prefix resolves to 21.1.4 and is rejected before graph resolution</td></tr>
         </tbody>
       </table>
-      <div class="note" style="margin-top:18px"><p><strong>Compiler detail:</strong> Linux Clang uses <code>libstdc++11</code>, <code>libomp-20-dev</code>, and <code>clang-tools-20</code>. macOS resolves <code>$(brew --prefix llvm)/bin/clang++</code>, libc++, and Homebrew <code>libomp</code>; AppleClang auto-detection is not part of the supported gate.</p></div>
+      <div class="note" style="margin-top:18px"><p><strong>Compiler detail:</strong> Linux Clang uses <code>libstdc++11</code>, <code>libomp-20-dev</code>, and <code>clang-tools-20</code>. macOS resolves <code>$(brew --prefix llvm@20)/bin/clang++</code>, validates major 20, uses libc++ and Homebrew <code>libomp</code>, and never accepts AppleClang.</p></div>
     </div>
     <footer class="footer"><span class="source">Sources: profiles/linux-{gcc14,clang20}-debug · profiles/macos-brew-llvm-debug · root justfile</span><span class="slide-number"></span></footer>
   </section>
@@ -2085,20 +2088,20 @@ grppi:
       <table class="tight">
         <thead><tr><th style="width:22%">Gate</th><th style="width:28%">Coverage</th><th>Verified assertion</th></tr></thead>
         <tbody>
-          <tr><td><code>unit</code></td><td>33 tests + ≥85% coverage</td><td>Models, public-feature traits, recipe defaults, registry conventions, workflow, profile resources, and matrix-catalog completeness.</td></tr>
+          <tr><td><code>unit</code></td><td>37 tests + ≥85% coverage</td><td>Models, public-feature traits, recipe defaults, bundled-recipe bootstrap, registry conventions, workflow, profile resources, and matrix-catalog completeness.</td></tr>
           <tr><td><code>docs</code></td><td>Sphinx HTML with <code>-W</code></td><td>Architecture, workflow, provider/options matrix, Pydantic schemas, Python API, and CLI render without warnings.</td></tr>
-          <tr><td><code>matrix-all</code></td><td>62 derived cases</td><td>Every provider and option value is collected; 56 run in the default image and 6 declare capabilities.</td></tr>
+          <tr><td><code>matrix-all</code></td><td>61 derived cases</td><td>Every provider and option value is collected; 55 run in the default image and 6 declare capabilities.</td></tr>
           <tr><td><code>compilers</code></td><td>GCC 14 + Clang 20</td><td>Each runs its applicable complete matrix and the installed three-package chain with the matching OpenMP runtime.</td></tr>
           <tr><td><code>boilerplate</code></td><td>one minimal build</td><td>Example UX remains valid without carrying infrastructure test profiles.</td></tr>
           <tr><td><code>tula</code></td><td>thirteen CTest cases</td><td>Core, ECSV, CSV streaming, Eigen, nddata, config, filesystem, NetCDF, enum, CLI, and GrPPI behavior pass.</td></tr>
           <tr><td><code>wheel</code></td><td>fresh venv + Conan home</td><td>Installed wheel carries CLI and complete integration data.</td></tr>
           <tr><td><code>downstream</code></td><td>fresh Conan home</td><td>Packaged boilerplate is consumed through the one-command workflow.</td></tr>
-          <tr><td><code>kidscpp</code></td><td>Tula package + 5 CTests + package consumer</td><td>The raw reader and solver pass real-file/numerical regressions; the installed target propagates NetCDF system libraries.</td></tr>
+          <tr><td><code>kidscpp</code></td><td>Tula package + 5 CTests + package consumer</td><td>The raw reader and solver pass real-file/numerical regressions; the installed graph propagates packaged NetCDF headers and libraries.</td></tr>
           <tr><td><code>citlali</code></td><td>Three packages + 6 CTests + package/CLI consumer</td><td>The v4 library and CLI compile through kidscpp; the real-data adapter and installed executable are exercised.</td></tr>
         </tbody>
       </table>
       <div class="note good" style="margin-top:22px">
-        <p><strong>Result:</strong> the clean GCC 13, GCC 14, and Clang 20 devcontainer chains and the Homebrew LLVM 21 macOS chain all pass through the installed Citlali CLI and consumer.</p>
+        <p><strong>Result:</strong> the clean GCC 13, GCC 14, and Clang 20 devcontainer chains pass through the installed Citlali CLI and consumer. The macOS profile now enforces exact Homebrew LLVM 20; rerunning that chain awaits repair of the local versioned keg.</p>
       </div>
     </div>
     <footer class="footer"><span class="source">Sources: root justfile · .devcontainer/logs/*.log</span><span class="slide-number"></span></footer>

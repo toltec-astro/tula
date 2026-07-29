@@ -39,17 +39,17 @@ Conan integration gate.
 
 `just matrix` runs the download-free feature cases as ordinary Pytest
 items. `just matrix-all` also runs Conan and CPM providers. The current
-catalog derives 62 cases:
+catalog derives 61 cases:
 
 - disabled and every enabled provider for each feature;
 - every logging-level value;
 - disabled, Conan, CPM, and system yaml-cpp providers;
 - disabled and CPM csv-parser providers;
 - disabled, Conan, and system NetCDF C providers;
-- disabled, CPM, and system NetCDF C++ providers;
+- disabled, Conan, and system NetCDF C++ providers;
 - disabled and CPM bitmask providers;
 - disabled and CPM meta-enum providers;
-- disabled, Conan, and CPM clipp providers;
+- disabled and CPM clipp providers;
 - disabled, Conan, CPM, and system Eigen providers plus both multithreading
   values;
 - disabled and Conan Spectra, Boost, FFTW, CCfits, and Ceres providers;
@@ -67,7 +67,7 @@ with the matching capability. oneAPI, Intel OpenMP, and MKL threading remain
 capability-gated.
 
 `just gcc14` and `just clang20` are compiler acceptance gates, not reduced
-smoke tests. Each runs the applicable 62-case feature matrix and then creates
+smoke tests. Each runs the applicable 61-case feature matrix and then creates
 Tula, kidscpp, and Citlali in dependency order with the selected compiler.
 The versioned profiles name their compiler executables explicitly, so the
 Conan package identity, generated preset, CMake compiler detection, and
@@ -76,9 +76,9 @@ both `libomp-20-dev` and `clang-tools-20`; the latter supplies
 `clang-scan-deps` for CMake's C++20 module-dependency scan.
 
 The macOS package-chain gate uses `macos-brew-llvm-debug`. The profile obtains
-the compiler from `brew --prefix llvm`, records Conan's `clang`/`libc++`
-identity, prepends the same toolchain to `PATH`, and pins dependency tool
-requirements to CMake 3.31.12. It also exports
+the compiler from `brew --prefix llvm@20`, rejects any detected major other
+than 20, records Conan's `clang`/`libc++` identity, prepends the same toolchain
+to `PATH`, and pins dependency tool requirements to CMake 3.31.12. It also exports
 `CMAKE_POLICY_VERSION_MINIMUM=3.5` for third-party recipes that invoke a host
 CMake 4 executable. This is intentionally not an AppleClang test. System
 NetCDF include and link directories come from `nc-config` and
@@ -99,18 +99,19 @@ Measured in the Ubuntu 24.04 ARM64 dev container and on ARM64 macOS on
 | `just citlali` | GNU 13.3.0 | Package-chain gate | GNU OpenMP passed | Tula 13 + kidscpp 5 + Citlali 6 CTests, CLI, and all `test_package` consumers passed from a clean Conan home |
 | `just gcc14` | GNU 14.2.0 | 55 passed, 6 capability-skipped | GNU OpenMP passed | Tula 13 + kidscpp 5 + Citlali 6 CTests and all `test_package` consumers passed |
 | `just clang20` | Clang 20.1.2 | 55 passed, 6 capability-skipped | LLVM OpenMP passed | Tula 13 + kidscpp 5 + Citlali 6 CTests and all `test_package` consumers passed |
-| macOS package chain | Homebrew Clang 21.1.4 | Package-chain gate | Homebrew libomp passed | Tula 13 + kidscpp 5 + Citlali 6 CTests, CLI, and all consumers passed; AppleClang was not invoked |
+| macOS package chain | Homebrew LLVM 20 required | Package-chain gate pending | Homebrew libomp | Current stale `llvm@20` prefix resolves to 21.1.4 and is rejected before graph resolution |
 
 The six skips are deliberate alternate-image cases: four oneMKL/threading
 cases, the Intel OpenMP profile, and the other compiler family's OpenMP
-runtime. The catalog still collects all 62 cases.
+runtime. The catalog still collects all 61 cases.
 
 ## Package smoke acceptance
 
 `just boilerplate` builds the minimal example with its Conan-backed logging
 default. `just tula` uses the feature defaults owned by the Tula recipe:
-Conan-backed logging, yaml-cpp, clipp, and Eigen; CPM-backed csv-parser,
-bitmask, meta-enum, and GrPPI; and system perflibs and NetCDF C/C++. It runs
+Conan-backed logging, yaml-cpp, and Eigen; CPM-backed clipp, csv-parser,
+bitmask, meta-enum, and GrPPI; system perflibs; and Conan-backed NetCDF C/C++.
+It runs
 thirteen CTest cases: core header smoke,
 ECSV core/header, Eigen utilities, Eigen-backed nddata, ECSV typed tables,
 streaming CSV-to-ECSV loading, FlatConfig, YamlConfig, and filename/filesystem

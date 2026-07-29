@@ -42,7 +42,7 @@
 - [x] Port FlatConfig and YamlConfig behavior tests using existing feature
   targets rather than inventing package-less resolver entries.
 - [x] Port filename/filesystem behavior tests on the C++23 standard library.
-- [x] Add separate NetCDF C Conan/system and C++ CPM/system feature contracts.
+- [x] Add separate NetCDF C Conan/system and C++ Conan/system feature contracts.
 - [x] Verify all six NetCDF provider cases on GCC 13.
 - [x] Port and expand the Tula NetCDF behavior test.
 - [x] Add pinned bitmask and meta-enum CPM features and all four matrix cases.
