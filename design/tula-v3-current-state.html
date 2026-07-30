@@ -2246,6 +2246,111 @@ grppi:
     <footer class="footer"><span class="source">Source: tula_cmake/design/{VERTICAL_SLICE,RESEARCH,DECISIONS}.md</span><span class="slide-number"></span></footer>
   </section>
 
+  <section class="slide" data-section="Spack experiment">
+    <header class="slide-header">
+      <div><div class="section">Native package-graph experiment</div><h2>Spack resolves the first-party and external graph without a second option language</h2></div>
+    </header>
+    <div class="body">
+      <div class="diagram-chain">
+        <div class="diagram-node package"><span class="diagram-owner">Root</span><strong><code>tula-downstream</code></strong><p>One native spec owns direct and transitive constraints.</p><div class="artifact-list"><span class="artifact">libB flavor</span><span class="artifact">^libA flavor</span><span class="artifact">^perflibs±openmp</span></div></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node"><span class="diagram-owner">Direct project edge</span><strong><code>tula-boilerplate</code></strong><p>A normal independently installed CMake package.</p><div class="artifact-list"><span class="artifact">TulaBoilerplateConfig.cmake</span></div></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node cmake"><span class="diagram-owner">Transitive policy</span><strong>libA + perflibs + logging</strong><p>Spack merges root constraints with recipe-owned dependency edges.</p></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node conan"><span class="diagram-owner">Concretizer</span><strong><code>spack.lock</code></strong><p>One complete DAG with versions, variants, compilers, externals, and hashes.</p></div>
+      </div>
+      <div class="note good" style="margin-top:24px"><p><strong>Measured:</strong> a downstream constraint changed libA through boilerplate without boilerplate forwarding that option or duplicating a model.</p></div>
+    </div>
+    <footer class="footer"><span class="source">Sources: tula_cmake/examples/spack · design/SPACK_EXPERIMENT.md</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Spack package structure">
+    <header class="slide-header">
+      <div><div class="section">Recipe and source boundaries</div><h2>Logging is a bundle; perflibs is an exported CMake interface package</h2></div>
+    </header>
+    <div class="body">
+      <div class="columns">
+        <pre><span class="cm"># tula_logging/package.py</span>
+<span class="kw">class</span> TulaLogging(BundlePackage):
+  version(<span class="str">"1.0.0"</span>)
+  depends_on(<span class="str">"fmt@9.1.0"</span>)
+  depends_on(<span class="str">"spdlog@1.12.0"</span>)
+
+<span class="cm"># no sources, phases, or target</span></pre>
+        <pre><span class="cm"># tula_perflibs/package.py</span>
+variant(<span class="str">"openmp"</span>, default=True)
+
+<span class="kw">def</span> cmake_args(self):
+  <span class="kw">return</span> [self.define_from_variant(
+    <span class="str">"TULA_PERFLIBS_ENABLE_OPENMP"</span>,
+    <span class="str">"openmp"</span>)]
+
+<span class="cm"># installed target: tula::perflibs</span></pre>
+      </div>
+      <table style="margin-top:24px">
+        <thead><tr><th>Node</th><th>Spack role</th><th>Installed contract</th><th>Reason</th></tr></thead>
+        <tbody>
+          <tr><td><code>tula-logging</code></td><td><code>BundlePackage</code></td><td>None</td><td>Constrains one compatible fmt/spdlog set.</td></tr>
+          <tr><td><code>tula-perflibs</code></td><td><code>CMakePackage</code> + variant</td><td><code>tula::perflibs</code></td><td>Propagates Threads/OpenMP and capability definitions.</td></tr>
+          <tr><td>libA / libB</td><td><code>CMakePackage</code> + value variant</td><td>Generated config headers + targets</td><td>Makes root-selected behavior observable in the binary.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <footer class="footer"><span class="source">Sources: custom API v2 repository under tula_cmake/examples/spack/repository</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Native Spack lifecycle">
+    <header class="slide-header">
+      <div><div class="section">User-visible commands and artifacts</div><h2>The experiment uses Spack directly from abstract root spec to runnable environment view</h2></div>
+    </header>
+    <div class="body">
+      <div class="diagram-chain">
+        <div class="diagram-node user"><span class="diagram-owner">Input</span><strong><code>spack.yaml</code></strong><p>Root spec, develop paths, view, and unification policy.</p></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node conan"><span class="diagram-owner"><code>spack concretize</code></span><strong><code>spack.lock</code></strong><p>Exact compiler, variants, externals, dependency edges, and DAG hashes.</p></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node package"><span class="diagram-owner"><code>spack install</code></span><strong>Package prefixes</strong><p>Separate configure/build/install boundary for every project node.</p></div>
+        <div class="diagram-arrow">→</div>
+        <div class="diagram-node cmake"><span class="diagram-owner">Environment view</span><strong><code>.spack-view/bin</code></strong><p>The selected root executable is exposed without a system installation.</p></div>
+      </div>
+      <div class="columns" style="margin-top:24px">
+        <pre>spack -C config \
+  -C config/devcontainer \
+  -e environments/default \
+  concretize
+
+spack ... install
+spack ... find -lv
+.spack-view/bin/tula_downstream</pre>
+        <div><h3>Acquisition stays native</h3><ul><li><strong>External:</strong> system CMake, Make, fmt, and spdlog are explicit non-buildable nodes.</li><li><strong>Build cache:</strong> an exact concrete spec may be downloaded.</li><li><strong>Source:</strong> the same spec builds when no binary matches.</li><li><strong>Development:</strong> local trees use standard <code>develop</code> entries.</li></ul></div>
+      </div>
+    </div>
+    <footer class="footer"><span class="source">Sources: Spack 1.2.2 environments, spec syntax, packages.yaml, and repository documentation</span><span class="slide-number"></span></footer>
+  </section>
+
+  <section class="slide" data-section="Spack measured result">
+    <header class="slide-header">
+      <div><div class="section">GCC 13 vertical-slice evidence</div><h2>Two environments change direct, transitive, and performance variants independently</h2></div>
+    </header>
+    <div class="body">
+      <table>
+        <thead><tr><th>Environment</th><th>Compiler</th><th>libA (transitive)</th><th>libB (direct)</th><th>Perflibs</th><th>Result</th></tr></thead>
+        <tbody>
+          <tr><td><code>default</code></td><td>GCC 13.3</td><td><code>vanilla</code></td><td><code>fast</code></td><td><code>+openmp</code></td><td class="status done">built + ran</td></tr>
+          <tr><td><code>alternate</code></td><td>GCC 13.3</td><td><code>chocolate</code></td><td><code>safe</code></td><td><code>~openmp</code></td><td class="status done">built + ran</td></tr>
+        </tbody>
+      </table>
+      <div class="columns" style="margin-top:24px">
+        <div class="note good"><p><strong>Proven:</strong> Spack can own the unified project/dependency graph, logging metapackage, system acquisition, and root-controlled transitive configuration without a custom provider manifest.</p></div>
+        <div class="note"><p><strong>Not yet proven:</strong> released Git sources, binary-cache publication, full dependency matrix, incremental development cost, macOS, LLVM 20, and oneAPI/MKL.</p></div>
+      </div>
+      <pre style="margin-top:22px">tula_downstream libA=vanilla   perflibs.openmp=enabled  libB=fast
+tula_downstream libA=chocolate perflibs.openmp=disabled libB=safe</pre>
+    </div>
+    <footer class="footer"><span class="source">Gate: just spack-vertical-slice · Spack 1.2.2 · Ubuntu 24.04 arm64 dev container</span><span class="slide-number"></span></footer>
+  </section>
+
 </main>
 
 <nav class="navbar" aria-label="Presentation navigation">
