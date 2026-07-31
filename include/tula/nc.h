@@ -248,8 +248,18 @@ struct pprint {
                     return;
                 } else {
                     auto buf = getattr<std::vector<T>>(att);
-                    os << " "
-                       << fmt::format("{} ({})", buf, att.getType().getName());
+                    if constexpr (std::is_same_v<T, std::byte>) {
+                        std::vector<int> values;
+                        values.reserve(buf.size());
+                        for (auto value : buf) {
+                            values.push_back(std::to_integer<int>(value));
+                        }
+                        os << " " << fmt::format("{} ({})", values,
+                                                att.getType().getName());
+                    } else {
+                        os << " " << fmt::format("{} ({})", buf,
+                                                att.getType().getName());
+                    }
                     return;
                 }
             },

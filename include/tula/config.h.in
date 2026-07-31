@@ -1,0 +1,15 @@
+#pragma once
+
+#define TULA_VERSION "@PROJECT_VERSION@"
+
+#cmakedefine01 TULA_HAS_LOGGING
+#cmakedefine01 TULA_HAS_YAML
+#cmakedefine01 TULA_HAS_ECSV
+#cmakedefine01 TULA_HAS_EIGEN
+#cmakedefine01 TULA_HAS_NETCDF
+#cmakedefine01 TULA_HAS_ENUM
+#cmakedefine01 TULA_HAS_CLI
+#cmakedefine01 TULA_HAS_PERFLIBS
+#cmakedefine01 TULA_HAS_OPENMP
+#cmakedefine01 TULA_HAS_GRPPI
+#cmakedefine01 TULA_HAS_FITTING

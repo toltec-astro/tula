@@ -1,4 +1,7 @@
 [Bb]uild_*/*
+[Bb]uild-*/
+[Bb]uild-*
+
 [Bb]uild/*
 [Dd]ocs/*
 CMakeCache.*
@@ -386,3 +389,9 @@ test_all_packages_profile
 .tula/
 **/.tula/
 *.egg-info/
+
+# Spack packages are source recipes, not Visual Studio package output.
+!spack_repo/
+!spack_repo/**
+**/__pycache__/
+*.pyc

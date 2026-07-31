@@ -1,0 +1,16 @@
+diff --git a/include/clipp.h b/include/clipp.h
+index 485be27..ac9f58e 100644
+--- a/include/clipp.h
++++ b/include/clipp.h
+@@ -235 +235 @@ template <FunctionalProcedure F, typename... Ts>
+-struct is_callable_impl<F(Ts...), void_t_<typename std::result_of<F(Ts...)>::type > > : std::true_type {};
++struct is_callable_impl<F(Ts...), void_t_<typename std::invoke_result<F, Ts...>::type > > : std::true_type {};
+@@ -287 +287 @@ struct invoke_result {
+-    using type = typename std::result_of<Fn(Args...)>::type; // Deprecated in c++17; removed in c++20.
++    using type = typename std::invoke_result<Fn, Args...>::type;
+@@ -300 +300 @@ check_is_callable(int) -> decltype(
+-        std::is_same<Ret,typename std::result_of<Fn(Args...)>::type>::value>{} );
++        std::is_same<Ret,typename std::invoke_result<Fn, Args...>::type>::value>{} );
+@@ -316 +316 @@ check_is_callable_without_arg(int) -> decltype(
+-        std::is_same<Ret,typename std::result_of<Fn>::type>::value>{} );
++        std::is_same<Ret,typename std::invoke_result<Fn>::type>::value>{} );

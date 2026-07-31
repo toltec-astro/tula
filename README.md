@@ -1,56 +1,90 @@
 # Tula 3.1
 
-Tula is the shared C++ utility package for TolTEC. The `v3.x` branch uses the
-Conan 2 package contract supplied by `tula-cmake/3.1.0`.
+Tula is the shared C++ utility library for TolTEC software. On the
+`v3.x_spack` branch it is an ordinary CMake package with an owned Spack recipe.
+TulaCMake supplies reusable build conventions; Spack supplies the concrete
+dependency graph.
 
-The active infrastructure features are:
+## Public contract
 
-```text
-logging
-└── meta-feature: fmt + spdlog
+Tula is component-based. Consumers request and link only the cohesive modules
+they use:
 
-perflibs
-└── Threads + optional OpenMP + optional oneMKL
+```cmake
+find_package(tula 3.1 CONFIG REQUIRED COMPONENTS ecsv)
+target_link_libraries(my_target PRIVATE tula::ecsv)
 ```
 
-`logging` may be disabled or acquired from Conan, CPM, or the system. Every
-enabled mode produces `tula::logging`. `perflibs` is disabled or system-resolved
-and produces `tula::perflibs`.
+The accepted module names and their transitive dependency graph are defined in
+[design/COMPONENTS.md](design/COMPONENTS.md). There is no all-features
+umbrella target.
 
-Build from this repository with:
+Third-party adapters use a separate, provider-faithful namespace:
 
-```sh
-./build
+```cmake
+find_package(TulaYamlCpp CONFIG REQUIRED)
+target_link_libraries(my_target PRIVATE tula_deps::yaml_cpp)
 ```
 
-The launcher obtains the pinned `tula_cmake` CLI from its GitHub release tag.
-The CLI runs Conan install, reads the generated CMake preset, configures, and
-builds. In the multi-repository development workspace:
+These targets normalize CMake discovery without claiming a higher-level API.
+Tula components remain under `tula::*`.
 
-```sh
-TULA_CMAKE_DEV_PROJECT=../tula_cmake ./build
+The generated `<tula/config.h>` records enabled capabilities as
+`TULA_HAS_*` macros. It does not record whether Spack used an external,
+source build, or binary cache.
+
+## Spack package
+
+The decentralized repository is `spack_repo/toltec/tula`. Its recipe owns:
+
+- source versions;
+- capability variants;
+- conditional dependency edges;
+- mapping variants to ordinary CMake options; and
+- package test execution.
+
+Provider adapters shared by TolTEC projects live in TulaCMake's Spack
+repository. Tula's recipe depends on those packages conditionally; project
+CMake does not fetch sources.
+
+## Development
+
+From the workspace dev container:
+
+```console
+cd /workspaces/cpp
+spack -e tula_cmake/environments/integration/tula_ecsv/gcc14 \
+  install --test=all --overwrite tula
+spack -e tula_cmake/environments/integration/tula_ecsv/llvm20 \
+  install --test=all --overwrite tula
 ```
 
-The release package declares its normal provider choices in `conanfile.py`;
-users can override them with Conan profiles or `./build --option NAME=VALUE`.
+The current ECSV slice is measured with GCC 14 and LLVM/Clang 20, both C++23.
+It runs ten Tula tests, an installed ECSV component consumer, a dependency-only
+adapter consumer, and a missing-component rejection fixture.
 
-## Distribution boundary
+The `perflibs` component is measured separately with OpenMP enabled and
+disabled under both compilers. Consumers request it explicitly:
 
-Tula no longer embeds `tula_cmake` as a Git submodule. Conan resolves the
-versioned `tula-cmake/3.1.0` Python-require from the configured TolTEC remote.
-The boilerplate and downstream examples are owned by the separate
-`tula_cmake` repository.
-
-The package publishes the CMake target `tula::headers`. Its `test_package`
-compiles an independent consumer of that installed target after every
-`conan create`. Header-only CPM dependencies without Conan packages are
-included in Tula's installed header closure; normal Conan dependencies remain
-explicit transitive package edges.
-
-Run the complete workspace acceptance from the workspace root:
-
-```sh
-just all
+```cmake
+find_package(tula 3.1 CONFIG REQUIRED COMPONENTS perflibs)
+target_link_libraries(my_target PRIVATE tula::perflibs)
 ```
 
-The Conan 1/CMake production sources under `../refs` remain read-only.
+The generated config reports `TULA_HAS_PERFLIBS` and `TULA_HAS_OPENMP`;
+adapter-specific facts remain in `<tula_perflibs/config.h>`.
+
+Run that complete acceptance surface with:
+
+```console
+cd ../tula_cmake
+just tula-component-matrix
+just tula-perflibs-matrix
+just tula-enum-cli-matrix
+just tula-netcdf-matrix
+just tula-grppi-matrix
+just tula-fitting-matrix
+```
+
+The preserved Conan implementation remains on its baseline branch and in the
+workspace archive. `refs/` is read-only evidence, never a build input.

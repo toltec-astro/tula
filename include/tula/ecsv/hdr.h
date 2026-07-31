@@ -181,10 +181,10 @@ struct formatter<tula::ecsv::ECSVColumn>
         auto spec = spec_handler();
         switch (spec) {
         case 's': {
-            return format_to(it, "{}({})", col.name, col.datatype);
+            return fmt::format_to(it, "{}({})", col.name, col.datatype);
         }
         case 'l': {
-            return format_to(
+            return fmt::format_to(
                 it, "ECSVColumn(name={}, dtype={}, unit={}, description={})",
                 col.name, col.datatype, col.unit, col.description);
         }
@@ -198,7 +198,7 @@ struct formatter<tula::ecsv::ECSVHeader>
     template <typename FormatContext>
     auto format(const tula::ecsv::ECSVHeader &hdr, FormatContext &ctx) const {
         auto it = ctx.out();
-        return format_to(it, "ECSVHeader(ncols={})", hdr.cols().size());
+        return fmt::format_to(it, "ECSVHeader(ncols={})", hdr.cols().size());
     }
 };
 } // namespace fmt

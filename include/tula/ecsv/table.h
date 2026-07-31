@@ -565,7 +565,7 @@ struct formatter<tula::ecsv::ECSVHeaderView>
     template <typename FormatContext>
     auto format(const tula::ecsv::ECSVHeaderView &hdr, FormatContext &ctx) const {
         auto it = ctx.out();
-        return format_to(it, "ECSVHeaderView(ncols={})", hdr.size());
+        return fmt::format_to(it, "ECSVHeaderView(ncols={})", hdr.size());
     }
 };
 
@@ -576,7 +576,8 @@ struct formatter<tula::ecsv::ArrayData<T, vs...>>
     auto format(const tula::ecsv::ArrayData<T, vs...> &array_data,
                 FormatContext &ctx) const {
         auto it = ctx.out();
-        return format_to(it, "ECSVArrayData(ncols={})", array_data.size());
+        return fmt::format_to(it, "ECSVArrayData(ncols={})",
+                              array_data.size());
     }
 };
 
@@ -587,7 +588,7 @@ struct formatter<tula::ecsv::ColDataRef<Ts...>>
     auto format(const tula::ecsv::ColDataRef<Ts...> &colref,
                 FormatContext &ctx) const {
         auto it = ctx.out();
-        return format_to(it, "ECSVColRef(name={})", colref.col.name);
+        return fmt::format_to(it, "ECSVColRef(name={})", colref.col.name);
     }
 };
 
@@ -598,8 +599,8 @@ struct formatter<tula::ecsv::ECSVDataLoader<Ts...>>
     auto format(const tula::ecsv::ECSVDataLoader<Ts...> &loader,
                 FormatContext &ctx) {
         auto it = ctx.out();
-        return format_to(it, "ECSVDataLoader(n_cols={})",
-                         loader.get_ref_index().size());
+        return fmt::format_to(it, "ECSVDataLoader(n_cols={})",
+                              loader.get_ref_index().size());
     }
 };
 
@@ -609,7 +610,8 @@ struct formatter<tula::ecsv::ECSVTable>
     template <typename FormatContext>
     auto format(const tula::ecsv::ECSVTable &tbl, FormatContext &ctx) const {
         auto it = ctx.out();
-        return format_to(it, "ECSVTable(n_cols={})", tbl.header().size());
+        return fmt::format_to(it, "ECSVTable(n_cols={})",
+                              tbl.header().size());
     }
 };
 } // namespace fmt

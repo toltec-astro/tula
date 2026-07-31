@@ -1,0 +1,58 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+if(@TULA_ENABLE_LOGGING@)
+    find_dependency(TulaLogging CONFIG)
+endif()
+if(@TULA_ENABLE_PERFLIBS@)
+    find_dependency(TulaPerflibs CONFIG)
+endif()
+if(@TULA_ENABLE_EIGEN@)
+    find_dependency(TulaEigen3 CONFIG)
+endif()
+if(@TULA_ENABLE_YAML@)
+    find_dependency(TulaYamlCpp CONFIG)
+endif()
+if(@TULA_ENABLE_ECSV@)
+    find_dependency(TulaCsvParser CONFIG)
+endif()
+if(@TULA_ENABLE_ENUM@)
+    find_dependency(TulaBitmask CONFIG)
+    find_dependency(TulaMetaEnum CONFIG)
+endif()
+if(@TULA_ENABLE_NETCDF@)
+    find_dependency(TulaNetcdfCxx4 CONFIG)
+endif()
+if(@TULA_ENABLE_CLI@)
+    find_dependency(TulaClipp CONFIG)
+endif()
+if(@TULA_ENABLE_GRPPI@)
+    find_dependency(TulaGrppi CONFIG)
+endif()
+if(@TULA_ENABLE_FITTING@)
+    find_dependency(Ceres 2.2 CONFIG)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/tulaTargets.cmake")
+
+foreach(
+        _tula_component
+        core
+        logging
+        yaml
+        ecsv
+        eigen
+        netcdf
+        enum
+        cli
+        perflibs
+        grppi
+        fitting)
+    if(TARGET "tula::${_tula_component}")
+        set("tula_${_tula_component}_FOUND" TRUE)
+    endif()
+endforeach()
+
+check_required_components(tula)
+unset(_tula_component)

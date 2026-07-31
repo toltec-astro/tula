@@ -12,6 +12,9 @@
 #include <tula/formatter/duration.h>
 #include <tula/logging.h>
 #endif
+#if TULA_HAS_PERFLIBS
+#include <tula_perflibs/config.h>
+#endif
 
 #include <iostream>
 #include <string_view>
@@ -20,8 +23,8 @@
 int main()
 {
     static_assert(std::string_view{TULA_VERSION} == "3.1.0");
-    std::cout << "logging provider: " << TULA_LOGGING_PROVIDER << '\n';
-    std::cout << "perflibs provider: " << TULA_PERFLIBS_PROVIDER << '\n';
+    std::cout << "logging=" << TULA_HAS_LOGGING << '\n';
+    std::cout << "perflibs.openmp=" << TULA_HAS_OPENMP << '\n';
 
 #if TULA_HAS_LOGGING
     const std::vector<int> values{1, 2, 3};
@@ -31,6 +34,7 @@ int main()
 
 #if TULA_HAS_PERFLIBS
     static_assert(TULA_PERFLIBS_HAS_THREADS == 1);
+    static_assert(TULA_HAS_OPENMP == TULA_PERFLIBS_HAS_OPENMP);
 #endif
     return 0;
 }
