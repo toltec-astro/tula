@@ -2,6 +2,8 @@
 
 #include <sstream>
 #include <string>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -34,6 +36,12 @@ int main()
     }
 
     auto table = ECSVTable(header);
+    static_assert(std::is_lvalue_reference_v<
+                  decltype(std::as_const(table).header_view())>);
+    static_assert(
+        std::is_lvalue_reference_v<decltype(std::as_const(table).header())>);
+    static_assert(
+        std::is_lvalue_reference_v<decltype(std::as_const(table).loader())>);
     std::vector<std::vector<std::string>> rows{
         {"detector-1", "2", "1.25"},
         {"detector-2", "4", "2.50"},
@@ -52,5 +60,12 @@ int main()
     if (table.col<double>("value")(1) != 2.5) {
         return 5;
     }
-    return table.info().find("float64") == std::string::npos ? 6 : 0;
+    std::size_t column_count = 0;
+    for ([[maybe_unused]] const auto &column : table.header_view().cols()) {
+        ++column_count;
+    }
+    if (column_count != 3) {
+        return 6;
+    }
+    return table.info().find("float64") == std::string::npos ? 7 : 0;
 }

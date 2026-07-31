@@ -408,11 +408,11 @@ struct ECSVDataLoader {
         }
     }
 
-    [[nodiscard]] auto get_ref_index() const -> decltype(auto) {
+    [[nodiscard]] auto get_ref_index() const -> const auto & {
         return m_ref_index;
     }
 
-    [[nodiscard]] auto header_view() const -> decltype(auto) {
+    [[nodiscard]] auto header_view() const -> const ECSVHeaderView & {
         return m_hdr_view;
     }
 
@@ -466,11 +466,11 @@ struct ECSVTable {
         : m_hdr{std::move(hdr)}, m_data{table_data_traits::init_value(m_hdr)},
           m_loader{table_data_traits::init_loader(m_hdr, m_data)} {};
 
-    auto header() const -> decltype(auto) { return m_hdr; }
-    auto header_view() const -> decltype(auto) {
+    auto header() const -> const ECSVHeader & { return m_hdr; }
+    auto header_view() const -> const ECSVHeaderView & {
         return m_loader.header_view();
     }
-    auto loader() const -> decltype(auto) { return m_loader; }
+    auto loader() const -> const loader_t & { return m_loader; }
 
     template <internal::ECSVDataType T>
     auto array_data() -> decltype(auto) {

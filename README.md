@@ -63,6 +63,10 @@ The current ECSV slice is measured with GCC 14 and LLVM/Clang 20, both C++23.
 It runs ten Tula tests, an installed ECSV component consumer, a dependency-only
 adapter consumer, and a missing-component rejection fixture.
 
+ECSV table/header/loader accessors expose const references to table-owned
+state. This keeps lazy header-column views valid for the lifetime of the table;
+the behavior is covered both by Tula tests and Tlaloc's real tune-report test.
+
 The `perflibs` component is measured separately with OpenMP enabled and
 disabled under both compilers. Consumers request it explicitly:
 

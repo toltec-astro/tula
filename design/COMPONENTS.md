@@ -96,6 +96,11 @@ The implemented component slice is:
 All Tula components currently required by Kidscpp and Citlali have focused
 package and installed-consumer coverage.
 
+`ECSVTable` owns its header, loader, and header view. Const accessors return
+stable references to that state; callers may iterate lazy column views without
+creating a temporary owner. The Tlaloc real tune-report test exercises this
+borrowed-view lifetime in addition to Tula's focused ECSV tests.
+
 ## 4. Minimal dependency closure
 
 All optional Tula variants default off. Spack `requires()` directives encode
