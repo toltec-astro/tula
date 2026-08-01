@@ -50,7 +50,7 @@ The currently accepted adapter packages are:
 | `TulaYamlCpp` | `tula_deps::yaml_cpp` | yaml-cpp 0.8 |
 | `TulaCsvParser` | `tula_deps::csv_parser` | pinned Jerry-Ma csv-parser |
 | `TulaEigen3` | `tula_deps::eigen3` | Eigen 3.4 |
-| `TulaPerflibs` | `tula_deps::perflibs` | Threads and optional compiler OpenMP |
+| `TulaPerflibs` | `tula_deps::perflibs` | Threads and optional resolved OpenMP runtime |
 | `TulaNetcdfCxx4` | `tula_deps::netcdf_cxx4` | NetCDF C++4 and NetCDF C |
 
 Each package owns a relocatable config file. The CMake-built adapters live
