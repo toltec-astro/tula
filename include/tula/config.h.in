@@ -1,5 +1,7 @@
 #pragma once
 
+#include <tula/version.h>
+
 #define TULA_VERSION "@PROJECT_VERSION@"
 
 #cmakedefine01 TULA_HAS_LOGGING

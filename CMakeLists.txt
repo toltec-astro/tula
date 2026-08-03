@@ -81,6 +81,22 @@ tula_cmake_generate_config_header(
     OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/generated/tula/config.h"
     BUILD_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated"
 )
+set(TULA_PACKAGE_SPEC "" CACHE STRING "Concrete Spack package spec")
+set(TULA_DAG_HASH "" CACHE STRING "Concrete Spack dependency DAG hash")
+set(TOLTECA_BUILD_PROFILE "" CACHE STRING "tolteca_deploy profile identity")
+set(TOLTECA_LOCK_SHA256 "" CACHE STRING "SHA-256 of the deployment Spack lock")
+tula_cmake_generate_version_header(
+    TARGET tula_core
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/generated/tula/version.h"
+    BUILD_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated"
+    NAMESPACE "tula::build"
+    VERSION "${PROJECT_VERSION}"
+    SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
+    PACKAGE_SPEC "${TULA_PACKAGE_SPEC}"
+    DAG_HASH "${TULA_DAG_HASH}"
+    BUILD_PROFILE "${TOLTECA_BUILD_PROFILE}"
+    LOCK_SHA256 "${TOLTECA_LOCK_SHA256}"
+)
 list(APPEND tula_export_targets tula_core)
 
 macro(tula_add_module name)
@@ -191,7 +207,9 @@ install(
     PATTERN "config.h.in" EXCLUDE
 )
 install(
-    FILES "${CMAKE_CURRENT_BINARY_DIR}/generated/tula/config.h"
+    FILES
+        "${CMAKE_CURRENT_BINARY_DIR}/generated/tula/config.h"
+        "${CMAKE_CURRENT_BINARY_DIR}/generated/tula/version.h"
     DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/tula"
 )
 tula_cmake_install_package(
