@@ -1,6 +1,6 @@
 # Tula components and dependency targets
 
-Status: implemented and measured on the unpublished `v3.x_spack` branch.
+Status: implemented and measured on the `v3.x_spack` development branch.
 
 ## 1. Boundary
 

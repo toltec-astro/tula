@@ -47,20 +47,24 @@ Provider adapters shared by TolTEC projects live in TulaCMake's Spack
 repository. Tula's recipe depends on those packages conditionally; project
 CMake does not fetch sources.
 
+`spack_repo/develop.yaml` declares that the `tula` development spec maps to
+this repository root. Location tooling composes that repo-owned declaration;
+it does not duplicate Tula's source path in a central package map.
+
 ## Development
 
-From the workspace dev container:
+From an activated `tolteca_deploy` development location:
 
 ```console
-cd /workspaces/cpp
-spack -e tula_cmake/environments/integration/tula_ecsv/gcc14 \
-  install --test=all --overwrite tula
-spack -e tula_cmake/environments/integration/tula_ecsv/llvm20 \
-  install --test=all --overwrite tula
+cd ../toltec_astro_dev
+source dotbashrc
+just cpp-install
+spack -e "$TOLTECA_CPP_ENV" install --test=root --overwrite tula
 ```
 
-The current ECSV slice is measured with GCC 14 and LLVM/Clang 20, both C++23.
-It runs ten Tula tests, an installed ECSV component consumer, a dependency-only
+Select `development/linux-gcc14` or `development/linux-llvm20` in
+`location.yaml`; both use C++23. The focused ECSV slice runs ten Tula tests,
+an installed ECSV component consumer, a dependency-only
 adapter consumer, and a missing-component rejection fixture.
 
 ECSV table/header/loader accessors expose const references to table-owned
