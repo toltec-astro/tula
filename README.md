@@ -94,10 +94,13 @@ just tula-grppi-matrix
 just tula-fitting-matrix
 ```
 
-The installed `<tula/version.h>` exposes the semantic/source version, Git tree
-state, compiler, C++ standard, package spec, DAG hash, build profile, and lock
-identity. Release recipe tag `v3.1.0` is locked to
-`8fa4cbd3d6978bcf41ef151f1bfeba72e2847085`.
+The installed `<tula/version.h>` exposes artifact identity: semantic/source
+version, Git tree state, compiler, C++ standard, package spec, and DAG hash.
+Deployment profile and lock identity are runtime properties and are not
+embedded in a shareable Tula installation. The current clean-source recipe
+selects immutable commit
+`212717a2844fe1da7c4248dfefdead2ff21e80be`; final tag naming is intentionally
+deferred.
 
 The preserved Conan implementation remains on its baseline branch and in the
 workspace archive. `refs/` is read-only evidence, never a build input.

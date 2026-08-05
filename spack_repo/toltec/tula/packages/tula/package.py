@@ -19,7 +19,7 @@ class Tula(CMakePackage):
     homepage = "https://github.com/toltec-astro/tula"
     git = "https://github.com/toltec-astro/tula.git"
 
-    version("3.1.0", commit="8fa4cbd3d6978bcf41ef151f1bfeba72e2847085")
+    version("3.1.0", commit="212717a2844fe1da7c4248dfefdead2ff21e80be")
 
     for feature, description in (
         ("logging", "logging and fmt-based formatting"),
