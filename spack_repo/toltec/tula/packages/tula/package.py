@@ -1,7 +1,5 @@
 """Spack package for the TolTEC C++ utility modules."""
 
-import os
-
 from spack.package import (
     depends_on,
     on_package_attributes,
@@ -21,7 +19,7 @@ class Tula(CMakePackage):
     homepage = "https://github.com/toltec-astro/tula"
     git = "https://github.com/toltec-astro/tula.git"
 
-    version("3.1.0", tag="v3.1.0")
+    version("3.1.0", commit="8fa4cbd3d6978bcf41ef151f1bfeba72e2847085")
 
     for feature, description in (
         ("logging", "logging and fmt-based formatting"),
@@ -112,14 +110,6 @@ class Tula(CMakePackage):
             [
                 self.define("TULA_PACKAGE_SPEC", str(self.spec)),
                 self.define("TULA_DAG_HASH", self.spec.dag_hash()),
-                self.define(
-                    "TOLTECA_BUILD_PROFILE",
-                    os.environ.get("TOLTECA_BUILD_PROFILE", ""),
-                ),
-                self.define(
-                    "TOLTECA_LOCK_SHA256",
-                    os.environ.get("TOLTECA_LOCK_SHA256", ""),
-                ),
             ]
         )
         return args

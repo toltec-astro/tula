@@ -83,8 +83,6 @@ tula_cmake_generate_config_header(
 )
 set(TULA_PACKAGE_SPEC "" CACHE STRING "Concrete Spack package spec")
 set(TULA_DAG_HASH "" CACHE STRING "Concrete Spack dependency DAG hash")
-set(TOLTECA_BUILD_PROFILE "" CACHE STRING "tolteca_deploy profile identity")
-set(TOLTECA_LOCK_SHA256 "" CACHE STRING "SHA-256 of the deployment Spack lock")
 tula_cmake_generate_version_header(
     TARGET tula_core
     OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/generated/tula/version.h"
@@ -94,8 +92,6 @@ tula_cmake_generate_version_header(
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
     PACKAGE_SPEC "${TULA_PACKAGE_SPEC}"
     DAG_HASH "${TULA_DAG_HASH}"
-    BUILD_PROFILE "${TOLTECA_BUILD_PROFILE}"
-    LOCK_SHA256 "${TOLTECA_LOCK_SHA256}"
 )
 list(APPEND tula_export_targets tula_core)
 
