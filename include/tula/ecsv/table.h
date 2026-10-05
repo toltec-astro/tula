@@ -6,8 +6,13 @@
 #include "../nddata/labelmapper.h"
 #include "hdr.h"
 #include "tula/meta.h"
+#include <charconv>
+#include <cmath>
 #include <functional>
+#include <limits>
+#include <locale>
 #include <ranges>
+#include <sstream>
 #include <stdexcept>
 
 namespace tula::ecsv {
@@ -26,6 +31,62 @@ struct type_traits<tula::ecsv::ECSVHeaderView> {
 namespace tula::ecsv {
 
 namespace internal {
+
+// CSV tokenization already handles quoting. Preserve entire string cells and
+// check every numeric conversion; stream extraction alone neither accepts
+// scientific NaN/Inf portably nor reports failed cells to the table caller.
+template <typename T>
+T parse_cell(std::string_view cell) {
+    if constexpr (std::is_same_v<T, std::string>) {
+        return std::string(cell);
+    } else {
+        const auto begin = cell.find_first_not_of(" \t\r\n");
+        if (begin == std::string_view::npos) {
+            throw std::invalid_argument("empty numeric cell");
+        }
+        cell = cell.substr(begin, cell.find_last_not_of(" \t\r\n") - begin + 1);
+        if constexpr (std::is_same_v<T, bool>) {
+            if (cell == "1" || cell == "True" || cell == "true") return true;
+            if (cell == "0" || cell == "False" || cell == "false") return false;
+            throw std::invalid_argument("invalid boolean cell");
+        } else if constexpr (std::is_integral_v<T>) {
+            if (cell.front() == '+') {
+                cell.remove_prefix(1);
+                if (cell.empty() || cell.front() == '+' || cell.front() == '-') {
+                    throw std::invalid_argument("invalid integer sign");
+                }
+            }
+            T value{};
+            auto result = std::from_chars(cell.data(), cell.data() + cell.size(), value);
+            if (result.ec != std::errc{} || result.ptr != cell.data() + cell.size()) {
+                throw std::invalid_argument("invalid or out-of-range integer cell");
+            }
+            return value;
+        } else {
+            if constexpr (std::is_floating_point_v<T>) {
+                std::string token(cell);
+                for (auto &c : token) {
+                    if (c >= 'A' && c <= 'Z') c += 'a' - 'A';
+                }
+                const bool negative = token.front() == '-';
+                if (token.front() == '+' || negative) token.erase(0, 1);
+                if (token == "nan") {
+                    return std::copysign(std::numeric_limits<T>::quiet_NaN(), negative ? -1 : 1);
+                }
+                if (token == "inf" || token == "infinity") {
+                    return negative ? -std::numeric_limits<T>::infinity() : std::numeric_limits<T>::infinity();
+                }
+            }
+            T value{};
+            std::istringstream stream{std::string(cell)};
+            stream.imbue(std::locale::classic());
+            if (!(stream >> value) || !(stream >> std::ws).eof()) {
+                throw std::invalid_argument("invalid numeric cell");
+            }
+            return value;
+        }
+    }
+}
 
 template <typename Pred>
 requires tula::meta::Invocable<Pred, const ECSVColumn &>
@@ -514,9 +575,13 @@ struct ECSVTable {
                 m_loader.visit_col(
                     col_idx, [&row_idx, &col_idx, &row](auto colref) {
                         using value_t = typename decltype(colref)::value_t;
-                        value_t value;
-                        std::istringstream(row.at(col_idx)) >> value;
-                        colref.set_value(row_idx, value);
+                        try {
+                            colref.set_value(row_idx, internal::parse_cell<value_t>(row.at(col_idx)));
+                        } catch (const std::invalid_argument &e) {
+                            throw std::runtime_error(fmt::format(
+                                "invalid ECSV cell at row {}, column {}: {}",
+                                row_idx, col_idx, e.what()));
+                        }
                     });
             }
             ++row_idx;
