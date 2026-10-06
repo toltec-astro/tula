@@ -1,297 +1,143 @@
 #pragma once
 
+// Compatibility adapter. New models should use tula/ceres/fit.h and keep
+// their equations independent of optimizer and storage policy.
 #include <Eigen/Core>
-#include <ceres/ceres.h>
-#include <tula/eigen.h>
-#include <tula/formatter/matrix.h>
-#include <tula/logging.h>
-#include <tula/meta.h>
+#include <string_view>
+#include <tula/ceres/fit.h>
+#include <tuple>
+#include <unordered_map>
 
-namespace tula::alg {
-
-namespace ceresfit {
-
-using Eigen::Dynamic;
-using Eigen::Index;
-
-using ceres::AutoDiffCostFunction;
-using ceres::CauchyLoss;
-using ceres::CostFunction;
+namespace tula::alg::ceresfit {
 using ceres::Problem;
 using ceres::Solver;
-using ceres::SubsetManifold;
-
-/// @brief The mode of the evaluation
-/// @var Residual
-///     Evaluate residual.
-/// @var Model
-///     Evaluate model.
-enum class EvalMode { Residual, Model };
-
-/*
-/// @class that wraps a fitter with model interface
-template <typename Fitter>
-struct AsModel {
-    AsModel(Fitter* fitter_): fitter(fitter_) {}
-    template<typename... Args>
-    auto operator () (Args ... args) {
-        return fitter->eval<EvalMode::Model>(FWD(args)...);
-    }
-private:
-    Fitter* fitter;
-};
-*/
-
-/// @brief Defines properties for parameter
-template <typename Scalar = double>
-struct ParamSetting {
-    using OptScalar = std::optional<Scalar>;
-    OptScalar value{std::nullopt};
-    OptScalar fixed{std::nullopt};
-    OptScalar lower_bound{std::nullopt};
-    OptScalar upper_bound{std::nullopt};
-    static auto getbounded(const OptScalar &lower, const OptScalar &upper) {
-        ParamSetting p{};
-        p.lower_bound = lower;
-        p.upper_bound = upper;
-        return p;
-    }
-    static auto getfixed(Scalar value) {
-        ParamSetting p{};
-        p.fixed = value;
-        return p;
-    }
-};
-
-template <typename Scalar = double>
+using Eigen::Dynamic;
+using Eigen::Index;
+using tula::ceres_utils::ParamSetting;
+template <class Scalar = double>
 using ParamSettings =
     std::unordered_map<std::string_view, ParamSetting<Scalar>>;
+enum class EvalMode { Residual, Model };
 
-/// @brief Base class to use to define a model and fit with ceres.
-/// @tparam _NP The number of mode parameters
-/// @tparam _ND_IN The input dimension (number of independant variables) of the
-/// model.
-/// @tparam _ND_OUT The Output dimension of the model.
-/// @tparam _Scalar The numeric type to use.
-template <Index _NP = Dynamic, Index _ND_IN = Dynamic, Index _ND_OUT = Dynamic,
-          typename _Scalar = double>
+template <Index Params = Dynamic, Index Inputs = Dynamic,
+          Index Outputs = Dynamic, class S = double>
 struct Fitter {
-    constexpr static Index NP = _NP;
-    constexpr static Index ND_IN = _ND_IN;
-    constexpr static Index ND_OUT = _ND_OUT;
-    using Scalar = _Scalar;
-    /*
-    using InputType = Eigen::Matrix<Scalar, NP, 1>;
-    using InputDataType = Eigen::Matrix<Scalar, Dynamic, ND>;
-    using InputDataBasisType = Eigen::Matrix<Scalar, Dynamic, 1>;
-    using ValueType = Eigen::Matrix<Scalar, Dynamic, 1>;
-    */
-
-    using InputType = Eigen::Map<const Eigen::Matrix<Scalar, NP, 1>>;
-    Fitter() = default;
-
-    /// @brief Create autodiff cost function by providing number of residuals
-    template <typename Fitter_>
-    static auto set_autodiff_residual(Problem *problem, Scalar *paramblock,
-                                      Fitter_ *fitter) {
-        // setup residual block
-        CostFunction *cost_function =
-            new AutoDiffCostFunction<Fitter_, Dynamic, NP>(fitter, fitter->ny);
-        // problem->AddResidualBlock(cost_function, nullptr, paramblock);
-        problem->AddResidualBlock(cost_function, new CauchyLoss(2.),
-                                  paramblock);
-    }
-
-    /// @brief Create ceres problem by providing parameters
-    template <typename Derived>
-    static auto
-    make_problem(const Eigen::DenseBase<Derived> &params_,
-                 const std::vector<ParamSetting<Scalar>> &settings) {
-        auto &params =
-            const_cast<Eigen::DenseBase<Derived> &>(params_).derived();
-        if constexpr (tula::eigen_utils::is_plain_v<Derived>) {
-            if (auto size = params.size(); size != NP) {
-                params.derived().resize(NP);
-                SPDLOG_TRACE("resize params size {} to {}", size,
-                             params.size());
-            }
-        }
-        // makesure params.data() is continugous up to NP
-        if (params.innerStride() != 1 || params.innerSize() < NP) {
-            throw std::runtime_error(
-                fmt::format("fitter requires params data of size {}"
-                            " in continugous memory",
-                            NP));
-        }
-
-        // default settings make use of params values
-        //         if (settings.size() == 0) {
-        //             settings.resize(NP);
-        //             for (std::size_t i = 0; i < NP; ++i) {
-        //                 settings[i].value = params.coeff(i);
-        //             }
-        //         }
-        // ensure NP param settings if user supplied
-        if (auto size = settings.size(); size != NP) {
-            throw std::runtime_error(fmt::format(
-                "param setting size {} mismatch params size {}", size, NP));
-        }
-
-        // setup problem
-        auto problem = std::make_shared<Problem>();
-        problem->AddParameterBlock(params.data(), NP);
-        std::vector<int> fixed_params;
-        // setup params
-        for (Index i = 0; i < NP; ++i) {
-            auto p = settings[i];
-            if (p.lower_bound.has_value()) {
-                problem->SetParameterLowerBound(params.data(), i,
-                                                p.lower_bound.value());
-            }
-            if (p.upper_bound.has_value()) {
-                problem->SetParameterUpperBound(params.data(), i,
-                                                p.upper_bound.value());
-            }
-            if (p.fixed.has_value()) {
-                params.coeffRef(i) = p.fixed.value();
-                fixed_params.push_back(i);
-            }
-            if (p.value.has_value()) {
-                params.coeffRef(i) = p.value.value();
-            }
-        }
-        if (fixed_params.size() > 0) {
-            SubsetManifold *sp =
-                new SubsetManifold(NP, fixed_params);
-            problem->SetManifold(params.data(), sp);
-        }
-        SPDLOG_TRACE("params init values: {}", params);
-        SPDLOG_TRACE("fixed params: {}", fixed_params);
-        return std::make_pair(problem, params.data());
-    }
+  static_assert(Params > 0, "Ceres parameter count must be static");
+  static_assert(std::is_same_v<S, double>, "Ceres parameters are double");
+  static constexpr Index NP = Params, ND_IN = Inputs, ND_OUT = Outputs;
+  using Scalar = S;
+  using InputType = Eigen::Map<const Eigen::Matrix<Scalar, NP, 1>>;
 };
 
-template <typename Fitter_, typename DerivedA, typename DerivedB,
-          typename DerivedC, typename DerivedD>
-auto fit(const Eigen::DenseBase<DerivedA> &xdata_,
-         const Eigen::DenseBase<DerivedB> &ydata_,
-         const Eigen::DenseBase<DerivedC> &yerr_,
-         Eigen::DenseBase<DerivedD> const &params_,
-         const ParamSettings<typename Fitter_::Scalar> &param_settings = {}) {
-    Eigen::DenseBase<DerivedD> &params =
-        const_cast<Eigen::DenseBase<DerivedD> &>(params_);
-    auto &xdata = xdata_.derived();
-    auto &ydata = ydata_.derived();
-    auto &yerr = yerr_.derived();
-    // make sure the data are continuous
-    if (!(tula::eigen_utils::is_contiguous(xdata) &&
-          tula::eigen_utils::is_contiguous(ydata) &&
-          tula::eigen_utils::is_contiguous(yerr) &&
-          tula::eigen_utils::is_contiguous(params))) {
-        throw std::runtime_error("fit does not work with non-continugous data");
+namespace detail {
+template <class Derived>
+auto pack(const Eigen::DenseBase<Derived>& data) {
+  std::vector<double> result;
+  for (Index col = 0; col < data.cols(); ++col)
+    for (Index row = 0; row < data.rows(); ++row) {
+      const auto value = data.derived().coeff(row, col);
+      if constexpr (requires {
+                      value.real();
+                      value.imag();
+                    }) {
+        result.push_back(value.real());
+        result.push_back(value.imag());
+      } else
+        result.push_back(value);
     }
-    // construct Fitter
-    auto fitter = new Fitter_();
-    // create settings
-    std::vector<ParamSetting<typename Fitter_::Scalar>> settings(Fitter_::NP);
-    for (std::size_t i = 0; i < Fitter_::NP; ++i) {
-        auto name = Fitter_::param_names[i];
-        // SPDLOG_TRACE("check settings for param {} {}", i, name);
-        if (auto it = param_settings.find(name); it != param_settings.end()) {
-            // SPDLOG_TRACE("found runtime settings for param {}", name);
-            settings[i] = it->second;
-        } else if (auto it = Fitter_::param_settings.find(name);
-                   it != Fitter_::param_settings.end()) {
-            // SPDLOG_TRACE("found static settings for param {}", name);
-            settings[i] = it->second;
-        }
-        // SPDLOG_TRACE("param settings: name={} value={} fixed={} "
-        //                          "lower_bound={} upper_bound={}",
-        //                          name, settings[i].value, settings[i].fixed,
-        //                          settings[i].lower_bound,
-        //                          settings[i].upper_bound);
-    }
-    // create problem
-    auto [problem, paramblock] =
-        Fitter_::make_problem(params.derived(), settings);
-    // setup inputs
-    SPDLOG_TRACE("input xdata{}", xdata);
-    SPDLOG_TRACE("input ydata{}", ydata);
-    SPDLOG_TRACE("input yerr{}", yerr);
-    // find out scalar size ratio
-    constexpr auto xscalar_ratio =
-        sizeof(typename std::decay_t<decltype(xdata)>::Scalar) /
-        sizeof(typename Fitter_::Scalar);
-    constexpr auto yscalar_ratio =
-        sizeof(typename std::decay_t<decltype(ydata)>::Scalar) /
-        sizeof(typename Fitter_::Scalar);
-    SPDLOG_TRACE("data cast size ratio: x {}, y {}", xscalar_ratio,
-                 yscalar_ratio);
+  return result;
+}
+} // namespace detail
 
-    fitter->nx = xdata.size() * xscalar_ratio;
-    fitter->ny = ydata.size() * yscalar_ratio;
-
-    fitter->xdata =
-        reinterpret_cast<const typename Fitter_::Scalar *>(xdata.data());
-    fitter->ydata =
-        reinterpret_cast<const typename Fitter_::Scalar *>(ydata.data());
-    fitter->yerr =
-        reinterpret_cast<const typename Fitter_::Scalar *>(yerr.data());
-
-    // setup residuals
-    Fitter_::set_autodiff_residual(problem.get(), paramblock, fitter);
-
-    SPDLOG_TRACE("initial params {}",
-                 tula::fmt_utils::pprint(paramblock, Fitter_::NP));
-    SPDLOG_TRACE("xdata{}", tula::fmt_utils::pprint(fitter->xdata, fitter->nx));
-    SPDLOG_TRACE("ydata{}", tula::fmt_utils::pprint(fitter->ydata, fitter->ny));
-    SPDLOG_TRACE("yerr{}", tula::fmt_utils::pprint(fitter->yerr, fitter->ny));
-
-    // do the fit
-    Solver::Options options;
-    options.linear_solver_type = ceres::DENSE_QR;
-    // options.use_inner_iterations = true;
-    // options.minimizer_progress_to_stdout = true;
-    options.logging_type = ceres::SILENT;
-    Solver::Summary summary;
-    ceres::Solve(options, problem.get(), &summary);
-
-    SPDLOG_TRACE("{}", summary.BriefReport());
-    SPDLOG_TRACE("fitted paramblock {}",
-                 tula::fmt_utils::pprint(paramblock, Fitter_::NP));
-    SPDLOG_TRACE("fitted params {}", params.derived());
-    return std::make_tuple(summary.termination_type == ceres::CONVERGENCE,
-                           std::move(summary));
+template <class Model, class X, class Y, class E, class P>
+auto fit(const X& x, const Y& y, const E& error, P&& parameters,
+         const ParamSettings<typename Model::Scalar>& overrides = {},
+         const Solver::Options& options = tula::ceres_utils::dense_options(50),
+         tula::ceres_utils::LossOptions loss = {tula::ceres_utils::Loss::cauchy,
+                                                2.}) {
+  static_assert(!std::is_const_v<std::remove_reference_t<P>>,
+                "fit requires mutable parameters");
+  if (parameters.size() != Model::NP || parameters.innerStride() != 1 ||
+      (parameters.rows() != 1 && parameters.cols() != 1))
+    throw std::invalid_argument(
+        "fit needs a contiguous parameter vector of the model's size");
+  if constexpr (Model::ND_IN > 0 && Model::ND_OUT > 0)
+    if (y.size() * Model::ND_IN != x.size() * Model::ND_OUT)
+      throw std::invalid_argument("model input/output shape mismatch");
+  auto xs = detail::pack(x), ys = detail::pack(y), errors = detail::pack(error);
+  if (xs.empty() || ys.empty() || ys.size() != errors.size() ||
+      ys.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+    throw std::invalid_argument("invalid model data or uncertainty shape");
+  for (double e : errors)
+    if (std::isnan(e) || e <= 0)
+      throw std::invalid_argument(
+          "uncertainties must be positive (infinity disables a residual)");
+  for (const auto& [name, setting] : overrides)
+    if (std::find(Model::param_names.begin(), Model::param_names.end(), name) ==
+        Model::param_names.end())
+      throw std::invalid_argument("unknown model parameter: " +
+                                  std::string(name));
+  std::vector<ParamSetting<>> settings(Model::NP);
+  for (Index i = 0; i < Model::NP; ++i) {
+    const auto name = Model::param_names[i];
+    if (auto it = overrides.find(name); it != overrides.end())
+      settings[i] = it->second;
+    else if (auto it = Model::param_settings.find(name);
+             it != Model::param_settings.end())
+      settings[i] = it->second;
+  }
+  Problem problem;
+  tula::ceres_utils::configure_parameters(
+      problem, {parameters.data(), Model::NP}, settings);
+  auto model = std::make_unique<Model>();
+  model->nx = xs.size();
+  model->ny = ys.size();
+  model->xdata = xs.data();
+  model->ydata = ys.data();
+  model->yerr = errors.data();
+  auto cost = std::make_unique<
+      ceres::AutoDiffCostFunction<Model, ceres::DYNAMIC, Model::NP>>(
+      model.get(), static_cast<int>(ys.size()));
+  model.release();
+  // Whole-dataset robustification is not sample-wise outlier rejection.
+  // The new helper supports losses on explicitly chosen residual groups.
+  auto loss_function = tula::ceres_utils::make_loss(loss);
+  problem.AddResidualBlock(cost.get(), loss_function.get(), parameters.data());
+  loss_function.release();
+  cost.release();
+  auto summary = tula::ceres_utils::solve(problem, options);
+  const bool converged = summary.termination_type == ceres::CONVERGENCE;
+  return std::make_tuple(converged, std::move(summary));
 }
 
-template <typename Fitter_, typename DerivedA, typename DerivedB,
-          typename DerivedC>
-void eval(const Eigen::DenseBase<DerivedA> &xdata_,
-          const Eigen::DenseBase<DerivedB> &params_,
-          Eigen::DenseBase<DerivedC> const &ydata_) {
-    auto &xdata = xdata_.derived();
-    auto &params = params_.derived();
-    auto &ydata = const_cast<Eigen::DenseBase<DerivedC> &>(ydata_).derived();
-    // make sure the data are continuous
-    if (!(tula::eigen_utils::is_contiguous(xdata) &&
-          tula::eigen_utils::is_contiguous(params))) {
-        throw std::runtime_error("fit does not work with non-continugous data");
+template <class Model, class X, class P, class Y>
+void eval(const X& x, const P& parameters, Y&& output) {
+  static_assert(!std::is_const_v<std::remove_reference_t<Y>>,
+                "eval requires mutable output");
+  if (parameters.size() != Model::NP)
+    throw std::invalid_argument("model parameter size mismatch");
+  auto xs = detail::pack(x), ps = detail::pack(parameters);
+  using Scalar = typename std::remove_reference_t<Y>::Scalar;
+  constexpr bool complex = requires(Scalar v) {
+    v.real();
+    v.imag();
+  };
+  std::vector<double> ys(output.size() * (complex ? 2 : 1));
+  if constexpr (Model::ND_IN > 0 && Model::ND_OUT > 0)
+    if (output.size() * Model::ND_IN != x.size() * Model::ND_OUT)
+      throw std::invalid_argument("model output shape mismatch");
+  Model model;
+  model.nx = xs.size();
+  model.ny = ys.size();
+  model.xdata = xs.data();
+  model.eval(ps.data(), ys.data());
+  Index n = 0;
+  for (Index col = 0; col < output.cols(); ++col)
+    for (Index row = 0; row < output.rows(); ++row, ++n) {
+      if constexpr (complex)
+        output.coeffRef(row, col) = Scalar{ys[2 * n], ys[2 * n + 1]};
+      else
+        output.coeffRef(row, col) = ys[n];
     }
-    SPDLOG_TRACE("eval model wiht params {}", params);
-    // construct Fitter
-    auto fitter = Fitter_();
-    // find out scalar size ratio
-    constexpr auto xscalar_ratio =
-        sizeof(typename std::decay_t<decltype(xdata)>::Scalar) /
-        sizeof(typename Fitter_::Scalar);
-
-    fitter.nx = xdata.size() * xscalar_ratio;
-
-    fitter.xdata =
-        reinterpret_cast<const typename Fitter_::Scalar *>(xdata.data());
-    fitter.eval(params.data(),
-                reinterpret_cast<typename Fitter_::Scalar *>(ydata.data()));
 }
-
-} // namespace ceresfit
-} // namespace tula::alg
+} // namespace tula::alg::ceresfit

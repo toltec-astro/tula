@@ -1,7 +1,7 @@
 # Tula 3.1
 
 Tula is the shared C++ utility library for TolTEC software. On the
-`v3.x_spack` branch it is an ordinary CMake package with an owned Spack recipe.
+`v3.x` branch it is an ordinary CMake package with an owned Spack recipe.
 TulaCMake supplies reusable build conventions; Spack supplies the concrete
 dependency graph.
 
@@ -18,6 +18,9 @@ target_link_libraries(my_target PRIVATE tula::ecsv)
 The accepted module names and their transitive dependency graph are defined in
 [design/COMPONENTS.md](design/COMPONENTS.md). There is no all-features
 umbrella target.
+
+The [Ceres helper contract](design/CERES.md) describes validated parameter
+blocks, explicit loss grouping, automatic differentiation and solver summaries.
 
 Third-party adapters use a separate, provider-faithful namespace:
 
