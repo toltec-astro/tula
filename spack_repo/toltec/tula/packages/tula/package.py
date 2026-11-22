@@ -56,17 +56,17 @@ class Tula(CMakePackage):
 
     depends_on("cmake@3.25:", type="build")
     depends_on("cxx", type="build")
-    depends_on("tula-cmake@3.2.0", type="build")
-    depends_on("tula-logging@1", when="+logging", type=("build", "link"))
-    depends_on("tula-yaml-cpp@0.8.0", when="+yaml", type=("build", "link"))
+    depends_on("tula-cmake@3.2:3", type="build")
+    depends_on("tula-logging@1.0:1", when="+logging", type=("build", "link"))
+    depends_on("tula-yaml-cpp@1.0:1", when="+yaml", type=("build", "link"))
     depends_on(
-        "tula-csv-parser@2020.06.12",
+        "tula-csv-parser@2020.06.12:",
         when="+ecsv",
         type=("build", "link"),
     )
-    depends_on("tula-eigen3@3.4.0", when="+eigen", type=("build", "link"))
+    depends_on("tula-eigen3@1.0:1", when="+eigen", type=("build", "link"))
     depends_on(
-        "tula-netcdf-cxx4@4.3.1",
+        "tula-netcdf-cxx4@1.0:1",
         when="+netcdf",
         type=("build", "link"),
     )
@@ -84,7 +84,7 @@ class Tula(CMakePackage):
         type=("build", "link"),
     )
     depends_on("tula-grppi", when="+grppi", type=("build", "link"))
-    depends_on("ceres-solver@2.2.0", when="+fitting", type=("build", "link"))
+    depends_on("ceres-solver@2.2.0:2", when="+fitting", type=("build", "link"))
 
     def cmake_args(self) -> list[str]:
         """Map the concrete module closure to strict CMake switches."""
