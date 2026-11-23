@@ -97,7 +97,7 @@ inline void configure_parameters(ceres::Problem& problem,
 }
 
 // One call per explicitly chosen residual group. A loss acts on that group:
-// e.g. one complex sample, or a whole dataset when reproducing a legacy fit.
+// e.g. one complex sample, or a whole dataset.
 template <int Residuals, int Parameters, class Functor>
 ceres::ResidualBlockId add_autodiff(ceres::Problem& problem,
                                     std::span<double> parameters,
