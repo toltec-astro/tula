@@ -1,109 +1,35 @@
-# Tula 3.1
+# Tula
 
-Tula is the shared C++ utility library for TolTEC software. On the
-`v3.x` branch it is an ordinary CMake package with an owned Spack recipe.
-TulaCMake supplies reusable build conventions; Spack supplies the concrete
-dependency graph.
-
-## Public contract
-
-Tula is component-based. Consumers request and link only the cohesive modules
-they use:
+Tula is the shared C++ utility library of the TolTEC software: logging,
+configuration, ECSV tables, Eigen and NetCDF helpers, enums and command lines,
+parallel execution, and Ceres-based fitting. It is a CMake package made of
+components; a project requests the components it uses and builds only their
+dependencies. Spack builds it from the recipe in `spack_repo/toltec/tula`.
 
 ```cmake
 find_package(tula 3.1 CONFIG REQUIRED COMPONENTS ecsv)
 target_link_libraries(my_target PRIVATE tula::ecsv)
 ```
 
-The accepted module names and their transitive dependency graph are defined in
-[design/COMPONENTS.md](design/COMPONENTS.md). There is no all-features
-umbrella target.
+## Documentation
 
-The [Ceres helper contract](design/CERES.md) describes validated parameter
-blocks, explicit loss grouping, automatic differentiation and solver summaries.
+| Guide | Contents |
+| --- | --- |
+| [Components](docs/components.md) | choose, request and link components; capability macros; ECSV tables |
+| [Fitting](docs/fitting.md) | fit caller-defined models with Ceres |
 
-Third-party adapters use a separate, provider-faithful namespace:
-
-```cmake
-find_package(TulaYamlCpp CONFIG REQUIRED)
-target_link_libraries(my_target PRIVATE tula_deps::yaml_cpp)
-```
-
-These targets normalize CMake discovery without claiming a higher-level API.
-Tula components remain under `tula::*`.
-
-The generated `<tula/config.h>` records enabled capabilities as
-`TULA_HAS_*` macros. It does not record whether Spack used an external,
-source build, or binary cache.
-
-## Spack package
-
-The decentralized repository is `spack_repo/toltec/tula`. Its recipe owns:
-
-- source versions;
-- capability variants;
-- conditional dependency edges;
-- mapping variants to ordinary CMake options; and
-- package test execution.
-
-Provider adapters shared by TolTEC projects live in TulaCMake's Spack
-repository. Tula's recipe depends on those packages conditionally; project
-CMake does not fetch sources.
-
-`spack_repo/develop.yaml` declares that the `tula` development spec maps to
-this repository root. Location tooling composes that repo-owned declaration;
-it does not duplicate Tula's source path in a central package map.
+Build conventions, the `tula_deps::*` adapters, recipe rules and the
+acceptance gates are documented in
+[TulaCMake](https://github.com/toltec-astro/tula_cmake).
 
 ## Development
 
-From an activated `tolteca_deploy` development location:
+From an activated `tolteca_deploy` development location that lists this
+checkout as a development source:
 
-```console
-cd ../toltec_astro_dev
-source dotbashrc
-just cpp-install
+```bash
 spack -e "$TOLTECA_CPP_ENV" install --test=root --overwrite tula
 ```
 
-Select `development/linux-gcc14` or `development/linux-llvm20` in
-`location.yaml`; both use C++23. The focused ECSV slice runs ten Tula tests,
-an installed ECSV component consumer, a dependency-only
-adapter consumer, and a missing-component rejection fixture.
-
-ECSV table/header/loader accessors expose const references to table-owned
-state. This keeps lazy header-column views valid for the lifetime of the table;
-the behavior is covered both by Tula tests and Tlaloc's real tune-report test.
-
-The `perflibs` component is measured separately with OpenMP enabled and
-disabled under both compilers. Consumers request it explicitly:
-
-```cmake
-find_package(tula 3.1 CONFIG REQUIRED COMPONENTS perflibs)
-target_link_libraries(my_target PRIVATE tula::perflibs)
-```
-
-The generated config reports `TULA_HAS_PERFLIBS` and `TULA_HAS_OPENMP`;
-adapter-specific facts remain in `<tula_perflibs/config.h>`.
-
-Run that complete acceptance surface with:
-
-```console
-cd ../tula_cmake
-just tula-component-matrix
-just tula-perflibs-matrix
-just tula-enum-cli-matrix
-just tula-netcdf-matrix
-just tula-grppi-matrix
-just tula-fitting-matrix
-```
-
-The installed `<tula/version.h>` exposes artifact identity: semantic/source
-version, Git tree state, compiler, C++ standard, package spec, and DAG hash.
-Deployment profile and lock identity are runtime properties and are not
-embedded in a shareable Tula installation. The current clean-source recipe
-selects immutable commit
-`212717a2844fe1da7c4248dfefdead2ff21e80be`; final tag naming is intentionally
-deferred.
-
-The preserved Conan implementation remains on its baseline branch and in the
-workspace archive. `refs/` is read-only evidence, never a build input.
+The component gates (`just tula-component-matrix` and the other
+`tula-*-matrix` recipes) run from the sibling `tula_cmake` checkout.

@@ -4,6 +4,7 @@
 
 [Bb]uild/*
 [Dd]ocs/*
+!/docs/*.md
 CMakeCache.*
 CMakeFiles/*
 CMakeUserPresets.json
@@ -395,3 +396,9 @@ test_all_packages_profile
 !spack_repo/**
 **/__pycache__/
 *.pyc
+
+### Design records: only these are tracked ###
+/design/*
+!/design/spec.md
+!/design/architecture.md
+!/design/decisions/
